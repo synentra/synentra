@@ -34,20 +34,23 @@ public sealed class CircuitBreaker : ICircuitBreaker
         _config = options?.Value.CircuitBreaker ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        if (_config.Enabled)
+        if (_logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation(
-                "Circuit breaker enabled. FailureThreshold={FailureThreshold}, " +
-                "SamplingWindowSeconds={SamplingWindowSeconds}, " +
-                "OpenDurationSeconds={OpenDurationSeconds}",
-                _config.FailureThreshold,
-                _config.SamplingWindowSeconds,
-                _config.OpenDurationSeconds);
-        }
-        else
-        {
-            _logger.LogInformation(
-                "Circuit breaker disabled by configuration.");
+            if (_config.Enabled)
+            {
+                _logger.LogInformation(
+                    "Circuit breaker enabled. FailureThreshold={FailureThreshold}, " +
+                    "SamplingWindowSeconds={SamplingWindowSeconds}, " +
+                    "OpenDurationSeconds={OpenDurationSeconds}",
+                    _config.FailureThreshold,
+                    _config.SamplingWindowSeconds,
+                    _config.OpenDurationSeconds);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Circuit breaker disabled by configuration.");
+            }
         }
     }
 
@@ -69,7 +72,10 @@ public sealed class CircuitBreaker : ICircuitBreaker
                 if (elapsed >= _config.OpenDurationSeconds)
                 {
                     circuit.State = State.HalfOpen;
-                    _logger.LogInformation("Circuit breaker transitioned to HalfOpen. Host={Host}", host);
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation("Circuit breaker transitioned to HalfOpen. Host={Host}", host);
+                    }
                     return true; // probe request
                 }
                 return false;
@@ -93,7 +99,8 @@ public sealed class CircuitBreaker : ICircuitBreaker
             circuit.FailureCount = 0;
             circuit.WindowStart = DateTime.UtcNow;
 
-            if (previousState is State.Open or State.HalfOpen)
+            if (previousState is (State.Open or State.HalfOpen)
+                && _logger.IsEnabled(LogLevel.Information))
             {
                 _logger.LogInformation(
                     "Circuit breaker transitioned to Closed after a successful request. " +
@@ -122,12 +129,15 @@ public sealed class CircuitBreaker : ICircuitBreaker
 
             circuit.FailureCount++;
 
-            _logger.LogDebug(
-                "Circuit breaker recorded a failure. Host={Host}, " +
-                "FailureCount={FailureCount}, FailureThreshold={FailureThreshold}",
-                host,
-                circuit.FailureCount,
-                _config.FailureThreshold);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "Circuit breaker recorded a failure. Host={Host}, " +
+                    "FailureCount={FailureCount}, FailureThreshold={FailureThreshold}",
+                    host,
+                    circuit.FailureCount,
+                    _config.FailureThreshold);
+            }
 
             if (circuit.FailureCount < _config.FailureThreshold)
                 return;
