@@ -31,20 +31,23 @@ public sealed class AgentRateLimiter : IAgentRateLimiter
         _config = options?.Value.RateLimit ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        if (_config.Enabled)
+        if (_logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation(
-                "Agent rate limiter enabled. Strategy={Strategy}, " +
-                "DefaultRequestsPerMinute={DefaultRequestsPerMinute}, " +
-                "Storage={Storage}",
-                "FixedWindow",
-                _config.DefaultRequestsPerMinute,
-                "InMemory");
-        }
-        else
-        {
-            _logger.LogInformation(
-                "Agent rate limiter disabled by configuration.");
+            if (_config.Enabled)
+            {
+                _logger.LogInformation(
+                    "Agent rate limiter enabled. Strategy={Strategy}, " +
+                    "DefaultRequestsPerMinute={DefaultRequestsPerMinute}, " +
+                    "Storage={Storage}",
+                    "FixedWindow",
+                    _config.DefaultRequestsPerMinute,
+                    "InMemory");
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Agent rate limiter disabled by configuration.");
+            }
         }
     }
 
@@ -70,12 +73,15 @@ public sealed class AgentRateLimiter : IAgentRateLimiter
                 window.Count = 1;
                 window.WindowStartTicks = nowTicks;
 
-                _logger.LogDebug(
-                    "Rate-limit window reset. AgentId={AgentId}, " +
-                    "RequestCount={RequestCount}, Limit={Limit}",
-                    agentId,
-                    window.Count,
-                    _config.DefaultRequestsPerMinute);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        "Rate-limit window reset. AgentId={AgentId}, " +
+                        "RequestCount={RequestCount}, Limit={Limit}",
+                        agentId,
+                        window.Count,
+                        _config.DefaultRequestsPerMinute);
+                }
 
                 return Task.FromResult(true);
             }
@@ -100,12 +106,15 @@ public sealed class AgentRateLimiter : IAgentRateLimiter
 
             window.Count++;
 
-            _logger.LogDebug(
-                "Agent request counted by rate limiter. " +
-                "AgentId={AgentId}, RequestCount={RequestCount}, Limit={Limit}",
-                agentId,
-                window.Count,
-                _config.DefaultRequestsPerMinute);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "Agent request counted by rate limiter. " +
+                    "AgentId={AgentId}, RequestCount={RequestCount}, Limit={Limit}",
+                    agentId,
+                    window.Count,
+                    _config.DefaultRequestsPerMinute);
+            }
 
             return Task.FromResult(true);
         }
