@@ -131,7 +131,7 @@ public class RedisCacheProviderTests
     {
         var sut = CreateSut();
         var value = new Dictionary<string, int> { ["Score"] = 42 };
-        var result = await sut.SetAsync("key1", value);
+        var result = await sut.SetAsync("key1", value, TestContext.Current.CancellationToken);
         result.Should().BeEquivalentTo(value);
         await _db.Received().StringSetAsync(Arg.Any<RedisKey>(), Arg.Any<RedisValue>(), Arg.Any<Expiration>());
     }
@@ -142,7 +142,7 @@ public class RedisCacheProviderTests
         var sut = CreateSut();
         var stored = JsonSerializer.Serialize("cached-result");
         _db.StringGetAsync(Arg.Any<RedisKey>(), Arg.Any<CommandFlags>()).Returns(new RedisValue(stored));
-        var (success, value) = await sut.TryGetValueAsync<string>("key1");
+        var (success, value) = await sut.TryGetValueAsync<string>("key1", TestContext.Current.CancellationToken);
         success.Should().BeTrue();
         value.Should().Be("cached-result");
     }
@@ -152,7 +152,7 @@ public class RedisCacheProviderTests
     {
         var sut = CreateSut();
         _db.StringGetAsync(Arg.Any<RedisKey>(), Arg.Any<CommandFlags>()).Returns(RedisValue.Null);
-        var (success, value) = await sut.TryGetValueAsync<string>("missing");
+        var (success, value) = await sut.TryGetValueAsync<string>("missing", TestContext.Current.CancellationToken);
         success.Should().BeFalse();
         value.Should().BeNull();
     }
