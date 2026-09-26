@@ -227,18 +227,25 @@ public class ProxyMiddleware
             Content = context.Request.Body.Length > 0 ? new StreamContent(context.Request.Body) : null
         };
 
-        // Copy headers, but exclude Aegis-specific ones
+        // Copy headers, but exclude Synentra-specific and restricted ones
         foreach (var header in context.Request.Headers)
         {
-            // Skip headers that must NOT be forwarded
             if (header.Key.Equals(synentraAuthHeaderName, StringComparison.OrdinalIgnoreCase) ||
-                header.Key == "Host" ||                   // Will be set from RequestUri
-                header.Key == "Connection" ||
-                header.Key == "Content-Length")           // Handled by HttpClient
+                header.Key.Equals("Host", StringComparison.OrdinalIgnoreCase) ||
+                header.Key.Equals("Connection", StringComparison.OrdinalIgnoreCase) ||
+                header.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            // Keep all other headers (including Accept, AgentId, etc.)
-            proxyRequest.Headers.TryAddWithoutValidation(header.Key, header.Value.ToString());
+            // Content headers must go to proxyRequest.Content.Headers
+            if (proxyRequest.Content is not null &&
+                header.Key.StartsWith("Content-", StringComparison.OrdinalIgnoreCase))
+            {
+                proxyRequest.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToString());
+            }
+            else
+            {
+                proxyRequest.Headers.TryAddWithoutValidation(header.Key, header.Value.ToString());
+            }
         }
 
         // Optionally inject a real API key (if needed for the target)
