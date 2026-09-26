@@ -498,6 +498,50 @@ public class ProxyMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_ForwardsContentTypeToContentHeaders_WhenBodyExists()
+    {
+        var agentId = Guid.NewGuid();
+        var accessService = Substitute.For<IAgentRequestAccessService>();
+        accessService.GetAgentAsync(agentId, Arg.Any<CancellationToken>())
+            .Returns(new AgentRequestAccessResult(true, new Agent("test", "owner", "hash"), null));
+
+        var rateLimiter = Substitute.For<IAgentRateLimiter>();
+        rateLimiter.IsAllowedAsync(agentId, Arg.Any<CancellationToken>()).Returns(true);
+
+        var circuitBreaker = Substitute.For<ICircuitBreaker>();
+        circuitBreaker.IsAllowed(Arg.Any<string>()).Returns(true);
+
+        var decisionEngine = Substitute.For<IDecisionEngine>();
+        decisionEngine.EvaluateAsync(Arg.Any<string>(), Arg.Any<RequestContext>(), Arg.Any<CancellationToken>())
+            .Returns(DecisionResult.Allow());
+
+        HttpRequestMessage? forwardedRequest = null;
+        var handler = new CaptureRequestHttpMessageHandler(request => forwardedRequest = request, HttpStatusCode.OK, "ok");
+        var httpClient = new HttpClient(handler);
+        _httpClientFactory.CreateClient(Arg.Any<string>()).Returns(httpClient);
+
+        var middleware = BuildMiddleware(_ => Task.CompletedTask);
+        var context = BuildContext("/proxy/http://example.com/api",
+            decisionEngine: decisionEngine, accessService: accessService,
+            rateLimiter: rateLimiter, circuitBreaker: circuitBreaker);
+
+        context.Items["AgentId"] = agentId;
+        context.Request.ContentType = "application/json; charset=utf-8";
+        context.Request.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}"));
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        forwardedRequest.Should().NotBeNull();
+        var requestHeaderNames = forwardedRequest!.Headers.Select(h => h.Key);
+        requestHeaderNames.Should().NotContain(h => h.Equals("Content-Type", StringComparison.OrdinalIgnoreCase));
+        forwardedRequest.Content.Should().NotBeNull();
+        forwardedRequest.Content!.Headers.ContentType.Should().NotBeNull();
+        forwardedRequest.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+        forwardedRequest.Content.Headers.ContentType.CharSet.Should().Be("utf-8");
+    }
+
+    [Fact]
     public async Task InvokeAsync_SuccessfulProxy_CopiesResponseStatusCode()
     {
         var agentId = Guid.NewGuid();
