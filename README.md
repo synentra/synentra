@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="/img/banner.png" alt="Synentra Banner" />
+  <img src="img/banner.png" alt="Synentra Banner" />
 
   <h2>Intent-aware governance for AI agents acting on enterprise APIs</h2>
 
