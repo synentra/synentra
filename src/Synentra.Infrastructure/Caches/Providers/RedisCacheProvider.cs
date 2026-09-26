@@ -27,16 +27,22 @@ public class RedisCacheProvider : ICacheProvider
         var db = _redis.GetDatabase();
         await db.StringSetAsync(
             $"hitl:{key}", 
-            JsonSerializer.Serialize(value), 
+            JsonSerializer.Serialize(value),
             _config.TimeToLive ?? _ttl);
-        _logger.LogInformation("Redis ({Endpoint}) SET {Key}", _config.Endpoint, key);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Redis ({Endpoint}) SET {Key}", _config.Endpoint, key);
+        }
     }
 
     public async Task<object?> GetAsync(object key)
     {
         var db = _redis.GetDatabase();
         var value = await db.StringGetAsync($"hitl:{key}");
-        _logger.LogInformation("Redis ({Endpoint}) GET {Key}", _config.Endpoint, key);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Redis ({Endpoint}) GET {Key}", _config.Endpoint, key);
+        }
         return value.ToString();
     }
 
@@ -44,7 +50,10 @@ public class RedisCacheProvider : ICacheProvider
     {
         var db = _redis.GetDatabase();
         var value = await db.StringGetAsync($"hitl:{key}");
-        _logger.LogInformation("Redis ({Endpoint}) GET {Key}", _config.Endpoint, key);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Redis ({Endpoint}) GET {Key}", _config.Endpoint, key);
+        }
         return JsonSerializer.Deserialize<TItem>(value.ToString());
     }
 
@@ -57,7 +66,10 @@ public class RedisCacheProvider : ICacheProvider
             $"hitl:{key}", 
             serializedValue, 
             _config.TimeToLive ?? _ttl);
-        _logger.LogInformation("Redis ({Endpoint}) SET {Key}", _config.Endpoint, key);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Redis ({Endpoint}) SET {Key}", _config.Endpoint, key);
+        }
         return value;
     }
         
@@ -69,7 +81,10 @@ public class RedisCacheProvider : ICacheProvider
         if (redisValue.HasValue)
         {
             var value = JsonSerializer.Deserialize<TItem>(redisValue.ToString());
-            _logger.LogInformation("Redis ({Endpoint}) GET {Key}", _config.Endpoint, key);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Redis ({Endpoint}) GET {Key}", _config.Endpoint, key);
+            }
             return (true, value);
         }
         return (false, default);
@@ -79,6 +94,9 @@ public class RedisCacheProvider : ICacheProvider
     {
         var db = _redis.GetDatabase();
         await db.KeyDeleteAsync($"hitl:{key}");
-        _logger.LogInformation("Redis ({Endpoint}) DEL {Key}", _config.Endpoint, key);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Redis ({Endpoint}) DEL {Key}", _config.Endpoint, key);
+        }
     }
 }
