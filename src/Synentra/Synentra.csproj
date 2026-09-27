@@ -20,7 +20,11 @@
 		<DebugSymbols>False</DebugSymbols>
 		<DebugType>None</DebugType>
 	</PropertyGroup>
-
+	
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+	  <UseAppHost>false</UseAppHost>
+	</PropertyGroup>
+	
 	<ItemGroup>
 		<InternalsVisibleTo Include="Synentra.UnitTests" />
 	</ItemGroup>
