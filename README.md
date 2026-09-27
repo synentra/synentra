@@ -385,6 +385,7 @@ Useful starting points:
 * [Policy Configuration](https://synentra.io/docs/configuration/policy)
 * [HITL Configuration](https://synentra.io/docs/configuration/hitl)
 * [Observability](https://synentra.io/docs/configuration/observability)
+* [OWASP ASI Compliance Matrix](OWASP-ASI-COMPLIANCE-MATRIX.md)
 
 ## Security
 
