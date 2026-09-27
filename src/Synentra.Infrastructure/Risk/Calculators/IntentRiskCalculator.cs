@@ -1,29 +1,22 @@
+using Microsoft.Extensions.Options;
 using Synentra.Application.Models;
+using Synentra.BuildingBlocks.Configuration.Risk;
 
 namespace Synentra.Infrastructure.Risk.Calculators;
 
 public sealed class IntentRiskCalculator : IRiskCalculator
 {
-    private static readonly IReadOnlyDictionary<string, double> Scores =
-        new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["health_check"] = 0.05,
-            ["safe_read"] = 0.10,
-            ["list"] = 0.10,
-            ["audit"] = 0.20,
-            ["create"] = 0.35,
-            ["safe_write"] = 0.40,
-            ["update"] = 0.40,
-            ["export"] = 0.60,
-            ["configure"] = 0.60,
-            ["bulk_export"] = 0.75,
-            ["bulk_import"] = 0.75,
-            ["admin_action"] = 0.80,
-            ["suspicious"] = 0.85,
-            ["destructive_delete"] = 0.90,
-            ["escalate_privileges"] = 0.95,
-            ["harmful"] = 1.00
-        };
+    private readonly IntentRiskProfileResolver _intentProfiles;
+
+    public IntentRiskCalculator()
+        : this(new IntentRiskProfileResolver(Options.Create(new RiskConfiguration())))
+    {
+    }
+
+    public IntentRiskCalculator(IntentRiskProfileResolver intentProfiles)
+    {
+        _intentProfiles = intentProfiles ?? throw new ArgumentNullException(nameof(intentProfiles));
+    }
 
     public string Name => "IntentRisk";
     public double Weight { get; } = 0.25;
@@ -34,9 +27,7 @@ public sealed class IntentRiskCalculator : IRiskCalculator
 
         var intent = context.Intent;
 
-        var baseScore = Scores.TryGetValue(intent.Label, out var configuredScore)
-            ? configuredScore
-            : 0.85;
+        var baseScore = _intentProfiles.ResolveScore(intent.Label);
 
         var confidenceAdjustment = intent.Status switch
         {

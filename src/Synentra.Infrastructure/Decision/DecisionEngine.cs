@@ -139,7 +139,8 @@ public class DecisionEngine : IDecisionEngine
                 Label = "suspicious",
                 Confidence = 0,
                 Status = IntentClassificationStatus.Unavailable,
-                FailureReason = "Semantic classifier is disabled"
+                FailureReason = "Semantic classifier is disabled",
+                RiskTags = []
             };
         }
 
@@ -154,7 +155,8 @@ public class DecisionEngine : IDecisionEngine
                 {
                     Label = result.Intent,
                     Confidence = result.Confidence,
-                    Status = IntentClassificationStatus.Classified
+                    Status = IntentClassificationStatus.Classified,
+                    RiskTags = result.RiskTags
                 };
             }
 
@@ -168,7 +170,8 @@ public class DecisionEngine : IDecisionEngine
                 OriginalLabel = result.Intent,
                 Label = result.Intent,
                 Confidence = result.Confidence,
-                Status = IntentClassificationStatus.LowConfidence
+                Status = IntentClassificationStatus.LowConfidence,
+                RiskTags = result.RiskTags
             };
         }
         catch (Exception ex)
@@ -180,7 +183,8 @@ public class DecisionEngine : IDecisionEngine
                 Label = "suspicious",
                 Confidence = 0,
                 Status = IntentClassificationStatus.Failed,
-                FailureReason = ex.Message
+                FailureReason = ex.Message,
+                RiskTags = []
             };
         }
     }

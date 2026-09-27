@@ -21,6 +21,10 @@ public class RiskConfigurationTests
 
         config.Weights.Should().NotBeNull();
         config.Weights.Should().BeOfType<RiskWeightsConfiguration>();
+        config.IntentProfiles.Should().NotBeNull();
+        config.IntentProfiles.Should().ContainKey("suspicious");
+        config.DefaultUnknownIntentScore.Should().Be(0.85);
+        config.DefaultUnknownIntentTags.Should().BeEmpty();
     }
 
     [Fact]

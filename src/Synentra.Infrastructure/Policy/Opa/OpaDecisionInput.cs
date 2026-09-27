@@ -62,6 +62,9 @@ public sealed record OpaDecisionInput
 
         [JsonPropertyName("modelVersion")]
         public string? ModelVersion { get; init; }
+
+        [JsonPropertyName("riskTags")]
+        public IReadOnlyCollection<string> RiskTags { get; init; } = Array.Empty<string>();
     }
 
     public sealed record RiskInput
