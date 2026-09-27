@@ -4,8 +4,10 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Synentra.Application.Abstractions.Caches;
 using Synentra.Application.Abstractions.Executions;
+using Synentra.BuildingBlocks.Configuration.Risk;
 using Synentra.BuildingBlocks.Configuration.Semantic;
 using Synentra.Infrastructure.Caches;
+using Synentra.Infrastructure.Risk;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -29,6 +31,7 @@ public sealed class InternalOnnxProvider : ISemanticProvider, IDisposable
     private readonly IModelPackageLoader _loader;
     private readonly ILogger<InternalOnnxProvider> _logger;
     private readonly InternalOnnxConfiguration? _internalConfig;
+    private readonly IntentRiskProfileResolver _intentProfiles;
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
 
     private readonly TaskCompletionSource _initializationTcs =
@@ -48,13 +51,16 @@ public sealed class InternalOnnxProvider : ISemanticProvider, IDisposable
         IOptions<SemanticConfiguration> options,
         ICacheService cacheService,
         IModelPackageLoader loader,
-        ILogger<InternalOnnxProvider> logger)
+        ILogger<InternalOnnxProvider> logger,
+        IntentRiskProfileResolver? intentProfiles = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(cacheService);
 
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _intentProfiles = intentProfiles
+            ?? new IntentRiskProfileResolver(Options.Create(new RiskConfiguration()));
 
         var semanticConfig = options.Value
             ?? throw new InvalidOperationException(
@@ -613,36 +619,9 @@ public sealed class InternalOnnxProvider : ISemanticProvider, IDisposable
             .ToArray();
     }
 
-    private static string[] GetRiskTags(string intent)
+    private string[] GetRiskTags(string intent)
     {
-        return intent switch
-        {
-            "bulk_export" =>
-                ["data_exfiltration"],
-
-            "export" =>
-                ["data_exfiltration"],
-
-            "destructive_delete" =>
-                ["destructive"],
-
-            "soft_delete" =>
-                ["destructive"],
-
-            "admin_action" =>
-                ["privilege_escalation"],
-
-            "escalate_privileges" =>
-                ["privilege_escalation"],
-
-            "harmful" =>
-                ["malicious"],
-
-            "suspicious" =>
-                ["malicious"],
-
-            _ => []
-        };
+        return _intentProfiles.ResolveRiskTags(intent);
     }
 
     private static string ComputeHash(string input)
@@ -673,14 +652,14 @@ public sealed class InternalOnnxProvider : ISemanticProvider, IDisposable
                 $"[{string.Join(",", entry.Value.Dimensions)}]"));
     }
 
-    private static SemanticAnalysisResult CreateFallbackResult(
+    private SemanticAnalysisResult CreateFallbackResult(
         string explanation)
     {
         return new SemanticAnalysisResult
         {
             Intent = FallbackIntent,
             Confidence = DefaultFallbackConfidence,
-            RiskTags = ["malicious"],
+            RiskTags = _intentProfiles.ResolveRiskTags(FallbackIntent),
             FallbackSafe = true,
             Explanation = explanation
         };

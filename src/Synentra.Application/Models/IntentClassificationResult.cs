@@ -14,5 +14,7 @@ public sealed record IntentClassificationResult
 
     public string? FailureReason { get; init; }
 
+    public IReadOnlyCollection<string> RiskTags { get; init; } = Array.Empty<string>();
+
     public IReadOnlyCollection<IntentPrediction> Alternatives { get; init; } = Array.Empty<IntentPrediction>();
 }
