@@ -81,7 +81,8 @@ public class InternalPolicyProvider : IPolicyProvider
                 ["label"] = context.Intent.Label,
                 ["original_label"] = context.Intent.OriginalLabel ?? context.Intent.Label,
                 ["confidence"] = context.Intent.Confidence,
-                ["status"] = context.Intent.Status.ToString()
+                ["status"] = context.Intent.Status.ToString(),
+                ["risk_tags"] = context.Intent.RiskTags
             },
             ["risk"] = new Dictionary<string, object>
             {

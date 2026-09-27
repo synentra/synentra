@@ -4,8 +4,10 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Synentra.Application.Abstractions.Caches;
+using Synentra.BuildingBlocks.Configuration.Risk;
 using Synentra.BuildingBlocks.Configuration.Semantic;
 using Synentra.Infrastructure.Caches;
+using Synentra.Infrastructure.Risk;
 using Synentra.Infrastructure.Semantic.Providers.InternalBert;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -544,7 +546,9 @@ public class InternalOnnxProviderTests
     [InlineData("suspicious", "malicious")]
     public void GetRiskTags_RiskyIntent_ReturnsExpectedTag(string intent, string tag)
     {
-        var result = (string[])InvokePrivate("GetRiskTags", null, intent)!;
+        using var sut = CreateEnabledProvider();
+
+        var result = (string[])InvokePrivate("GetRiskTags", sut, intent)!;
 
         result.Should().Equal(tag);
     }
@@ -552,9 +556,40 @@ public class InternalOnnxProviderTests
     [Fact]
     public void GetRiskTags_UnmappedIntent_ReturnsEmptyArray()
     {
-        var result = (string[])InvokePrivate("GetRiskTags", null, "safe_read")!;
+        using var sut = CreateEnabledProvider();
+
+        var result = (string[])InvokePrivate("GetRiskTags", sut, "safe_read")!;
 
         result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetRiskTags_CustomLabelFromConfiguration_ReturnsConfiguredTags()
+    {
+        var riskConfiguration = new RiskConfiguration
+        {
+            IntentProfiles = new Dictionary<string, IntentRiskProfileConfiguration>
+            {
+                ["customer_data_export"] = new()
+                {
+                    BaseRiskScore = 0.8,
+                    RiskTags = ["data_exfiltration", "pii"]
+                }
+            }
+        };
+
+        var resolver = new IntentRiskProfileResolver(Options.Create(riskConfiguration));
+
+        using var sut = new InternalOnnxProvider(
+            EnabledOptions(),
+            _cacheService,
+            Substitute.For<IModelPackageLoader>(),
+            NullLogger<InternalOnnxProvider>.Instance,
+            resolver);
+
+        var result = (string[])InvokePrivate("GetRiskTags", sut, "customer_data_export")!;
+
+        result.Should().BeEquivalentTo(["data_exfiltration", "pii"]);
     }
 
     [Fact]

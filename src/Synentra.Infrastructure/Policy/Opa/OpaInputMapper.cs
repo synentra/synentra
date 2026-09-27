@@ -34,7 +34,8 @@ public sealed class OpaInputMapper : IOpaInputMapper
                 OriginalLabel = intent.OriginalLabel,
                 Confidence = intent.Confidence,
                 Status = intent.Status.ToString(),
-                ModelVersion = intent.ModelVersion
+                ModelVersion = intent.ModelVersion,
+                RiskTags = intent.RiskTags
             },
             Risk = new OpaDecisionInput.RiskInput
             {

@@ -1,5 +1,8 @@
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Synentra.Application.Models;
+using Synentra.BuildingBlocks.Configuration.Risk;
+using Synentra.Infrastructure.Risk;
 using Synentra.Infrastructure.Risk.Calculators;
 
 namespace Synentra.Infrastructure.UnitTests.Risk.Calculators;
@@ -64,6 +67,43 @@ public class IntentRiskCalculatorTests
 
         // default base 0.85 + classified adjustment 0.0
         res.Score.Should().BeApproximately(0.85, 1e-9);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_UsesConfiguredCustomLabelScore()
+    {
+        var riskConfiguration = new RiskConfiguration
+        {
+            IntentProfiles = new Dictionary<string, IntentRiskProfileConfiguration>
+            {
+                ["tenant_custom_label"] = new() { BaseRiskScore = 0.33 }
+            }
+        };
+
+        var resolver = new IntentRiskProfileResolver(Options.Create(riskConfiguration));
+        var sut = new IntentRiskCalculator(resolver);
+        var ctx = BuildContext("tenant_custom_label", 0.8, IntentClassificationStatus.Classified);
+
+        var res = await sut.CalculateAsync(ctx, CancellationToken.None);
+
+        res.Score.Should().BeApproximately(0.33, 1e-9);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_UnknownLabel_UsesConfiguredDefaultUnknownScore()
+    {
+        var riskConfiguration = new RiskConfiguration
+        {
+            DefaultUnknownIntentScore = 0.61
+        };
+
+        var resolver = new IntentRiskProfileResolver(Options.Create(riskConfiguration));
+        var sut = new IntentRiskCalculator(resolver);
+        var ctx = BuildContext("unmapped_custom_label", 0.8, IntentClassificationStatus.Classified);
+
+        var res = await sut.CalculateAsync(ctx, CancellationToken.None);
+
+        res.Score.Should().BeApproximately(0.61, 1e-9);
     }
 
     [Theory]

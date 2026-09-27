@@ -167,6 +167,8 @@ public static class DependencyInjection
 
     private static IServiceCollection AddRiskScoring(this IServiceCollection services)
     {
+        services.AddSingleton<IntentRiskProfileResolver>();
+
         // Register calculators
         services.AddScoped<IRiskCalculator, MethodRiskCalculator>();
         services.AddScoped<IRiskCalculator, PathRiskCalculator>();
