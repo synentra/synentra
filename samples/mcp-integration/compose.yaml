@@ -1,0 +1,18 @@
+services:
+  mcp-server:
+    build: .
+    ports:
+      - "3001:3001"
+    networks: [agent-net]
+
+  synentra:
+    image: ghcr.io/synentra/synentra:latest
+    ports:
+      - "7080:7080"
+    networks: [agent-net]
+    # Mount your existing Synentra configuration if your deployment requires it.
+    # volumes:
+    #   - ./synentra-config:/app/config:ro
+
+networks:
+  agent-net:
