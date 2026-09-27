@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="img/banner.png" alt="Synentra Banner" />
+  <img src="docs/assets/banner.png" alt="Synentra Banner" />
 
   <h2>Intent-aware governance for AI agents acting on enterprise APIs</h2>
 
@@ -27,7 +27,7 @@
 ## See Synentra in Action
 
 <p align="center">
-  <img src="img/demo.gif" alt="Synentra intent-aware governance demo" width="800" />
+  <img src="docs/assets/demo.gif" alt="Synentra intent-aware governance demo" width="800" />
 </p>
 
 An AI agent sends a request:
@@ -243,7 +243,7 @@ Supported capabilities include:
 
 ## Architecture
 
-![Synentra Architecture](/img/architecture.png)
+![Synentra Architecture](docs/assets/architecture.png)
 
 Each inbound request passes through the Synentra governance pipeline.
 
