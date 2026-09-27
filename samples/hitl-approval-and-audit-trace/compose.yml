@@ -1,8 +1,6 @@
 services:
   synentra:
-    build:
-      context: ../..
-      dockerfile: .docker/Dockerfile
+    image: ghcr.io/synentra/synentra:latest
     container_name: synentra-sample-hitl
     ports:
       - "7082:7080"
