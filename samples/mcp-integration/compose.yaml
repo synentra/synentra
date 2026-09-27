@@ -9,10 +9,10 @@ services:
     image: ghcr.io/synentra/synentra:latest
     ports:
       - "7080:7080"
+    volumes:
+      - ./config/appsettings.json:/app/appsettings.json:ro
+      - ./policies:/app/policies:ro
     networks: [agent-net]
-    # Mount your existing Synentra configuration if your deployment requires it.
-    # volumes:
-    #   - ./synentra-config:/app/config:ro
 
 networks:
   agent-net:
