@@ -10,8 +10,8 @@ using Synentra.BuildingBlocks.Configuration.SecretManagement;
 using Synentra.BuildingBlocks.Configuration.Security;
 using Synentra.BuildingBlocks.Configuration.Semantic;
 using Synentra.BuildingBlocks.Configuration.System;
-using Synentra.BuildingBlocks.Configuration.System.Cors;
 using Synentra.Infrastructure.Persistence.Sqlite;
+using Synentra.Infrastructure.Persistence.PostgreSQL;
 using Synentra.Services;
 using System.Text.Json.Serialization;
 using static OllamaSharp.OllamaApiClient;
@@ -121,6 +121,10 @@ public static class ServiceCollectionExtensions
         {
             case "sqlite":
                 services.AddSqlitePersistenceLayer();
+                break;
+
+            case "postgresql":
+                services.AddPostgreSqlPersistenceLayer();
                 break;
 
             default:
