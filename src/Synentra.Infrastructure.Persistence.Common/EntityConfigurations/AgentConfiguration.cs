@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Synentra.Domain.Agents;
 
-namespace Synentra.Infrastructure.Persistence.Sqlite.EntityConfigurations;
+namespace Synentra.Infrastructure.Persistence.Common.EntityConfigurations;
 
 public class AgentConfiguration : IEntityTypeConfiguration<Agent>
 {
@@ -20,9 +20,7 @@ public class AgentConfiguration : IEntityTypeConfiguration<Agent>
         );
 
         builder.Property(gb => gb.Status)
-            .HasColumnType("TEXT")
             .HasMaxLength(50)
-            .HasConversion(statusConverter)
-            .HasDefaultValue(AgentStatus.Active);
+            .HasConversion(statusConverter);
     }
 }

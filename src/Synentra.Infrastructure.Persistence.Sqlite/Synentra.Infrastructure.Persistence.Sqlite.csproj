@@ -21,4 +21,8 @@
 		<ProjectReference Include="..\Synentra.Infrastructure.Persistence.Common\Synentra.Infrastructure.Persistence.Common.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="EntityConfigurations\" />
+	</ItemGroup>
+
 </Project>
