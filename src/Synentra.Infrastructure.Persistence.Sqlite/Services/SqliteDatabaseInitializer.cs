@@ -1,39 +1,18 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Synentra.Infrastructure.Persistence.Common;
-using Synentra.Infrastructure.Persistence.Common.Exceptions;
+using Synentra.Infrastructure.Persistence.Common.Services;
 using Synentra.Infrastructure.Persistence.Sqlite.Contexts;
 
 namespace Synentra.Infrastructure.Persistence.Sqlite.Services;
 
-public class SqliteDatabaseInitializer : IDatabaseInitializer
+public class SqliteDatabaseInitializer : BaseDatabaseInitializer<SqliteApplicationContext>
 {
-    private readonly IDbContextFactory<SqliteApplicationContext> _contextFactory;
-    private readonly ILogger<SqliteDatabaseInitializer> _logger;
-
     public SqliteDatabaseInitializer(
         IDbContextFactory<SqliteApplicationContext> contextFactory,
         ILogger<SqliteDatabaseInitializer> logger)
+        : base(contextFactory, logger)
     {
-        _contextFactory = contextFactory;
-        _logger = logger;
     }
 
-    public async Task EnsureDatabaseCreatedAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
-            var result = await context.Database.EnsureCreatedAsync(cancellationToken);
-
-            if (result)
-                _logger.LogInformation("Application database created successfully (SQLite).");
-            else
-                _logger.LogInformation("Application database already exists (SQLite).");
-        }
-        catch (Exception ex)
-        {
-            throw new DatabaseInitializerException(ex);
-        }
-    }
+    protected override string GetProviderName() => "SQLite";
 }

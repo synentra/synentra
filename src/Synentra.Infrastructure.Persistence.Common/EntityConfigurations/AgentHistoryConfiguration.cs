@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Synentra.Domain.Agents;
 
-namespace Synentra.Infrastructure.Persistence.Sqlite.EntityConfigurations;
+namespace Synentra.Infrastructure.Persistence.Common.EntityConfigurations;
 
 public class AgentHistoryConfiguration : IEntityTypeConfiguration<AgentHistory>
 {

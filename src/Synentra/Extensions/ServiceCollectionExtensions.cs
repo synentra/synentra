@@ -123,7 +123,7 @@ public static class ServiceCollectionExtensions
                 services.AddSqlitePersistenceLayer();
                 break;
 
-            case "postgresql":
+            case "postgres":
                 services.AddPostgreSqlPersistenceLayer();
                 break;
 
