@@ -30,39 +30,20 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="..\..\LICENSE"
-			  Link="LICENSE"
-			  CopyToOutputDirectory="PreserveNewest"
-			  CopyToPublishDirectory="PreserveNewest"
-			  Pack="true"
-			  PackagePath="" />
+		<None Include="..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="true" PackagePath="" />
 
-		<None Include="..\..\THIRD-PARTY-NOTICES.md"
-			  Link="THIRD-PARTY-NOTICES.md"
-			  CopyToOutputDirectory="PreserveNewest"
-			  CopyToPublishDirectory="PreserveNewest"
-			  Pack="true"
-			  PackagePath="" />
+		<None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="true" PackagePath="" />
 
-		<None Include="..\..\licenses\**\*"
-			  Link="licenses\%(RecursiveDir)%(Filename)%(Extension)"
-			  CopyToOutputDirectory="PreserveNewest"
-			  CopyToPublishDirectory="PreserveNewest"
-			  Pack="true"
-			  PackagePath="licenses\%(RecursiveDir)" />
+		<None Include="..\..\licenses\**\*" Link="licenses\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Pack="true" PackagePath="licenses\%(RecursiveDir)" />
 	</ItemGroup>
 
-	<Target Name="ValidateLicenseFiles"
-        BeforeTargets="Build;Publish;Pack">
+	<Target Name="ValidateLicenseFiles" BeforeTargets="Build;Publish;Pack">
 
-		<Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\LICENSE')"
-		  Text="The repository LICENSE file is missing." />
+		<Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\LICENSE')" Text="The repository LICENSE file is missing." />
 
-		<Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\THIRD-PARTY-NOTICES.md')"
-		  Text="THIRD-PARTY-NOTICES.md is missing." />
+		<Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\THIRD-PARTY-NOTICES.md')" Text="THIRD-PARTY-NOTICES.md is missing." />
 
-		<Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\licenses\MPL-2.0.txt')"
-		  Text="licenses/MPL-2.0.txt is missing." />
+		<Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\licenses\MPL-2.0.txt')" Text="licenses/MPL-2.0.txt is missing." />
 
 	</Target>
 	
@@ -80,6 +61,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Synentra.Infrastructure.Persistence.PostgreSQL\Synentra.Infrastructure.Persistence.PostgreSQL.csproj" />
 		<ProjectReference Include="..\Synentra.Infrastructure.Persistence.Sqlite\Synentra.Infrastructure.Persistence.Sqlite.csproj" />
 		<ProjectReference Include="..\Synentra.Infrastructure\Synentra.Infrastructure.csproj" />
 	</ItemGroup>

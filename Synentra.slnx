@@ -8,6 +8,7 @@
   </Folder>
   <Folder Name="/src/Infrastructure/">
     <Project Path="src/Synentra.Infrastructure.Persistence.Common/Synentra.Infrastructure.Persistence.Common.csproj" Id="7d7a4a3b-4981-4938-8ed1-a66a72b5f037" />
+    <Project Path="src/Synentra.Infrastructure.Persistence.PostgreSQL/Synentra.Infrastructure.Persistence.PostgreSQL.csproj" />
     <Project Path="src/Synentra.Infrastructure.Persistence.Sqlite/Synentra.Infrastructure.Persistence.Sqlite.csproj" Id="95d42591-0f64-4560-a0d8-cd00372b9126" />
     <Project Path="src/Synentra.Infrastructure/Synentra.Infrastructure.csproj" Id="4b8d26af-2fb3-448b-a0af-176761982f70" />
   </Folder>
@@ -23,6 +24,7 @@
   </Folder>
   <Folder Name="/tests/Infrastructure/">
     <Project Path="tests/Synentra.Infrastructure.Persistence.Common.UnitTests/Synentra.Infrastructure.Persistence.Common.UnitTests.csproj" Id="89c474c3-2b52-4fc9-99a7-9c778bf47c5e" />
+    <Project Path="tests/Synentra.Infrastructure.Persistence.PostgreSQL.UnitTests/Synentra.Infrastructure.Persistence.PostgreSQL.UnitTests.csproj" />
     <Project Path="tests/Synentra.Infrastructure.Persistence.Sqlite.UnitTests/Synentra.Infrastructure.Persistence.Sqlite.UnitTests.csproj" Id="2823896b-6cd9-4920-bf55-d445b45b2116" />
     <Project Path="tests/Synentra.Infrastructure.UnitTests/Synentra.Infrastructure.UnitTests.csproj" Id="5de204ff-abea-4981-9c5e-3bf8904b73c0" />
   </Folder>
