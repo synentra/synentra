@@ -1,12 +1,10 @@
 <div align="center">
   <img src="docs/assets/banner.png" alt="Synentra Banner" />
 
-  <h2>Intent-aware governance for AI agents acting on enterprise APIs</h2>
+  <h2>Intent-Aware Runtime Governance for AI Agents</h2>
 
   <p>
-    Synentra sits between autonomous AI agents and your HTTP APIs. It evaluates
-    request context, classifies likely intent, applies policies and risk controls,
-    and allows, blocks, or pauses high-risk actions for human approval.
+  Synentra sits between autonomous AI agents and the APIs and tools they interact with, providing runtime governance and enforcement for every request. It evaluates request context, classifies likely intent, applies policy and risk controls, and allows, denies, or pauses high-risk actions for human approval.
   </p>
 
 [![Build Status][actions-badge]][actions-url]
