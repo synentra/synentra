@@ -4,7 +4,7 @@
   <h2>Intent-Aware Runtime Governance for AI Agents</h2>
 
   <p>
-  Synentra sits between autonomous AI agents and the APIs and tools they interact with, providing runtime governance and enforcement for every request. It evaluates request context, classifies likely intent, applies policy and risk controls, and allows, denies, or pauses high-risk actions for human approval.
+  Synentra™ sits between autonomous AI agents and the APIs and tools they interact with, providing runtime governance and enforcement for every request. It evaluates request context, classifies likely intent, applies policy and risk controls, and allows, denies, or pauses high-risk actions for human approval.
   </p>
 
 [![Build Status][actions-badge]][actions-url]
@@ -503,7 +503,15 @@ Synentra is open source and licensed under the
 
 Some dependencies use other open-source licenses. Their notices and attribution requirements are documented in:
 
-**[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)**
+[**THIRD-PARTY-NOTICES.md**](THIRD-PARTY-NOTICES.md)
+
+## Trademark
+
+Synentra™ and the Synentra logo are trademarks claimed by Amin Ziagham.
+
+The Synentra source code is licensed under the Apache License 2.0. The license does not grant permission to use the Synentra name or logo in a way that implies endorsement, affiliation, sponsorship, or that a modified distribution is an official Synentra product.
+
+See [**TRADEMARKS.md**](TRADEMARKS.md) for trademark usage guidelines.
 
 ## Support Synentra
 
