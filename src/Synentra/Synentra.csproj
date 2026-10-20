@@ -55,15 +55,15 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
 		<PackageReference Include="System.CommandLine" Version="2.0.10" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Synentra.Infrastructure.Persistence.PostgreSQL\Synentra.Infrastructure.Persistence.PostgreSQL.csproj" />
-		<ProjectReference Include="..\Synentra.Infrastructure.Persistence.Sqlite\Synentra.Infrastructure.Persistence.Sqlite.csproj" />
 		<ProjectReference Include="..\Synentra.Infrastructure\Synentra.Infrastructure.csproj" />
+		<ProjectReference Include="..\Synentra.Persistence.PostgreSql\Synentra.Persistence.PostgreSql.csproj" />
+		<ProjectReference Include="..\Synentra.Persistence.Sqlite\Synentra.Persistence.Sqlite.csproj" />
 	</ItemGroup>
 
 	<Target Name="RemoveDevAppSettingsFromPublish" AfterTargets="ComputeFilesToPublish">

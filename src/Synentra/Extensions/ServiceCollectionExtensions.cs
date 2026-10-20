@@ -1,20 +1,17 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
-using Synentra.Application.Abstractions.Versioning;
-using Synentra.BuildingBlocks.Clock;
-using Synentra.BuildingBlocks.Configuration.HumanInTheLoop;
-using Synentra.BuildingBlocks.Configuration.Observability;
-using Synentra.BuildingBlocks.Configuration.Policy;
-using Synentra.BuildingBlocks.Configuration.Risk;
-using Synentra.BuildingBlocks.Configuration.SecretManagement;
-using Synentra.BuildingBlocks.Configuration.Security;
-using Synentra.BuildingBlocks.Configuration.Semantic;
-using Synentra.BuildingBlocks.Configuration.System;
-using Synentra.Infrastructure.Persistence.Sqlite;
-using Synentra.Infrastructure.Persistence.PostgreSQL;
+using Synentra.Application.Common.Versioning;
+using Synentra.Infrastructure.Configuration.Observability;
+using Synentra.Infrastructure.Configuration.Policy;
+using Synentra.Infrastructure.Configuration.SecretManagement;
+using Synentra.Infrastructure.Configuration.Security;
+using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.System;
+using Synentra.Mcp;
+using Synentra.Persistence.PostgreSql;
+using Synentra.Persistence.Sqlite;
 using Synentra.Services;
 using System.Text.Json.Serialization;
-using static OllamaSharp.OllamaApiClient;
 
 namespace Synentra.Extensions;
 
@@ -24,21 +21,15 @@ public static class ServiceCollectionExtensions
     private const string ObservabilityConfigurationName = "Observability";
     private const string SecurityConfigurationName = "Security";
     private const string SemanticConfigurationName = "Semantic";
-    private const string HumanInTheLoopConfigurationName = "HumanInTheLoop";
     private const string PolicyConfigurationName = "Policy";
     private const string SecretManagementConfigurationName = "SecretManagement";
-    private const string RiskConfigurationName = "Risk";
 
     #region Simple registrations
 
-    public static IServiceCollection AddSystemClock(this IServiceCollection services)
-    {
-        services.AddScoped<IClock, SystemClock>();
-        return services;
-    }
     public static IServiceCollection AddSynentraVersion(this IServiceCollection services)
     {
         services.AddSingleton<IVersion, SynentraVersion>();
+        services.AddSingleton<McpSessionRegistry>();
         return services;
     }
 
@@ -48,10 +39,8 @@ public static class ServiceCollectionExtensions
         services.Configure<ObservabilityConfiguration>(configuration.GetSection(ObservabilityConfigurationName));
         services.Configure<SecurityConfiguration>(configuration.GetSection(SecurityConfigurationName));
         services.Configure<SemanticConfiguration>(configuration.GetSection(SemanticConfigurationName));
-        services.Configure<HumanInTheLoopConfiguration>(configuration.GetSection(HumanInTheLoopConfigurationName));
         services.Configure<PolicyConfiguration>(configuration.GetSection(PolicyConfigurationName));
         services.Configure<SecretManagementConfiguration>(configuration.GetSection(SecretManagementConfigurationName));
-        services.Configure<RiskConfiguration>(configuration.GetSection(RiskConfigurationName));
 
         return services;
     }
@@ -60,7 +49,7 @@ public static class ServiceCollectionExtensions
 
     #region Health checks
 
-    public static IServiceCollection AddSynentraHealthChecker(this IServiceCollection services)
+    public static IServiceCollection AddSynentraHealthChecks(this IServiceCollection services)
     {
         services.AddHealthChecks();
         return services;
@@ -120,11 +109,11 @@ public static class ServiceCollectionExtensions
         switch (provider?.ToLowerInvariant())
         {
             case "sqlite":
-                services.AddSqlitePersistenceLayer();
+                services.AddSynentraSqlite(systemConfig.Storage.Database.Providers.Sqlite.ConnectionString);
                 break;
 
             case "postgres":
-                services.AddPostgreSqlPersistenceLayer();
+                services.AddSynentraPostgreSql(systemConfig.Storage.Database.Providers.Postgres.ConnectionString);
                 break;
 
             default:

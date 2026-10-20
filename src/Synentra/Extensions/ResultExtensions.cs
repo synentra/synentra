@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Synentra.BuildingBlocks.Errors;
-using Synentra.BuildingBlocks.Results;
+using Synentra.Domain.Common.Diagnostics;
+using Synentra.Domain.Common.Results;
 
 namespace Synentra.Extensions;
 
@@ -22,7 +22,7 @@ public static class ResultExtensions
             });
         }
 
-        return MapError(result.Error!);
+        return MapError(result.Diagnostic!);
     }
 
     public static IResult ToHttpResult<T>(this Result<T> result)
@@ -30,7 +30,7 @@ public static class ResultExtensions
         if (result.IsSuccess)
             return Results.Ok(result.Value);
 
-        return MapError(result.Error!);
+        return MapError(result.Diagnostic!);
     }
 
     public static IResult ToHttpResult(this Result result)
@@ -38,34 +38,37 @@ public static class ResultExtensions
         if (result.IsSuccess)
             return Results.NoContent();
 
-        return MapError(result.Error!);
+        return MapError(result.Diagnostic!);
     }
 
-    private static IResult MapError(Error error)
+    private static IResult MapError(Diagnostic diagnostic)
     {
-        var status = error.Type switch
+        var status = diagnostic.Kind switch
         {
-            ErrorType.Validation => StatusCodes.Status400BadRequest,
-            ErrorType.NotFound => StatusCodes.Status404NotFound,
-            ErrorType.Conflict => StatusCodes.Status409Conflict,
-            ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
-            ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+            DiagnosticKind.Validation => StatusCodes.Status400BadRequest,
+            DiagnosticKind.NotFound => StatusCodes.Status404NotFound,
+            DiagnosticKind.Conflict => StatusCodes.Status409Conflict,
+            DiagnosticKind.Unauthorized => StatusCodes.Status401Unauthorized,
+            DiagnosticKind.Forbidden => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status500InternalServerError
         };
 
-        if (error.Type == ErrorType.Validation && error.ValidationErrors is not null)
+        if (diagnostic.Kind == DiagnosticKind.Validation && diagnostic.Message is not null)
         {
-            return Results.ValidationProblem(error.ValidationErrors);
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                { "Error", new[] { diagnostic.Message } }
+            });
         }
 
         var problem = new ProblemDetails
         {
-            Title = error.Message,
+            Title = diagnostic.Message,
             Status = status,
             Type = $"https://httpstatuses.com/{status}"
         };
 
-        problem.Extensions["errorCode"] = error.ErrorCode.ToString();
+        problem.Extensions["errorCode"] = diagnostic.Code.ToString();
 
         return Results.Problem(problem);
     }
