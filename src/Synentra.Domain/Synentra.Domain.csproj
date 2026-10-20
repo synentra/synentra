@@ -11,8 +11,4 @@
 		<DebugType>None</DebugType>
 	</PropertyGroup>
 
-	<ItemGroup>
-	  <ProjectReference Include="..\Synentra.BuildingBlocks\Synentra.BuildingBlocks.csproj" />
-	</ItemGroup>
-
 </Project>
