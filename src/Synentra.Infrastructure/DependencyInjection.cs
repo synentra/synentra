@@ -1,259 +1,152 @@
-﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-using Serilog;
-using Serilog.Extensions.Logging;
-using StackExchange.Redis;
-using Synentra.Application.Abstractions.CircuitBreaker;
-using Synentra.Application.Abstractions.Dispatchers;
-using Synentra.Application.Abstractions.Executions;
-using Synentra.Application.Abstractions.RateLimit;
-using Synentra.Application.Abstractions.Security;
-using Synentra.Application.Abstractions.Serializations;
-using Synentra.BuildingBlocks.Configuration.Observability;
-using Synentra.BuildingBlocks.Configuration.Policy;
-using Synentra.BuildingBlocks.Configuration.Semantic;
-using Synentra.BuildingBlocks.Configuration.System;
-using Synentra.Infrastructure.Caches;
-using Synentra.Infrastructure.Decision;
+using Synentra.Application;
+using Synentra.Application.Common.Dispatching;
+using Synentra.Application.Common.Messaging;
+using Synentra.Application.Common.Plugins;
+using Synentra.Application.Common.Security;
+using Synentra.Application.Features.Effects.Contracts;
+using Synentra.Application.Features.Executions.Contracts;
+using Synentra.Application.Features.Intent.Contracts;
+using Synentra.Application.Features.Invocations.Normalization;
+using Synentra.Application.Features.Manifests.Contracts;
+using Synentra.Application.Features.Obligations.Contracts;
+using Synentra.Application.Features.Policies.Contracts;
+using Synentra.Application.Features.Resources.Contracts;
+using Synentra.Application.Features.Risk.Contracts;
+using Synentra.Application.Features.Trust.Contracts;
+using Synentra.Domain.Governance.Intent;
+using Synentra.Infrastructure.Configuration;
 using Synentra.Infrastructure.Dispatchers;
-using Synentra.Infrastructure.HumanInTheLoop;
-using Synentra.Infrastructure.HumanInTheLoop.Notifiers;
-using Synentra.Infrastructure.Policy;
-using Synentra.Infrastructure.Policy.Opa;
-using Synentra.Infrastructure.Policy.Providers;
-using Synentra.Infrastructure.RateLimit;
-using Synentra.Infrastructure.Risk;
-using Synentra.Infrastructure.Risk.Calculators;
-using Synentra.Infrastructure.SecretManagement;
-using Synentra.Infrastructure.Security;
-using Synentra.Infrastructure.Semantic;
-using Synentra.Infrastructure.Semantic.Providers.AzureAi;
-using Synentra.Infrastructure.Semantic.Providers.Gemini;
-using Synentra.Infrastructure.Semantic.Providers.InternalBert;
-using Synentra.Infrastructure.Semantic.Providers.Ollama;
-using Synentra.Infrastructure.Semantic.Providers.OpenAi;
-using Synentra.Infrastructure.Serializations.Json;
+using Synentra.Infrastructure.Features.Adapters;
+using Synentra.Infrastructure.Features.Effects;
+using Synentra.Infrastructure.Features.Executions;
+using Synentra.Infrastructure.Features.Identity;
+using Synentra.Infrastructure.Features.Intent;
+using Synentra.Infrastructure.Features.Invocations;
+using Synentra.Infrastructure.Features.Manifests;
+using Synentra.Infrastructure.Features.Obligations;
+using Synentra.Infrastructure.Features.Policies;
+using Synentra.Infrastructure.Features.Resources;
+using Synentra.Infrastructure.Features.Risk;
+using Synentra.Infrastructure.Features.Secrets;
+using Synentra.Infrastructure.Features.Trust;
+using Synentra.Infrastructure.Health;
+using Synentra.Infrastructure.Networking;
+using Synentra.Infrastructure.Plugins;
+using Synentra.Persistence;
 
 namespace Synentra.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddSynentraInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSynentraApplication();
+        services.AddSynentraPersistence();
+        services.AddLogging();
+        var options = configuration.GetSection("Synentra:Infrastructure").Get<InfrastructureOptions>() ?? new();
 
-        // Register the selected authenticator scheme
-        services.AddSingleton<IAgentAuthenticator, JwtAgentAuthenticator>();
-        services.AddSingleton<ISecretHasher, BcryptSecretHasher>();
-        services.AddSingleton<IAgentAuthConfigProvider, AgentAuthConfigProvider>();
+        if (string.IsNullOrWhiteSpace(options.KeyRingPath))
+            throw new InvalidOperationException("A durable data-protection key-ring path is required.");
 
-        // Policy engine
-        services.AddSingleton<IPolicyLoader, FileSystemPolicyLoader>();
-        services.AddSingleton<IOpaInputMapper, OpaInputMapper>();
-        services.AddHttpClient("opa-policy");
-        services.AddScoped<IPolicyProvider>(CreatePolicyProvider);
+        services.AddOptions<InfrastructureOptions>().Bind(configuration.GetSection("Synentra:Infrastructure")).Validate(o => o.InitialTrustScore is >= 0 and <= 100 && o.QuarantineThreshold is >= 0 and <= 100 && o.HttpTimeoutSeconds > 0 && o.MaximumResponseBytes > 0, "Invalid infrastructure options.").ValidateOnStart();
 
-        // Semantic providers
-        services.AddSingleton<IGitHubReleaseClient, GitHubReleaseClient>();
-        services.AddSingleton<IModelDownloader, ModelDownloader>();
-        services.AddSingleton<IModelPackageLoader, ModelPackageLoader>();
-        services.AddSingleton<InternalOnnxProvider>();
-        services.AddHostedService<InternalOnnxInitializer>();
-        services.AddSingleton<ISemanticProvider>(CreateSemanticProvider);
+        services.AddOptions<IdentityOptions>().Bind(configuration.GetSection("Synentra:Identity"));
+        services.AddOptions<ExternalSecretOptions>().Bind(configuration.GetSection("Synentra:Secrets"));
+        services.AddDataProtection().SetApplicationName("Synentra").PersistKeysToFileSystem(new DirectoryInfo(options.KeyRingPath));
+        services.AddHttpClient("synentra-governed", c => c.Timeout = TimeSpan.FromSeconds(options.HttpTimeoutSeconds)).ConfigurePrimaryHttpMessageHandler(() => new GovernedHttpHandler(options));
+        services.AddSingleton<IAdminPolicy, ConfiguredAdminPolicy>();
+        services.AddSingleton<IBundleParser, BundleParser>();
+        services.AddScoped<ManifestProvider>();
+        services.AddScoped<IManifestProvider>(s => s.GetRequiredService<ManifestProvider>());
+        services.AddScoped<IManifestProviderInternal>(s => s.GetRequiredService<ManifestProvider>());
+        services.AddScoped<IRevisionProvider>(s => s.GetRequiredService<ManifestProvider>());
+        services.AddSingleton<PluginCatalog>(s =>
+        {
+            var catalog = new PluginCatalog();
+            foreach (var registration in s.GetServices<IPluginRegistration>())
+                catalog.Register(registration);
+            return catalog;
+        });
 
-        services.AddMemoryCache();
+        services.AddSingleton<IPluginResolver, PluginResolver>();
 
-        // HITL provider selection (DI + factory method)
-        services.AddDistributedMemoryCache();
+        void Plugin(string id, PluginFamily family, Type input, Type output, params string[] capabilities) => services.AddSingleton<IPluginRegistration>(new PluginRegistration(id, family, new[] { input }, new[] { output }, capabilities.ToHashSet()));
 
-        // Register HITL notifiers
-        services.AddScoped<IHitlNotifier, SlackNotifier>();
-        services.AddScoped<IHitlNotifier, TeamsNotifier>();
-        services.AddScoped<IHitlNotifier, PagerDutyNotifier>();
-        services.AddScoped<IHitlNotifier, GenericWebhookNotifier>();
+        Plugin("http", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response");
+        Plugin("mcp", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response");
+        Plugin("http-resource", PluginFamily.ResourceResolver, typeof(Domain.Invocations.ToolInvocation), typeof(ResourceResolutionResult), "resource-resolution");
+        Plugin("configured-effect", PluginFamily.EffectResolver, typeof(Domain.Invocations.ToolInvocation), typeof(Domain.Effects.ValueObjects.EffectPlan), "bounded-effects");
+        Plugin("http-readback", PluginFamily.OutcomeVerifier, typeof(Domain.Execution.ExecutionRecord), typeof(Domain.Execution.Evidence.OutcomeEvidence), "readback");
+        Plugin("declarative", PluginFamily.PolicyEngine, typeof(PolicyInput), typeof(PolicyResult), "deny-overrides");
+        Plugin("opa", PluginFamily.PolicyEngine, typeof(PolicyInput), typeof(PolicyResult), "rest-decision");
+        services.AddScoped<DeclarativePolicyEngine>();
+        services.AddScoped<OpaPolicyEngine>();
+        services.AddScoped<IPolicyEngine>(s => options.PolicyProvider switch
+        {
+            "declarative" => s.GetRequiredService<DeclarativePolicyEngine>(),
+            "opa" => s.GetRequiredService<OpaPolicyEngine>(),
+            _ => throw new InvalidOperationException("Unknown policy provider.")});
 
-        services.AddScoped<IHitlService>(CreateHitlService);
+        services.AddScoped<ITrustEngine, DbTrustEngine>();
+        services.AddScoped<QuarantineService>();
+        services.AddScoped<TrustAdministrationService>();
+        services.AddScoped<IRiskEngine, DefaultRiskEngine>();
+        services.AddScoped<IRiskFactorPlugin, TrustRiskFactor>();
+        services.AddScoped<IIntentProvider, HttpIntentProvider>();
+        services.AddScoped<IResourceResolver, HttpResourceResolver>();
+        services.AddScoped<IEffectResolver, ConfiguredEffectResolver>();
+        services.AddScoped<IOutcomeVerifier, HttpOutcomeVerifier>();
+        services.AddScoped<IOperationRegistry, ManifestOperationRegistry>();
+        // Register one normalizer per enum modality; combined flag values are not separate transports.
+        foreach (var modality in Enum.GetValues<IntentModality>().Where(x => (int)x != 0 && (((int)x & ((int)x - 1)) == 0)))
+        {
+            var m = modality;
+            services.AddScoped<IInvocationNormalizer>(s => new ConfiguredInvocationNormalizer(s.GetRequiredService<IManifestProvider>(), s.GetRequiredService<IRevisionProvider>(), m));
+        }
 
-        // Decision engine
-        services.AddScoped<IDecisionEngine, DecisionEngine>();
+        services.AddScoped<LocalPrincipalResolver>();
+        services.AddSingleton<OidcPrincipalResolver>();
+        services.AddScoped<LdapPrincipalResolver>();
+        services.AddScoped<IPrincipalResolver>(s => s.GetRequiredService<IOptions<IdentityOptions>>().Value.Provider switch
+        {
+            "local" => s.GetRequiredService<LocalPrincipalResolver>(),
+            "oidc" => s.GetRequiredService<OidcPrincipalResolver>(),
+            "ldap" => s.GetRequiredService<LdapPrincipalResolver>(),
+            _ => throw new InvalidOperationException("Unknown identity provider.")});
+
+        services.AddScoped<EncryptedDbCredentialProvider>();
+        services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<EncryptedDbCredentialProvider>());
+        services.AddScoped<CredentialProviderRouter>();
+        var secrets = configuration.GetSection("Synentra:Secrets").Get<ExternalSecretOptions>() ?? new();
+        if (secrets.VaultUrl is not null)
+            services.AddScoped<ICredentialProvider, HashiCorpVaultCredentialProvider>();
+        if (secrets.AzureVaultUrl is not null)
+        {
+            services.AddSingleton(new Azure.Security.KeyVault.Secrets.SecretClient(new Uri(secrets.AzureVaultUrl), new Azure.Identity.DefaultAzureCredential()));
+            services.AddScoped<ICredentialProvider, AzureKeyVaultCredentialProvider>();
+        }
+
+        if (secrets.AwsRegion is not null)
+        {
+            services.AddSingleton<Amazon.SecretsManager.IAmazonSecretsManager>(new Amazon.SecretsManager.AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(secrets.AwsRegion)));
+            services.AddScoped<ICredentialProvider, AwsSecretsManagerCredentialProvider>();
+        }
+
+        services.AddScoped<IToolDispatcher, HttpToolDispatcher>();
+        services.AddScoped<IToolDispatcher, McpToolDispatcher>();
+        services.AddScoped<IExecutionSnapshotFactory, ExecutionSnapshotFactory>();
+        services.AddScoped<IOutboxProcessor, OutboxProcessor>();
+        services.AddScoped<ClaimRecoveryService>();
+        services.AddScoped<IObligationHandler, ReviewObligationHandler>();
+        services.AddScoped<IObligationHandler, TargetPreconditionObligationHandler>();
+        if (options.StartOutboxWorker)
+            services.AddHostedService<OutboxWorker>();
+        services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("synentra-database").AddCheck<ManifestHealthCheck>("synentra-manifest");
         services.AddScoped<IDispatcher, Dispatcher>();
-
-        // YARP forwarder
-        services.AddHttpForwarder();
-        services.AddRiskScoring();
-
-        // Rate limiting
-        services.AddSingleton<IAgentRateLimiter, AgentRateLimiter>();
-
-        // Circuit breaker
-        services.AddSingleton<ICircuitBreaker, CircuitBreaker.CircuitBreaker>();
-
-        // Agent request access
-        services.AddScoped<IAgentRequestAccessService, AgentRequestAccessService>();
-
         return services;
-    }
-
-    private static ISemanticProvider CreateSemanticProvider(IServiceProvider sp)
-    {
-        var semanticConfiguration = sp.GetRequiredService<IOptions<SemanticConfiguration>>().Value;
-        var provider = (semanticConfiguration.DefaultProvider ?? "internal").Trim();
-
-        return provider.ToLowerInvariant() switch
-        {
-            "azureai" => ActivatorUtilities.CreateInstance<AzureAiProvider>(sp),
-            "openai" => ActivatorUtilities.CreateInstance<OpenAiProvider>(sp),
-            "gemini" => ActivatorUtilities.CreateInstance<GeminiProvider>(sp),
-            "ollama" => ActivatorUtilities.CreateInstance<OllamaProvider>(sp),
-            _ => sp.GetRequiredService<InternalOnnxProvider>()
-        };
-    }
-
-    private static IPolicyProvider CreatePolicyProvider(IServiceProvider sp)
-    {
-        var policyConfiguration = sp.GetRequiredService<IOptions<PolicyConfiguration>>().Value;
-        var provider = (policyConfiguration.DefaultProvider ?? "Internal").Trim();
-
-        return provider.ToLowerInvariant() switch
-        {
-            "internal" => ActivatorUtilities.CreateInstance<InternalPolicyProvider>(sp),
-            "opa" => ActivatorUtilities.CreateInstance<OpaPolicyProvider>(sp),
-            _ => ActivatorUtilities.CreateInstance<InternalPolicyProvider>(sp)
-        };
-    }
-
-    private static IHitlService CreateHitlService(IServiceProvider sp)
-    {
-        var systemConfiguration = sp.GetRequiredService<IOptions<SystemConfiguration>>().Value;
-        var provider = systemConfiguration.Storage?.Cache?.DefaultProvider;
-        return ActivatorUtilities.CreateInstance<HitlService>(sp);
-    }
-
-    public static IServiceCollection AddSecretManagement(this IServiceCollection services)
-    {
-        services.AddSingleton<ISecretProviderFactory, SecretProviderFactory>();
-        services.AddSingleton<ISecretManagementService, SecretManagementService>();
-
-        return services;
-    }
-
-    public static IServiceCollection AddCache(this IServiceCollection services)
-    {
-        services.AddSingleton<ICacheProviderFactory, CacheProviderFactory>();
-        services.AddSingleton<ICacheService, CacheService>();
-        services.AddSingleton<IPolicyCacheService, PolicyCacheService>();
-
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
-        {
-            var config = sp.GetRequiredService<IOptions<SystemConfiguration>>().Value;
-            var redisConfig = config.Storage.Cache.Providers.Redis;
-
-            var options = ConfigurationOptions.Parse(redisConfig.Endpoint);
-            options.AbortOnConnectFail = redisConfig.AbortOnConnectFail ?? false;
-            options.ConnectRetry = redisConfig.ConnectRetry ?? 5;
-            options.ConnectTimeout = (int)(redisConfig.ConnectTimeout?.TotalMilliseconds ?? 5000);
-            options.ReconnectRetryPolicy = new ExponentialRetry((int)(redisConfig.ConnectTimeout?.TotalMilliseconds ?? 5000));
-            return ConnectionMultiplexer.Connect(options);
-        });
-
-        return services;
-    }
-
-    private static IServiceCollection AddRiskScoring(this IServiceCollection services)
-    {
-        services.AddSingleton<IntentRiskProfileResolver>();
-
-        // Register calculators
-        services.AddScoped<IRiskCalculator, MethodRiskCalculator>();
-        services.AddScoped<IRiskCalculator, PathRiskCalculator>();
-        services.AddScoped<IRiskCalculator, AgentHistoryCalculator>();
-        services.AddScoped<IRiskCalculator, TimeBasedCalculator>();
-        services.AddScoped<IRiskCalculator, BodySizeRiskCalculator>();
-        services.AddScoped<IRiskCalculator, AnomalyDetectionCalculator>();
-        services.AddSingleton<IRiskCalculator, IntentRiskCalculator>();
-
-        services.AddScoped<IAnomalyDetector, StatisticalAnomalyDetector>();
-
-        services.AddScoped<RiskScoreAggregator>();
-        services.AddScoped<IRiskScoringService, RiskScoringService>();
-        
-        return services;
-    }
-
-    public static IServiceCollection AddJsonSerialization(this IServiceCollection services)
-    {
-        services
-            .AddSingleton<ISerializer, JsonSerializer>()
-            .AddSingleton<IDeserializer, JsonDeserializer>();
-
-        return services;
-    }
-
-    public static WebApplicationBuilder AddSynentraObservability(this WebApplicationBuilder builder)
-    {
-        var observabilityConfiguration = builder.Services
-            .BuildServiceProvider()
-            .GetRequiredService<IOptions<ObservabilityConfiguration>>().Value;
-
-        builder.Services.AddSingleton<Logging.ILoggerFactory, Logging.LoggerFactory>();
-
-        builder.Services.AddLogging(builder =>
-        {
-            builder.ClearProviders();
-            builder.Services.AddSingleton<ILoggerProvider>(sp =>
-            {
-                var logger = sp.GetRequiredService<Logging.ILoggerFactory>().CreateLogger();
-                Log.Logger = logger;
-                return new SerilogLoggerProvider(logger, dispose: true);
-            });
-        });
-
-        var resourceBuilder = ResourceBuilder
-            .CreateDefault()
-            .AddService(builder.Environment.ApplicationName);
-
-        builder.Services.AddOpenTelemetry()
-            .WithTracing(tracerProviderBuilder =>
-            {
-                tracerProviderBuilder
-                    .SetResourceBuilder(resourceBuilder)
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddSource(builder.Environment.ApplicationName);
-
-                if (observabilityConfiguration.OpenTelemetry?.Enabled == true &&
-                    !string.IsNullOrWhiteSpace(observabilityConfiguration.OpenTelemetry.Endpoint))
-                {
-                    tracerProviderBuilder.AddOtlpExporter(options =>
-                    {
-                        options.Endpoint = new Uri(observabilityConfiguration.OpenTelemetry.Endpoint);
-                    });
-                }
-            })
-            .WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder
-                    .SetResourceBuilder(resourceBuilder)
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
-
-                if (observabilityConfiguration.OpenTelemetry?.Enabled == true &&
-                    !string.IsNullOrWhiteSpace(observabilityConfiguration.OpenTelemetry.Endpoint))
-                {
-                    meterProviderBuilder.AddOtlpExporter(options =>
-                    {
-                        options.Endpoint = new Uri(observabilityConfiguration.OpenTelemetry.Endpoint);
-                    });
-                }
-            });
-
-        return builder;
     }
 }

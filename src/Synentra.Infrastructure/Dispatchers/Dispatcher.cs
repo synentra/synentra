@@ -1,9 +1,9 @@
 ﻿using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.DependencyInjection;
+using Synentra.Application.Common.Dispatching;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
-using Synentra.Application.Abstractions.Dispatchers;
 
 namespace Synentra.Infrastructure.Dispatchers;
 
@@ -18,7 +18,7 @@ public class Dispatcher : IDispatcher
     }
 
     public async Task<TAction> Dispatch<TAction>(
-        IAction<TAction> action, 
+        IAction<TAction> action,
         CancellationToken cancellationToken = default)
     {
         if (action == null)
