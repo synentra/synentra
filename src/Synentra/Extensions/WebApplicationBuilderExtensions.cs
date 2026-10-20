@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Options;
-using Serilog;
 using System.Diagnostics.CodeAnalysis;
-using Synentra.BuildingBlocks.Configuration.System;
-using Synentra.BuildingBlocks.Configuration.System.Server;
+using Synentra.Infrastructure.Configuration.System;
+using Synentra.Infrastructure.Configuration.System.Server;
 
 namespace Synentra.Extensions;
 
@@ -53,7 +52,7 @@ public static class WebApplicationBuilderExtensions
 
         if (!httpsPort.HasValue)
         {
-            Log.Information("Configuring HTTP endpoint only: HTTP {HttpPort}", httpPort);
+            //Log.Information("Configuring HTTP endpoint only: HTTP {HttpPort}", httpPort);
             return;
         }
 
@@ -84,8 +83,8 @@ public static class WebApplicationBuilderExtensions
             ConfigureListenOptions(listenOptions, httpsConfig);
         });
 
-        Log.Information("Configuring HTTP and HTTPS endpoints: HTTP {HttpPort}, HTTPS {HttpsPort}",
-            httpPort, httpsPort);
+        //Log.Information("Configuring HTTP and HTTPS endpoints: HTTP {HttpPort}, HTTPS {HttpsPort}",
+        //    httpPort, httpsPort);
     }
 
     private static void ConfigureListenOptions(

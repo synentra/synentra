@@ -17,12 +17,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<InternalsVisibleTo Include="Synentra.Application.UnitTests" />
-		<InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
 	</ItemGroup>
 
 </Project>

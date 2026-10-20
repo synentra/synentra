@@ -28,7 +28,7 @@ internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
 
         try
         {
-            builder.AddSynentraSecretManagement();
+            //builder.AddSynentraSecretManagement();
 
             builder.Logging.AddFilter(
                 "Microsoft.AspNetCore.Hosting.Diagnostics",

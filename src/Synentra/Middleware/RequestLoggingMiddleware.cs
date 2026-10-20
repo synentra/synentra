@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Synentra.Application.Abstractions.Versioning;
+using Synentra.Application.Common.Versioning;
 
 namespace Synentra.Middleware;
 

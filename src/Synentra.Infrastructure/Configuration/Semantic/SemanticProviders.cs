@@ -1,0 +1,10 @@
+﻿namespace Synentra.Infrastructure.Configuration.Semantic;
+
+public class SemanticProviders
+{
+    public InternalOnnxConfiguration Internal { get; set; } = new();
+    public AzureAiConfiguration AzureAi { get; set; } = new();
+    public OpenAiConfiguration OpenAi { get; set; } = new();
+    public GeminiConfiguration Gemini { get; set; } = new();
+    public OllamaConfiguration Ollama { get; set; } = new();
+}
