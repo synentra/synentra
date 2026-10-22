@@ -37,27 +37,79 @@ using Synentra.Infrastructure.Health;
 using Synentra.Infrastructure.Networking;
 using Synentra.Infrastructure.Plugins;
 using Synentra.Persistence;
+using Synentra.Infrastructure.Configuration.Approvals;
+using Synentra.Infrastructure.Configuration.BackgroundJobs;
+using Synentra.Infrastructure.Configuration.Cors;
+using Synentra.Infrastructure.Configuration.DataProtection;
+using Synentra.Infrastructure.Configuration.Logging;
+using Synentra.Infrastructure.Configuration.OpenTelemetry;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
+using Synentra.Infrastructure.Configuration.Persistence;
+using Synentra.Infrastructure.Configuration.Policy;
+using Synentra.Infrastructure.Configuration.SecretManagement;
+using Synentra.Infrastructure.Configuration.Security;
+using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Trust;
 
 namespace Synentra.Infrastructure;
 
 public static class DependencyInjection
 {
+    private const string ApprovalsConfigurationName = "Approvals";
+    private const string BackgroundJobsConfigurationName = "BackgroundJobs";
+    private const string CorsConfigurationName = "Cors";
+    private const string DataProtectionConfigurationName = "DataProtection";
+    private const string IdentityConfigurationName = "Identity";
+    private const string LoggingConfigurationName = "Logging";
+    private const string OpenTelemetryConfigurationName = "OpenTelemetry";
+    private const string OutboundHttpConfigurationName = "OutboundHttp";
+    private const string PersistenceConfigurationName = "Persistence";
+    private const string PolicyConfigurationName = "Policy";
+    private const string SecretManagementConfigurationName = "SecretManagement";
+    private const string SemanticConfigurationName = "Semantic";
+    private const string TrustConfigurationName = "Trust";
+
+    public static IServiceCollection AddSynentraConfiguration(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<ApprovalsConfiguration>(configuration.GetSection(ApprovalsConfigurationName));
+        services.Configure<BackgroundJobsConfiguration>(configuration.GetSection(BackgroundJobsConfigurationName));
+        services.Configure<CorsConfiguration>(configuration.GetSection(CorsConfigurationName));
+        services.Configure<DataProtectionConfiguration>(configuration.GetSection(DataProtectionConfigurationName));
+        services.Configure<IdentityConfiguration>(configuration.GetSection(IdentityConfigurationName));
+        services.Configure<LoggingConfiguration>(configuration.GetSection(LoggingConfigurationName));
+        services.Configure<OpenTelemetryConfiguration>(configuration.GetSection(OpenTelemetryConfigurationName));
+        services.Configure<OutboundHttpConfiguration>(configuration.GetSection(OutboundHttpConfigurationName));
+        services.Configure<PersistenceConfiguration>(configuration.GetSection(PersistenceConfigurationName));
+        services.Configure<PolicyConfiguration>(configuration.GetSection(PolicyConfigurationName));
+        services.Configure<SecretManagementConfiguration>(configuration.GetSection(SecretManagementConfigurationName));
+        services.Configure<SemanticConfiguration>(configuration.GetSection(SemanticConfigurationName));
+        services.Configure<TrustConfiguration>(configuration.GetSection(TrustConfigurationName));
+
+        return services;
+    }
+
     public static IServiceCollection AddSynentraInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSynentraApplication();
+        services.AddSynentraConfiguration(configuration);
         services.AddSynentraPersistence();
         services.AddLogging();
-        var options = configuration.GetSection("Synentra:Infrastructure").Get<InfrastructureOptions>() ?? new();
 
-        if (string.IsNullOrWhiteSpace(options.KeyRingPath))
+        using var scope = services.BuildServiceProvider().CreateScope();
+        var dataProtectionConfig = scope.ServiceProvider.GetRequiredService<IOptions<DataProtectionConfiguration>>();
+
+        if (string.IsNullOrWhiteSpace(dataProtectionConfig.Value.KeyRingPath))
             throw new InvalidOperationException("A durable data-protection key-ring path is required.");
 
-        services.AddOptions<InfrastructureOptions>().Bind(configuration.GetSection("Synentra:Infrastructure")).Validate(o => o.InitialTrustScore is >= 0 and <= 100 && o.QuarantineThreshold is >= 0 and <= 100 && o.HttpTimeoutSeconds > 0 && o.MaximumResponseBytes > 0, "Invalid infrastructure options.").ValidateOnStart();
+        //services.AddOptions<InfrastructureOptions>().Bind(configuration.GetSection("Synentra:Infrastructure")).Validate(o => o.InitialTrustScore is >= 0 and <= 100 && o.QuarantineThreshold is >= 0 and <= 100 && o.HttpTimeoutSeconds > 0 && o.MaximumResponseBytes > 0, "Invalid infrastructure options.").ValidateOnStart();
 
-        services.AddOptions<IdentityOptions>().Bind(configuration.GetSection("Synentra:Identity"));
-        services.AddOptions<ExternalSecretOptions>().Bind(configuration.GetSection("Synentra:Secrets"));
-        services.AddDataProtection().SetApplicationName("Synentra").PersistKeysToFileSystem(new DirectoryInfo(options.KeyRingPath));
-        services.AddHttpClient("synentra-governed", c => c.Timeout = TimeSpan.FromSeconds(options.HttpTimeoutSeconds)).ConfigurePrimaryHttpMessageHandler(() => new GovernedHttpHandler(options));
+        services.AddDataProtection().SetApplicationName(dataProtectionConfig.Value.ApplicationName 
+            ?? "synentra").PersistKeysToFileSystem(new DirectoryInfo(dataProtectionConfig.Value.KeyRingPath));
+
+        var outboundHttpConfig = scope.ServiceProvider.GetRequiredService<IOptions<OutboundHttpConfiguration>>();
+        services.AddHttpClient("synentra-governed", c => c.Timeout = outboundHttpConfig.Value.Timeout ?? TimeSpan.FromSeconds(30))
+                .ConfigurePrimaryHttpMessageHandler(() => new GovernedHttpHandler(outboundHttpConfig));
+
         services.AddSingleton<IAdminPolicy, ConfiguredAdminPolicy>();
         services.AddSingleton<IBundleParser, BundleParser>();
         services.AddScoped<ManifestProvider>();
@@ -83,9 +135,12 @@ public static class DependencyInjection
         Plugin("http-readback", PluginFamily.OutcomeVerifier, typeof(Domain.Execution.ExecutionRecord), typeof(Domain.Execution.Evidence.OutcomeEvidence), "readback");
         Plugin("declarative", PluginFamily.PolicyEngine, typeof(PolicyInput), typeof(PolicyResult), "deny-overrides");
         Plugin("opa", PluginFamily.PolicyEngine, typeof(PolicyInput), typeof(PolicyResult), "rest-decision");
+
+        var policyConfig = scope.ServiceProvider.GetRequiredService<IOptions<PolicyConfiguration>>();
+
         services.AddScoped<DeclarativePolicyEngine>();
         services.AddScoped<OpaPolicyEngine>();
-        services.AddScoped<IPolicyEngine>(s => options.PolicyProvider switch
+        services.AddScoped<IPolicyEngine>(s => policyConfig.Value.DefaultProvider.ToLowerInvariant() switch
         {
             "declarative" => s.GetRequiredService<DeclarativePolicyEngine>(),
             "opa" => s.GetRequiredService<OpaPolicyEngine>(),
@@ -143,8 +198,12 @@ public static class DependencyInjection
         services.AddScoped<ClaimRecoveryService>();
         services.AddScoped<IObligationHandler, ReviewObligationHandler>();
         services.AddScoped<IObligationHandler, TargetPreconditionObligationHandler>();
-        if (options.StartOutboxWorker)
+
+        var outboxConfig = scope.ServiceProvider.GetRequiredService<IOptions<OutboxConfiguration>>();
+
+        if (outboxConfig.Value.Enabled == true)
             services.AddHostedService<OutboxWorker>();
+
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("synentra-database").AddCheck<ManifestHealthCheck>("synentra-manifest");
         services.AddScoped<IDispatcher, Dispatcher>();
         return services;

@@ -4,16 +4,16 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Configuration;
 using Synentra.Infrastructure.Networking;
 using Synentra.Infrastructure.Features.Secrets;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
 
 namespace Synentra.Infrastructure.Features.Adapters;
 
 public sealed class HttpToolDispatcher(
     IHttpClientFactory clients,
     CredentialProviderRouter credentials,
-    IOptions<InfrastructureOptions> options) : IToolDispatcher
+    IOptions<OutboundHttpConfiguration> options) : IToolDispatcher
 {
     private static readonly HashSet<string> SafeHeaders = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -68,7 +68,7 @@ public sealed class HttpToolDispatcher(
             string? payload = null;
             if (response.Content is not null)
             {
-                var bytes = await BoundedResponse.ReadAsync(response.Content, options.Value.MaximumResponseBytes, ct);
+                var bytes = await BoundedResponse.ReadAsync(response.Content, options.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024), ct);
                 payload = bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes);
             }
 

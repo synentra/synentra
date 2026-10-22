@@ -1,12 +1,19 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
 using Synentra.Application.Common.Versioning;
-using Synentra.Infrastructure.Configuration.Observability;
+using Synentra.Infrastructure.Configuration.Approvals;
+using Synentra.Infrastructure.Configuration.BackgroundJobs;
+using Synentra.Infrastructure.Configuration.Cors;
+using Synentra.Infrastructure.Configuration.DataProtection;
+using Synentra.Infrastructure.Configuration.Logging;
+using Synentra.Infrastructure.Configuration.OpenTelemetry;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
+using Synentra.Infrastructure.Configuration.Persistence;
 using Synentra.Infrastructure.Configuration.Policy;
 using Synentra.Infrastructure.Configuration.SecretManagement;
 using Synentra.Infrastructure.Configuration.Security;
 using Synentra.Infrastructure.Configuration.Semantic;
-using Synentra.Infrastructure.Configuration.System;
+using Synentra.Infrastructure.Configuration.Trust;
 using Synentra.Mcp;
 using Synentra.Persistence.PostgreSql;
 using Synentra.Persistence.Sqlite;
@@ -17,14 +24,21 @@ namespace Synentra.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    private const string SystemConfigurationName = "System";
-    private const string ObservabilityConfigurationName = "Observability";
-    private const string SecurityConfigurationName = "Security";
-    private const string SemanticConfigurationName = "Semantic";
-    private const string PolicyConfigurationName = "Policy";
-    private const string SecretManagementConfigurationName = "SecretManagement";
+    //private const string ApprovalsConfigurationName = "Approvals";
+    //private const string BackgroundJobsConfigurationName = "BackgroundJobs";
+    //private const string CorsConfigurationName = "Cors";
+    //private const string DataProtectionConfigurationName = "DataProtection";
+    //private const string IdentityConfigurationName = "Identity";
+    //private const string LoggingConfigurationName = "Logging";
+    //private const string OpenTelemetryConfigurationName = "OpenTelemetry";
+    //private const string OutboundHttpConfigurationName = "OutboundHttp";
+    //private const string PersistenceConfigurationName = "Persistence";
+    //private const string PolicyConfigurationName = "Policy";
+    //private const string SecretManagementConfigurationName = "SecretManagement";
+    //private const string SemanticConfigurationName = "Semantic";
+    //private const string TrustConfigurationName = "Trust";
 
-    #region Simple registrations
+    //#region Simple registrations
 
     public static IServiceCollection AddSynentraVersion(this IServiceCollection services)
     {
@@ -33,19 +47,26 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddSynentraConfiguration(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.Configure<SystemConfiguration>(configuration.GetSection(SystemConfigurationName));
-        services.Configure<ObservabilityConfiguration>(configuration.GetSection(ObservabilityConfigurationName));
-        services.Configure<SecurityConfiguration>(configuration.GetSection(SecurityConfigurationName));
-        services.Configure<SemanticConfiguration>(configuration.GetSection(SemanticConfigurationName));
-        services.Configure<PolicyConfiguration>(configuration.GetSection(PolicyConfigurationName));
-        services.Configure<SecretManagementConfiguration>(configuration.GetSection(SecretManagementConfigurationName));
+    //public static IServiceCollection AddSynentraConfiguration(this IServiceCollection services, IConfiguration configuration)
+    //{
+    //    services.Configure<ApprovalsConfiguration>(configuration.GetSection(ApprovalsConfigurationName));
+    //    services.Configure<BackgroundJobsConfiguration>(configuration.GetSection(BackgroundJobsConfigurationName));
+    //    services.Configure<CorsConfiguration>(configuration.GetSection(CorsConfigurationName));
+    //    services.Configure<DataProtectionConfiguration>(configuration.GetSection(DataProtectionConfigurationName));
+    //    services.Configure<IdentityConfiguration>(configuration.GetSection(IdentityConfigurationName));
+    //    services.Configure<LoggingConfiguration>(configuration.GetSection(LoggingConfigurationName));
+    //    services.Configure<OpenTelemetryConfiguration>(configuration.GetSection(OpenTelemetryConfigurationName));
+    //    services.Configure<OutboundHttpConfiguration>(configuration.GetSection(OutboundHttpConfigurationName));
+    //    services.Configure<PersistenceConfiguration>(configuration.GetSection(PersistenceConfigurationName));
+    //    services.Configure<PolicyConfiguration>(configuration.GetSection(PolicyConfigurationName));
+    //    services.Configure<SecretManagementConfiguration>(configuration.GetSection(SecretManagementConfigurationName));
+    //    services.Configure<SemanticConfiguration>(configuration.GetSection(SemanticConfigurationName));
+    //    services.Configure<TrustConfiguration>(configuration.GetSection(TrustConfigurationName));
 
-        return services;
-    }
+    //    return services;
+    //}
 
-    #endregion
+    //#endregion
 
     #region Health checks
 
@@ -102,18 +123,18 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSynentraPersistence(this IServiceCollection services)
     {
         using var scope = services.BuildServiceProvider().CreateScope();
-        var systemConfig = scope.ServiceProvider.GetRequiredService<IOptions<SystemConfiguration>>().Value;
+        var systemConfig = scope.ServiceProvider.GetRequiredService<IOptions<PersistenceConfiguration>>().Value;
 
-        var provider = systemConfig.Storage.Database.DefaultProvider;
+        var provider = systemConfig.DefaultProvider;
 
         switch (provider?.ToLowerInvariant())
         {
             case "sqlite":
-                services.AddSynentraSqlite(systemConfig.Storage.Database.Providers.Sqlite.ConnectionString);
+                services.AddSynentraSqlite(systemConfig.Providers.Sqlite.ConnectionString);
                 break;
 
             case "postgres":
-                services.AddSynentraPostgreSql(systemConfig.Storage.Database.Providers.Postgres.ConnectionString);
+                services.AddSynentraPostgreSql(systemConfig.Providers.Postgres.ConnectionString);
                 break;
 
             default:
@@ -150,21 +171,19 @@ public static class ServiceCollectionExtensions
             options.AddPolicy("SynentraCors", policy =>
             {
                 using var scope = services.BuildServiceProvider().CreateScope();
-                var systemConfig = scope.ServiceProvider.GetRequiredService<IOptions<SystemConfiguration>>().Value;
+                var corsConfig = scope.ServiceProvider.GetRequiredService<IOptions<CorsConfiguration>>().Value;
 
-                var corsConfiguration = systemConfig.Cors;
+                policy.WithOrigins(corsConfig.AllowedOrigins);
 
-                policy.WithOrigins(corsConfiguration.AllowedOrigins);
-
-                if (corsConfiguration.AllowedMethods.Contains("*", StringComparer.Ordinal))
+                if (corsConfig.AllowedMethods.Contains("*", StringComparer.Ordinal))
                     policy.AllowAnyMethod();
                 else
-                    policy.WithMethods(corsConfiguration.AllowedMethods);
+                    policy.WithMethods(corsConfig.AllowedMethods);
 
-                if (corsConfiguration.AllowedHeaders.Contains("*", StringComparer.Ordinal))
+                if (corsConfig.AllowedHeaders.Contains("*", StringComparer.Ordinal))
                     policy.AllowAnyHeader();
                 else
-                    policy.WithHeaders(corsConfiguration.AllowedHeaders);
+                    policy.WithHeaders(corsConfig.AllowedHeaders);
             });
         });
 

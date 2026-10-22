@@ -1,6 +1,4 @@
-﻿using Synentra.Extensions;
-
-namespace Synentra.Services;
+﻿namespace Synentra.Services;
 
 internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
 {

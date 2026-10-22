@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.DataProtection;
-using Synentra.Extensions;
+﻿using Synentra.Extensions;
 using Synentra.Middleware;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using Synentra.Infrastructure;
 
@@ -42,7 +40,6 @@ internal sealed class StartupConfiguration : IStartupConfiguration
 
         // Synentra-specific service registrations
         services
-            .AddSynentraConfiguration(configuration)
             .AddSynentraPersistence()
             .AddSynentraInfrastructure(configuration)
             .AddSynentraApiDocumentation()
@@ -51,9 +48,6 @@ internal sealed class StartupConfiguration : IStartupConfiguration
             .AddSynentraCors();
 
         //builder.AddSynentraObservability();
-
-        // HTTP server configuration (Kestrel, etc.)
-        builder.ConfigureSynentraHttpServer();
     }
 
     public async Task ConfigurePipelineAsync(WebApplication app)
@@ -67,7 +61,6 @@ internal sealed class StartupConfiguration : IStartupConfiguration
             app.UseSynentraCustomException();
         }
 
-        app.UseSynentraHttps();
         app.UseSynentraCustomHeaders();
 
         app.UseRouting();

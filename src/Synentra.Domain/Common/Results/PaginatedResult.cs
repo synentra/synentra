@@ -11,6 +11,7 @@ public class PaginatedResult<T> : Result
     public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
     public bool HasPreviousPage => PageNumber > 1;
     public bool HasNextPage => PageNumber < TotalPages;
+    public bool IsEmpty => Items.Count == 0;
 
     private PaginatedResult(IReadOnlyList<T> items, PageRequest pageRequest, int totalCount)
         : base(true, null)
@@ -37,4 +38,10 @@ public class PaginatedResult<T> : Result
 
     public static new Task<PaginatedResult<T>> FailureAsync(Diagnostic diagnostic)
         => Task.FromResult(Failure(diagnostic));
+
+    public static PaginatedResult<T> Empty(PageRequest pageRequest)
+        => new(Array.Empty<T>(), pageRequest, 0);
+
+    public static Task<PaginatedResult<T>> EmptyAsync(PageRequest pageRequest)
+        => Task.FromResult(Empty(pageRequest));
 }

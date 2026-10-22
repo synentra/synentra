@@ -4,6 +4,7 @@ using ModelContextProtocol.Client;
 using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
 using Synentra.Infrastructure.Features.Secrets;
 
 namespace Synentra.Infrastructure.Features.Adapters;
@@ -11,7 +12,7 @@ namespace Synentra.Infrastructure.Features.Adapters;
 public sealed class McpToolDispatcher(
     IHttpClientFactory clients,
     CredentialProviderRouter credentials,
-    IOptions<InfrastructureOptions> options) : IToolDispatcher
+    IOptions<OutboundHttpConfiguration> options) : IToolDispatcher
 {
     public string AdapterId => "mcp";
     public string AdapterVersion => "1.0.0";
@@ -39,7 +40,7 @@ public sealed class McpToolDispatcher(
             var arguments = snapshot.Arguments.ToDictionary(x => x.Key, x => (object?)x.Value, StringComparer.Ordinal);
             var result = await client.CallToolAsync(snapshot.Method, arguments, cancellationToken: ct);
             var payload = JsonSerializer.Serialize(result);
-            if (System.Text.Encoding.UTF8.GetByteCount(payload) > options.Value.MaximumResponseBytes)
+            if (System.Text.Encoding.UTF8.GetByteCount(payload) > (options.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024)))
                 return new(ReceiptStatus.Unknown, null, null, null, timestamp, "MCP_RESULT_TOO_LARGE");
 
             return new(result.IsError == true ? ReceiptStatus.ToolError : ReceiptStatus.Responded,

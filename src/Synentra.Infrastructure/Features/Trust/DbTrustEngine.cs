@@ -4,11 +4,11 @@ using Synentra.Application.Common.Persistence;
 using Synentra.Application.Features.Trust.Contracts;
 using Synentra.Domain.Governance.Trust;
 using Synentra.Domain.Governance.Trust.ValueObjects;
-using Synentra.Infrastructure.Configuration;
 using Synentra.Persistence;
 using Synentra.Persistence.Entities;
 using Synentra.Persistence.Common;
 using Synentra.Persistence.Serialization;
+using Synentra.Infrastructure.Configuration.Trust;
 
 namespace Synentra.Infrastructure.Features.Trust;
 
@@ -16,7 +16,7 @@ public sealed class DbTrustEngine(
     IDbContextFactory<SynentraDbContext> dbFactory, 
     IUnitOfWork work,
     PayloadCodec codec, 
-    IOptions<InfrastructureOptions> options) : ITrustEngine
+    IOptions<TrustConfiguration> options) : ITrustEngine
 {
     public string ProfileId => "default-trust";
 
@@ -35,7 +35,7 @@ public sealed class DbTrustEngine(
         {
             var quarantined = await db.Quarantines.AnyAsync(q => q.AgentId == agentId && q.SecurityScope == securityScope && q.ReleasedAt == null, ct);
             return new(new TrustScore(
-                options.Value.InitialTrustScore), 
+                options.Value.InitialScore ?? 50), 
                 quarantined ? TrustStatus.Quarantined : TrustStatus.Unknown, 
                 "0", 
                 quarantined, 
@@ -76,7 +76,7 @@ public sealed class DbTrustEngine(
                     Id = id,
                     AgentId = evidence.AgentId,
                     SecurityScope = evidence.SecurityScope,
-                    Score = options.Value.InitialTrustScore,
+                    Score = options.Value.InitialScore ?? 50,
                     State = "Unknown"
                 };
                 db.Add(row);
