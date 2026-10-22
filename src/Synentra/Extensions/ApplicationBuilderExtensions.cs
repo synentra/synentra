@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 using Synentra.Middleware;
-using Synentra.Infrastructure.Configuration.System;
 using Synentra.Persistence;
+using Synentra.Infrastructure.Configuration.Cors;
 
 namespace Synentra.Extensions;
 
@@ -57,21 +57,14 @@ public static class ApplicationBuilderExtensions
         return app;
     }
 
-    public static IApplicationBuilder UseSynentraHttps(this IApplicationBuilder app)
-    {
-        using var scope = app.ApplicationServices.CreateScope();
-        var serverConfiguration = scope.ServiceProvider.GetRequiredService<IOptions<SystemConfiguration>>();
-        if (serverConfiguration.Value.Server.Https?.Enabled == true)
-            app.UseHttpsRedirection();
-        return app;
-    }
-
     public static IApplicationBuilder UseSynentraCors(this IApplicationBuilder app)
     {
         using var scope = app.ApplicationServices.CreateScope();
-        var serverConfiguration = scope.ServiceProvider.GetRequiredService<IOptions<SystemConfiguration>>();
-        if (serverConfiguration.Value.Cors.Enabled)
+        var serverConfiguration = scope.ServiceProvider.GetRequiredService<IOptions<CorsConfiguration>>();
+        var allowedOrigins = serverConfiguration.Value.AllowedOrigins;
+        if (allowedOrigins is not null && allowedOrigins.Length != 0)
             app.UseCors("SynentraCors");
+
         return app;
     }
 }

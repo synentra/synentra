@@ -38,9 +38,7 @@ internal static class SynentraCommandLine
         {
             if (parseResult.GetValue(versionOption))
             {
-                Console.WriteLine(
-                    $"Synentra {SynentraVersion.GetApplicationVersion()}");
-
+                Console.WriteLine($"Synentra {SynentraVersion.GetApplicationVersion()}");
                 return;
             }
 

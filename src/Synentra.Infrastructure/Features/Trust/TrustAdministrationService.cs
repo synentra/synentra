@@ -5,7 +5,7 @@ using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Auditing.Contracts;
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Configuration;
+using Synentra.Infrastructure.Configuration.Trust;
 using Synentra.Persistence;
 using Synentra.Persistence.Common;
 using Synentra.Persistence.Entities;
@@ -17,7 +17,7 @@ public sealed class TrustAdministrationService(
     IDbContextFactory<SynentraDbContext> dbFactory, 
     IUnitOfWork work, 
     IAdminPolicy policy, 
-    IOptions<InfrastructureOptions> options, 
+    IOptions<TrustConfiguration> options, 
     IAuditStore audit, 
     PayloadCodec codec)
 {
@@ -56,7 +56,7 @@ public sealed class TrustAdministrationService(
                 Id = id,
                 AgentId = agentId,
                 SecurityScope = scope,
-                Score = options.Value.InitialTrustScore,
+                Score = options.Value.InitialScore ?? 50,
                 State = "Unknown"
             };
             db.Add(row);

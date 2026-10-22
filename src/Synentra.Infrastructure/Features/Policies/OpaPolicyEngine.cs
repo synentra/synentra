@@ -2,12 +2,16 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Synentra.Application.Features.Policies.Contracts;
-using Synentra.Infrastructure.Configuration;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
+using Synentra.Infrastructure.Configuration.Policy;
 using Synentra.Infrastructure.Networking;
 
 namespace Synentra.Infrastructure.Features.Policies;
 
-public sealed class OpaPolicyEngine(IHttpClientFactory clients, IOptions<InfrastructureOptions> options) : IPolicyEngine
+public sealed class OpaPolicyEngine(
+    IHttpClientFactory clients, 
+    IOptions<PolicyConfiguration> policyOptions,
+    IOptions<OutboundHttpConfiguration> outboundHttpOptions) : IPolicyEngine
 {
     public string EngineId => "opa";
     public string Version => "1.0.0";
@@ -17,18 +21,18 @@ public sealed class OpaPolicyEngine(IHttpClientFactory clients, IOptions<Infrast
         if (input.Trust?.Quarantined == true)
             return PolicyResult.Deny(new[] { "AGENT_QUARANTINED" });
 
-        var o = options.Value;
+        var o = policyOptions.Value;
         try
         {
-            var path = string.Join('/', o.OpaPolicyPath.Split('/').Select(Uri.EscapeDataString));
-            var endpoint = new Uri(new Uri(o.OpaEndpoint ?? throw new InvalidOperationException("OPA endpoint missing.")), "v1/data/" + path);
+            var path = string.Join('/', o.Providers.Opa.Path.Split('/').Select(Uri.EscapeDataString));
+            var endpoint = new Uri(new Uri(o.Providers.Opa.BaseUrl ?? throw new InvalidOperationException("OPA endpoint missing.")), "v1/data/" + path);
             using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {
                 Content = JsonContent.Create(new { input = new { schema = "synentra.policy-input.v1", agent = new { id = input.AuthenticatedAgentId, securityScope = input.SecurityScope }, operation = input.Invocation, resources = input.Resources, grant = input.TaskGrantId, evidence = new { intent = input.Intent, risk = input.Risk, trust = input.Trust }, untrustedContext = input.UntrustedContext } })
             };
             using var response = await clients.CreateClient("synentra-governed").SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
-            using var doc = JsonDocument.Parse(await BoundedResponse.ReadAsync(response.Content, o.MaximumResponseBytes, ct));
+            using var doc = JsonDocument.Parse(await BoundedResponse.ReadAsync(response.Content, outboundHttpOptions.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024), ct));
             if (!doc.RootElement.TryGetProperty("result", out var result))
                 return PolicyResult.Deny(new[] { "OPA_UNDEFINED" });
 

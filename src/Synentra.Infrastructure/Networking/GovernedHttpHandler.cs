@@ -1,11 +1,13 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Security;
+using Microsoft.Extensions.Options;
 using Synentra.Infrastructure.Configuration;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
 
 namespace Synentra.Infrastructure.Networking;
 
-public sealed class GovernedHttpHandler(InfrastructureOptions options) : DelegatingHandler(CreateSockets(options))
+public sealed class GovernedHttpHandler(IOptions<OutboundHttpConfiguration> options) : DelegatingHandler(CreateSockets(options))
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
@@ -13,7 +15,7 @@ public sealed class GovernedHttpHandler(InfrastructureOptions options) : Delegat
 
         if (uri.Scheme is not ("http" or "https") 
             || !string.IsNullOrEmpty(uri.UserInfo) 
-            || !options.AllowedOrigins.Contains(uri.GetLeftPart(UriPartial.Authority)))
+            || !options.Value.AllowedDestinations.Contains(uri.GetLeftPart(UriPartial.Authority)))
             throw new SecurityException("Destination origin is not allowed.");
 
         // Host is derived from URI, never a caller-supplied header.
@@ -21,7 +23,7 @@ public sealed class GovernedHttpHandler(InfrastructureOptions options) : Delegat
         return base.SendAsync(request, ct);
     }
 
-    private static SocketsHttpHandler CreateSockets(InfrastructureOptions options) => new()
+    private static SocketsHttpHandler CreateSockets(IOptions<OutboundHttpConfiguration> options) => new()
     {
         AllowAutoRedirect = false,
         UseCookies = false,
@@ -31,7 +33,7 @@ public sealed class GovernedHttpHandler(InfrastructureOptions options) : Delegat
         ConnectCallback = async (context, ct) =>
         {
             var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, ct);
-            if (addresses.Length == 0 || (!options.AllowPrivateAddresses && addresses.Any(IsPrivate)))
+            if (addresses.Length == 0 || (!(options.Value.AllowPrivateAddresses ?? false) && addresses.Any(IsPrivate)))
                 throw new SecurityException("Destination address rejected.");
 
             // Connect to the validated IP, preventing a second DNS lookup / rebinding race.
