@@ -7,6 +7,8 @@
 	<ItemGroup>
 		<ProjectReference Include="../Synentra.Persistence/Synentra.Persistence.csproj" />
 		<ProjectReference Include="..\Synentra.Application\Synentra.Application.csproj" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+		<PackageReference Include="Serilog.Sinks.Seq" Version="9.1.0" />
 		<PackageReference Include="YamlDotNet" Version="16.3.0" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
 		<PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.23.0" />

@@ -19,6 +19,20 @@ using Synentra.Application.Features.Risk.Contracts;
 using Synentra.Application.Features.Trust.Contracts;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Infrastructure.Configuration;
+using Synentra.Infrastructure.Configuration.Approvals;
+using Synentra.Infrastructure.Configuration.BackgroundJobs;
+using Synentra.Infrastructure.Configuration.Cors;
+using Synentra.Infrastructure.Configuration.DataProtection;
+using Synentra.Infrastructure.Configuration.Identity;
+using Synentra.Infrastructure.Configuration.Logging;
+using Synentra.Infrastructure.Configuration.OpenTelemetry;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
+using Synentra.Infrastructure.Configuration.Persistence;
+using Synentra.Infrastructure.Configuration.Policy;
+using Synentra.Infrastructure.Configuration.SecretManagement;
+using Synentra.Infrastructure.Configuration.Security;
+using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Trust;
 using Synentra.Infrastructure.Dispatchers;
 using Synentra.Infrastructure.Features.Adapters;
 using Synentra.Infrastructure.Features.Effects;
@@ -37,53 +51,77 @@ using Synentra.Infrastructure.Health;
 using Synentra.Infrastructure.Networking;
 using Synentra.Infrastructure.Plugins;
 using Synentra.Persistence;
-using Synentra.Infrastructure.Configuration.Approvals;
-using Synentra.Infrastructure.Configuration.BackgroundJobs;
-using Synentra.Infrastructure.Configuration.Cors;
-using Synentra.Infrastructure.Configuration.DataProtection;
-using Synentra.Infrastructure.Configuration.Logging;
-using Synentra.Infrastructure.Configuration.OpenTelemetry;
-using Synentra.Infrastructure.Configuration.OutboundHttp;
-using Synentra.Infrastructure.Configuration.Persistence;
-using Synentra.Infrastructure.Configuration.Policy;
-using Synentra.Infrastructure.Configuration.SecretManagement;
-using Synentra.Infrastructure.Configuration.Security;
-using Synentra.Infrastructure.Configuration.Semantic;
-using Synentra.Infrastructure.Configuration.Trust;
 
 namespace Synentra.Infrastructure;
 
 public static class DependencyInjection
 {
-    private const string ApprovalsConfigurationName = "Approvals";
-    private const string BackgroundJobsConfigurationName = "BackgroundJobs";
-    private const string CorsConfigurationName = "Cors";
-    private const string DataProtectionConfigurationName = "DataProtection";
-    private const string IdentityConfigurationName = "Identity";
-    private const string LoggingConfigurationName = "Logging";
-    private const string OpenTelemetryConfigurationName = "OpenTelemetry";
-    private const string OutboundHttpConfigurationName = "OutboundHttp";
-    private const string PersistenceConfigurationName = "Persistence";
-    private const string PolicyConfigurationName = "Policy";
-    private const string SecretManagementConfigurationName = "SecretManagement";
-    private const string SemanticConfigurationName = "Semantic";
-    private const string TrustConfigurationName = "Trust";
-
-    public static IServiceCollection AddSynentraConfiguration(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddSynentraConfiguration(
+        this IServiceCollection services, 
+        IConfiguration configuration)
     {
-        services.Configure<ApprovalsConfiguration>(configuration.GetSection(ApprovalsConfigurationName));
-        services.Configure<BackgroundJobsConfiguration>(configuration.GetSection(BackgroundJobsConfigurationName));
-        services.Configure<CorsConfiguration>(configuration.GetSection(CorsConfigurationName));
-        services.Configure<DataProtectionConfiguration>(configuration.GetSection(DataProtectionConfigurationName));
-        services.Configure<IdentityConfiguration>(configuration.GetSection(IdentityConfigurationName));
-        services.Configure<LoggingConfiguration>(configuration.GetSection(LoggingConfigurationName));
-        services.Configure<OpenTelemetryConfiguration>(configuration.GetSection(OpenTelemetryConfigurationName));
-        services.Configure<OutboundHttpConfiguration>(configuration.GetSection(OutboundHttpConfigurationName));
-        services.Configure<PersistenceConfiguration>(configuration.GetSection(PersistenceConfigurationName));
-        services.Configure<PolicyConfiguration>(configuration.GetSection(PolicyConfigurationName));
-        services.Configure<SecretManagementConfiguration>(configuration.GetSection(SecretManagementConfigurationName));
-        services.Configure<SemanticConfiguration>(configuration.GetSection(SemanticConfigurationName));
-        services.Configure<TrustConfiguration>(configuration.GetSection(TrustConfigurationName));
+        // Register approvals configuration sections and validators
+        services.AddSingleton<IValidateOptions<ApprovalsConfiguration>, ApprovalsConfigurationValidator>();
+        services.AddConfiguration<ApprovalsConfiguration>(configuration);
+
+        // Register background jobs configuration sections and validators
+        services.AddSingleton<IValidateOptions<BackgroundJobsConfiguration>, BackgroundJobsConfigurationValidator>();
+        services.AddConfiguration<BackgroundJobsConfiguration>(configuration);
+
+        // Register CORS configuration sections and validators
+        services.AddSingleton<IValidateOptions<CorsConfiguration>, CorsConfigurationValidator>();
+        services.AddConfiguration<CorsConfiguration>(configuration);
+
+        // Register data protection configuration sections and validators
+        services.AddSingleton<IValidateOptions<DataProtectionConfiguration>, DataProtectionConfigurationValidator>();
+        services.AddConfiguration<DataProtectionConfiguration>(configuration);
+
+        // Register identity configuration sections and validators
+        services.AddSingleton<IValidateOptions<IdentityConfiguration>, IdentityConfigurationValidator>();
+        services.AddConfiguration<IdentityConfiguration>(configuration);
+
+        // Register logging configuration sections and validators
+        services.AddSingleton<IValidateOptions<LoggingConfiguration>, LoggingConfigurationValidator>();
+        services.AddConfiguration<LoggingConfiguration>(configuration);
+
+        // Register OpenTelemetry configuration sections and validators
+        services.AddSingleton<IValidateOptions<OpenTelemetryConfiguration>, OpenTelemetryConfigurationValidator>();
+        services.AddConfiguration<OpenTelemetryConfiguration>(configuration);
+
+        // Register outbound HTTP configuration sections and validators
+        services.AddSingleton<IValidateOptions<OutboundHttpConfiguration>, OutboundHttpConfigurationValidator>();
+        services.AddConfiguration<OutboundHttpConfiguration>(configuration);
+
+        // Register persistence configuration sections and validators
+        services.AddSingleton<IValidateOptions<PersistenceConfiguration>, PersistenceConfigurationValidator>();
+        services.AddConfiguration<PersistenceConfiguration>(configuration);
+
+        // Register policy configuration sections and validators
+        services.AddSingleton<IValidateOptions<PolicyConfiguration>, PolicyConfigurationValidator>();
+        services.AddConfiguration<PolicyConfiguration>(configuration);
+
+        // Register secret management configuration sections and validators
+        services.AddConfiguration<SecretManagementConfiguration>(configuration);
+
+        // Register semantic configuration sections and validators
+        services.AddSingleton<IValidateOptions<SemanticConfiguration>, SemanticConfigurationValidator>();
+        services.AddConfiguration<SemanticConfiguration>(configuration);
+        
+        // Register trust configuration sections and validators
+        services.AddSingleton<IValidateOptions<TrustConfiguration>, TrustConfigurationValidator>();
+        services.AddConfiguration<TrustConfiguration>(configuration);
+
+        return services;
+    }
+
+    private static IServiceCollection AddConfiguration<T>(
+        this IServiceCollection services,
+        IConfiguration configuration)
+        where T : class, ISynentraConfiguration
+    {
+        services.AddOptions<T>()
+            .Bind(configuration.GetSection(T.SectionName))
+            .ValidateOnStart();
 
         return services;
     }
@@ -103,7 +141,7 @@ public static class DependencyInjection
 
         //services.AddOptions<InfrastructureOptions>().Bind(configuration.GetSection("Synentra:Infrastructure")).Validate(o => o.InitialTrustScore is >= 0 and <= 100 && o.QuarantineThreshold is >= 0 and <= 100 && o.HttpTimeoutSeconds > 0 && o.MaximumResponseBytes > 0, "Invalid infrastructure options.").ValidateOnStart();
 
-        services.AddDataProtection().SetApplicationName(dataProtectionConfig.Value.ApplicationName 
+        services.AddDataProtection().SetApplicationName(dataProtectionConfig.Value.ApplicationName
             ?? "synentra").PersistKeysToFileSystem(new DirectoryInfo(dataProtectionConfig.Value.KeyRingPath));
 
         var outboundHttpConfig = scope.ServiceProvider.GetRequiredService<IOptions<OutboundHttpConfiguration>>();
@@ -144,7 +182,8 @@ public static class DependencyInjection
         {
             "declarative" => s.GetRequiredService<DeclarativePolicyEngine>(),
             "opa" => s.GetRequiredService<OpaPolicyEngine>(),
-            _ => throw new InvalidOperationException("Unknown policy provider.")});
+            _ => throw new InvalidOperationException("Unknown policy provider.")
+        });
 
         services.AddScoped<ITrustEngine, DbTrustEngine>();
         services.AddScoped<QuarantineService>();
@@ -171,7 +210,8 @@ public static class DependencyInjection
             "local" => s.GetRequiredService<LocalPrincipalResolver>(),
             "oidc" => s.GetRequiredService<OidcPrincipalResolver>(),
             "ldap" => s.GetRequiredService<LdapPrincipalResolver>(),
-            _ => throw new InvalidOperationException("Unknown identity provider.")});
+            _ => throw new InvalidOperationException("Unknown identity provider.")
+        });
 
         services.AddScoped<EncryptedDbCredentialProvider>();
         services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<EncryptedDbCredentialProvider>());

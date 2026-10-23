@@ -10,5 +10,5 @@ public class OidcConfiguration
     public string Issuer { get; set; } = string.Empty;
     public string SigningKeyBase64 { get; set; } = string.Empty;
     public string? SecurityScopeClaim { get; set; } = string.Empty;
-    public bool AgentIdClaim { get; set; } = false;
+    public string AgentIdClaim { get; set; } = string.Empty;
 }
