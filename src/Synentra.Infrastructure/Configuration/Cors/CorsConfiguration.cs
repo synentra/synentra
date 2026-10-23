@@ -1,8 +1,10 @@
 namespace Synentra.Infrastructure.Configuration.Cors;
 
-public class CorsConfiguration
+public class CorsConfiguration: ISynentraConfiguration
 {
-    public string[] AllowedOrigins { get; set; } = ["https://localhost:7181"];
-    public string[] AllowedMethods { get; set; } = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
-    public string[] AllowedHeaders { get; set; } = ["Content-Type", "Authorization"];
+    public static string SectionName => "Cors";
+
+    public string[] AllowedOrigins { get; set; } = [];
+    public string[] AllowedMethods { get; set; } = [];
+    public string[] AllowedHeaders { get; set; } = [];
 }

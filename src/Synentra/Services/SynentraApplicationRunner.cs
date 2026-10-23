@@ -1,4 +1,6 @@
-﻿namespace Synentra.Services;
+﻿using Microsoft.Extensions.Options;
+
+namespace Synentra.Services;
 
 internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
 {
@@ -40,6 +42,10 @@ internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
 
             await app.RunAsync(cancellationToken);
         }
+        catch (OptionsValidationException ex)
+        {
+            await HandleValidationFailureAsync(builder, ex);
+        }
         catch (Exception ex)
         {
             await HandleStartupFailureAsync(builder, ex);
@@ -47,6 +53,36 @@ internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
     }
 
     internal static Action<int> ExitAction { get; set; } = Environment.Exit;
+
+    internal static async Task HandleValidationFailureAsync(
+        WebApplicationBuilder builder,
+        OptionsValidationException ex)
+    {
+        try
+        {
+            using var scope =
+                builder.Services.BuildServiceProvider().CreateScope();
+
+            var logger =
+                scope.ServiceProvider.GetService<ILogger<Program>>();
+
+            foreach (var error in ex.Failures)
+            {
+                logger?.LogError($"Configuration error: {error}");
+            }
+        }
+        catch
+        {
+            foreach (var error in ex.Failures)
+            {
+                await Console.Error.WriteLineAsync($"Configuration error: {error}");
+            }
+        }
+
+        await Task.Delay(500);
+
+        ExitAction(1);
+    }
 
     internal static async Task HandleStartupFailureAsync(
         WebApplicationBuilder builder,

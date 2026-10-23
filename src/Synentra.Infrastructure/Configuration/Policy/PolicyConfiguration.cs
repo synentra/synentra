@@ -1,8 +1,9 @@
 ﻿namespace Synentra.Infrastructure.Configuration.Policy;
 
-public class PolicyConfiguration
+public class PolicyConfiguration: ISynentraConfiguration
 {
-    public bool? Enabled { get; set; } = true;
-    public string DefaultProvider { get; set; } = "Internal";
+    public static string SectionName => "Policy";
+
+    public string DefaultProvider { get; set; } = "Declarative";
     public PolicyProviders Providers { get; set; } = new();
 }
