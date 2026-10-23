@@ -24,7 +24,7 @@ internal static class SynentraCommandLine
         };
 
         var rootCommand = new RootCommand(
-            "SYNENTRA – Intent-Aware Governance Gateway for Autonomous AI Agents");
+            "SYNENTRA – Intent-Aware Runtime Governance for AI Agents");
 
         var builtIn =
             rootCommand.Options.OfType<VersionOption>().FirstOrDefault();
