@@ -30,6 +30,13 @@ public sealed class OpaPolicyEngine(
             {
                 Content = JsonContent.Create(new { input = new { schema = "synentra.policy-input.v1", agent = new { id = input.AuthenticatedAgentId, securityScope = input.SecurityScope }, operation = input.Invocation, resources = input.Resources, grant = input.TaskGrantId, evidence = new { intent = input.Intent, risk = input.Risk, trust = input.Trust }, untrustedContext = input.UntrustedContext } })
             };
+
+            if (!string.IsNullOrWhiteSpace(o.Providers.Opa.OpaBearerToken))
+            {
+                if (endpoint.Scheme != "https") return PolicyResult.Deny(new[] { "OPA_CREDENTIAL_REQUIRES_HTTPS" });
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", o.Providers.Opa.OpaBearerToken);
+            }
+
             using var response = await clients.CreateClient("synentra-governed").SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
             using var doc = JsonDocument.Parse(await BoundedResponse.ReadAsync(response.Content, outboundHttpOptions.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024), ct));

@@ -54,7 +54,7 @@ public sealed class RequestLoggingMiddleware
                     policy_version = policyVersion,
                     protocol = context.Request.Protocol,
                     method = context.Request.Method,
-                    path = context.Request.Path.Value,
+                    path = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText,
                     status_code = context.Response.StatusCode,
                     user_agent = context.Request.Headers.UserAgent.ToString(),
                     client_ip = context.Connection.RemoteIpAddress?.ToString(),

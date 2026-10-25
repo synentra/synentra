@@ -2,6 +2,7 @@ using Amazon.SecretsManager;
 using Amazon.SecretsManager.Model;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Diagnostics;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
@@ -15,6 +16,7 @@ public sealed class AwsSecretsManagerCredentialProvider(IAmazonSecretsManager cl
             throw new InvalidOperationException("Secret version required.");
 
         var response = await client.GetSecretValueAsync(new GetSecretValueRequest { SecretId = binding.SecretRef.SecretPath, VersionId = binding.SecretRef.Version }, ct);
-        return new("Bearer", response.SecretString ?? throw new Exception("Binary secrets are not authentication headers."), null);
+        return new("Bearer", response.SecretString 
+            ?? throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialBinarySecretsNotAuthenticationHeaders), null);
     }
 }

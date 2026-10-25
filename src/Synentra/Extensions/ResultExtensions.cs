@@ -57,7 +57,7 @@ public static class ResultExtensions
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                { "Error", new[] { diagnostic.Message } }
+                { "request", new[] { diagnostic.Message } }
             });
         }
 

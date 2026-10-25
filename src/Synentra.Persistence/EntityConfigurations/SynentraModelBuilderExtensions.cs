@@ -21,6 +21,7 @@ internal static class SynentraModelBuilderExtensions
         builder.ApplyConfiguration(new QuarantineEntityConfiguration());
         builder.ApplyConfiguration(new CredentialBindingEntityConfiguration());
         builder.ApplyConfiguration(new SecretEntityConfiguration());
+        builder.ApplyConfiguration(new SecretStateEntityConfiguration());
         builder.ApplyConfiguration(new OutcomeEvidenceEntityConfiguration());
 
         return builder;

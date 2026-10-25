@@ -62,13 +62,20 @@ public sealed class OutboxProcessor(
                     var record = await records.GetAsync(cmd.ExecutionRecordId, token) 
                         ?? throw new InvalidDataException("Execution missing.");
 
+                    if (record.Status == ExecutionStatus.CancelledBeforeDispatch)
+                    {
+                        message.ProcessedAt = Keys.Now;
+                        message.LastError = "CANCELLED_BEFORE_DISPATCH";
+                        return null;
+                    }
+
                     await revisions.ReloadAsync(token);
                     var snapshot = await trust.LoadSnapshotAsync(invocation.AuthenticatedAgentId, invocation.SecurityScope, token);
                     var target = manifests.ActiveBundle?.Spec.Targets.SingleOrDefault(t => t.Id == invocation.TargetId);
                     var adapter = dispatchers.SingleOrDefault(x => x.AdapterId == target?.AdapterRef);
 
                     var currentCredential = cmd.Snapshot.CredentialBinding is { } binding ? await credentials.GetAsync(binding.Id, token) : null;
-                    var credentialChanged = System.Text.Json.JsonSerializer.Serialize(currentCredential, PayloadCodec.Json) != System.Text.Json.JsonSerializer.Serialize(cmd.Snapshot.CredentialBinding, PayloadCodec.Json);
+                    var credentialChanged = cmd.Snapshot.CredentialBinding is { } admittedCredential ? currentCredential is null || !currentCredential.HasSameAuthority(admittedCredential) : currentCredential is not null;
 
                     var grant = invocation.TaskGrantId is { } grantId ? await grants.GetAsync(grantId, token) : null;
                     var grantInvalid = invocation.RequiresGrant && (grant is null || !grant.IsValidAt(DateTimeOffset.UtcNow) || grant.AgentId != invocation.AuthenticatedAgentId || grant.SecurityScope != invocation.SecurityScope);
@@ -84,7 +91,7 @@ public sealed class OutboxProcessor(
 
                     if (!await claims.TransitionToDispatchingAsync(cmd.ClaimId, token))
                     {
-                        if (record.Status == ExecutionStatus.NotStarted)
+                        if (record.Status is ExecutionStatus.NotStarted or ExecutionStatus.Claimed)
                         {
                             record.MarkFailedBeforeDispatch("CLAIM_EXPIRED_OR_CONFLICT");
                             await records.SaveAsync(record, token);
@@ -148,7 +155,7 @@ public sealed class OutboxProcessor(
 
                 if (receipt.Status is ReceiptStatus.Responded or ReceiptStatus.ToolError)
                 {
-                    record.MarkResponded(receipt.UpstreamReference);
+                    record.MarkResponded(receipt.UpstreamReference, receipt.Payload, receipt.StatusCode, receipt.ErrorMessage);
                     await claims.MarkRespondedAsync(command.ClaimId, token);
                 }
                 else

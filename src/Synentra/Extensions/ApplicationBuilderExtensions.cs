@@ -3,6 +3,10 @@ using System.Diagnostics.CodeAnalysis;
 using Synentra.Middleware;
 using Synentra.Persistence;
 using Synentra.Infrastructure.Configuration.Cors;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Synentra.HealthCheck;
+using System.Text.Json;
 
 namespace Synentra.Extensions;
 
@@ -11,6 +15,31 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseSynentraCustomException(this IApplicationBuilder app)
     {
         app.UseMiddleware<ExceptionMiddleware>();
+        return app;
+    }
+
+    [ExcludeFromCodeCoverage]
+    public static IApplicationBuilder UseSynentraHealthCheck(this IApplicationBuilder app)
+    {
+        app.UseEndpoints(endpoints =>
+
+        {
+            endpoints.MapHealthChecks("/health", new HealthCheckOptions
+            {
+                ResultStatusCodes =
+                {
+                    [HealthStatus.Healthy] = StatusCodes.Status200OK,
+                    [HealthStatus.Degraded] = StatusCodes.Status200OK,
+                    [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+                },
+                ResponseWriter = async (context, report) =>
+                {
+                    context.Response.ContentType = "application/json";
+                    var response = new HealthCheckResponse { Status = report.Status.ToString(), HealthCheckDuration = report.TotalDuration };
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(response), context.RequestAborted);
+                }
+            });
+        });
         return app;
     }
 

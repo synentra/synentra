@@ -23,4 +23,5 @@ public static class DiagnosticModules
     public const string ResourceDescriptor = "RSD";
     public const string EffectMeasure = "EFM";
     public const string Quarantine = "QRT";
+    public const string Secrets = "SEC";
 }

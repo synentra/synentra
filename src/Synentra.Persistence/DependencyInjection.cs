@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<BudgetStore>();
         services.AddScoped<IBudgetStore>(sp => sp.GetRequiredService<BudgetStore>());
         services.AddScoped<CredentialBindingStore>();
+        services.AddScoped<SecretStateStore>();
         services.AddScoped<OutcomeEvidenceStore>();
         services.AddScoped<IOutcomeEvidenceStore>(s => s.GetRequiredService<OutcomeEvidenceStore>());
         return services;

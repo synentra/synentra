@@ -4,10 +4,12 @@ using Microsoft.Extensions.Options;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Configuration.Identity;
+using Synentra.Infrastructure.Configuration.Security;
 
 namespace Synentra.Infrastructure.Features.Identity;
 
-public sealed class LdapPrincipalResolver(IOptions<IdentityOptions> options) : IPrincipalResolver
+public sealed class LdapPrincipalResolver(IOptions<IdentityConfiguration> options) : IPrincipalResolver
 {
     public string ResolverId => "ldap";
     public string ProviderKind => "ldap";
@@ -20,12 +22,12 @@ public sealed class LdapPrincipalResolver(IOptions<IdentityOptions> options) : I
         if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrEmpty(parts[1]))
             throw new UnauthorizedAccessException("Invalid LDAP credential.");
 
-        var o = options.Value;
+        var o = options.Value.Providers.Ldap;
         using var lookup = Connect(o);
-        lookup.Bind(new NetworkCredential(o.LdapServiceDn, o.LdapServicePassword));
+        lookup.Bind(new NetworkCredential(o.ServiceDn, o.ServicePassword));
         var response = (SearchResponse)lookup
                         .SendRequest(new SearchRequest(
-                            o.LdapBaseDn, 
+                            o.BaseDn, 
                             "(&(objectClass=person)(uid=" + Escape(parts[0]) + "))", 
                             SearchScope.Subtree, 
                             "uid", 
@@ -49,20 +51,21 @@ public sealed class LdapPrincipalResolver(IOptions<IdentityOptions> options) : I
                     .Cast<string>()
                     .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new();
 
-        var type = !string.IsNullOrEmpty(o.LdapAdminGroupDn) && groups.Contains(o.LdapAdminGroupDn) 
+        var type = !string.IsNullOrEmpty(o.AdminGroupDn) && groups.Contains(o.AdminGroupDn) 
             ? PrincipalType.Admin 
-            : !string.IsNullOrEmpty(o.LdapReviewerGroupDn) && groups.Contains(o.LdapReviewerGroupDn) ? PrincipalType.Reviewer : PrincipalType.Agent;
+            : !string.IsNullOrEmpty(o.ReviewerGroupDn) && groups.Contains(o.ReviewerGroupDn) ? PrincipalType.Reviewer : PrincipalType.Agent;
 
         return new CanonicalPrincipal(
             Required("uid"), 
             Required("securityScope"), 
-            "ldaps://" + o.LdapHost, 
+            "ldaps://" + o.Host, 
             entry.DistinguishedName,
             groups, new Dictionary<string, string>(), type);
     }, ct);
-    private static LdapConnection Connect(IdentityOptions o)
+
+    private static LdapConnection Connect(LdapConfiguration o)
     {
-        var connection = new LdapConnection(new LdapDirectoryIdentifier(o.LdapHost, o.LdapPort))
+        var connection = new LdapConnection(new LdapDirectoryIdentifier(o.Host, o.Port))
         {
             AuthType = AuthType.Basic,
             Timeout = TimeSpan.FromSeconds(10)

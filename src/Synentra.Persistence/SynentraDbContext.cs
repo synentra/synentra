@@ -22,6 +22,7 @@ public abstract class SynentraDbContext(DbContextOptions options) : DbContext(op
     public DbSet<QuarantineEntity> Quarantines { get; set; }
     public DbSet<ReservationEntity> Reservations { get; set; }
     public DbSet<SecretEntity> Secrets { get; set; }
+    public DbSet<SecretStateEntity> SecretStates { get; set; }
     public DbSet<TrustEntity> Trusts { get; set; }
     public DbSet<TrustEvidenceEntity> TrustEvidences { get; set; }
 
