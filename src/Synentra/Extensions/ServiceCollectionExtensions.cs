@@ -86,6 +86,7 @@ public static class ServiceCollectionExtensions
                 break;
 
             case "postgres":
+            case "postgresql":
                 services.AddSynentraPostgreSql(systemConfig.Providers.Postgres.ConnectionString);
                 break;
 
@@ -94,6 +95,7 @@ public static class ServiceCollectionExtensions
                     $"Unsupported database provider '{provider}'.");
         }
 
+        Persistence.DependencyInjection.AddSynentraPersistence(services);
         return services;
     }
 

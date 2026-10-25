@@ -29,7 +29,7 @@ using Synentra.Infrastructure.Configuration.OpenTelemetry;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
 using Synentra.Infrastructure.Configuration.Persistence;
 using Synentra.Infrastructure.Configuration.Policy;
-using Synentra.Infrastructure.Configuration.SecretManagement;
+using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Configuration.Security;
 using Synentra.Infrastructure.Configuration.Semantic;
 using Synentra.Infrastructure.Configuration.Trust;
@@ -50,7 +50,7 @@ using Synentra.Infrastructure.Features.Trust;
 using Synentra.Infrastructure.Health;
 using Synentra.Infrastructure.Networking;
 using Synentra.Infrastructure.Plugins;
-using Synentra.Persistence;
+using Synentra.Persistence.Features.Security;
 
 namespace Synentra.Infrastructure;
 
@@ -101,7 +101,7 @@ public static class DependencyInjection
         services.AddConfiguration<PolicyConfiguration>(configuration);
 
         // Register secret management configuration sections and validators
-        services.AddConfiguration<SecretManagementConfiguration>(configuration);
+        services.AddConfiguration<SecretsConfiguration>(configuration);
 
         // Register semantic configuration sections and validators
         services.AddSingleton<IValidateOptions<SemanticConfiguration>, SemanticConfigurationValidator>();
@@ -130,19 +130,56 @@ public static class DependencyInjection
     {
         services.AddSynentraApplication();
         services.AddSynentraConfiguration(configuration);
-        services.AddSynentraPersistence();
         services.AddLogging();
 
         using var scope = services.BuildServiceProvider().CreateScope();
         var dataProtectionConfig = scope.ServiceProvider.GetRequiredService<IOptions<DataProtectionConfiguration>>();
 
         if (string.IsNullOrWhiteSpace(dataProtectionConfig.Value.KeyRingPath))
-            throw new InvalidOperationException("A durable data-protection key-ring path is required.");
+        {
+            dataProtectionConfig.Value.KeyRingPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Synentra", "DataProtection", "Keys"
+            );
+        }
 
-        //services.AddOptions<InfrastructureOptions>().Bind(configuration.GetSection("Synentra:Infrastructure")).Validate(o => o.InitialTrustScore is >= 0 and <= 100 && o.QuarantineThreshold is >= 0 and <= 100 && o.HttpTimeoutSeconds > 0 && o.MaximumResponseBytes > 0, "Invalid infrastructure options.").ValidateOnStart();
+        foreach (var policy in dataProtectionConfig.Value.AuthenticatedResponsePolicies.Values) 
+            policy.Validate();
 
-        services.AddDataProtection().SetApplicationName(dataProtectionConfig.Value.ApplicationName
-            ?? "synentra").PersistKeysToFileSystem(new DirectoryInfo(dataProtectionConfig.Value.KeyRingPath));
+        Directory.CreateDirectory(dataProtectionConfig.Value.KeyRingPath);
+        KeyRingSecurity.Validate(dataProtectionConfig.Value.KeyRingPath);
+        if (dataProtectionConfig.Value.RequireEncryptedKeyRing) 
+            KeyRingSecurity.ValidateEncryptedKeys(dataProtectionConfig.Value.KeyRingPath);
+
+        services.AddSingleton<StartupSecretState>();
+        services.AddHostedService<StartupSecretGate>();
+        //services.AddSingleton<IOptions<IdentityOptions>>(sp => Options.Create(sp.GetRequiredService<StartupSecretState>().Identity));
+
+        var keyRing = services.AddDataProtection()
+            .SetApplicationName(dataProtectionConfig.Value.ApplicationName)
+            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionConfig.Value.KeyRingPath));
+
+        if (!string.IsNullOrWhiteSpace(dataProtectionConfig.Value.KeyRingCertificatePath) 
+            || !string.IsNullOrWhiteSpace(dataProtectionConfig.Value.KeyRingCertificateThumbprint))
+        {
+            var cert = KeyRingCertificates.LoadActive(dataProtectionConfig.Value);
+            var previous = KeyRingCertificates.LoadPrevious(dataProtectionConfig.Value);
+            if (previous.Any(c => !c.HasPrivateKey)) 
+                throw new InvalidOperationException("Previous certificates require private keys.");
+
+            keyRing.ProtectKeysWithCertificate(cert);
+            keyRing.UnprotectKeysWithAnyCertificate(new[] { cert }.Concat(previous).ToArray());
+        }
+        else if (dataProtectionConfig.Value.RequireEncryptedKeyRing)
+        {
+            throw new InvalidOperationException(
+                "DataProtection:KeyRingCertificatePath is required when RequireEncryptedKeyRing is enabled. " +
+                "Provision an X.509 certificate outside the application source and securely persist the shared key ring.");
+        }
+
+
+
+
+
 
         var outboundHttpConfig = scope.ServiceProvider.GetRequiredService<IOptions<OutboundHttpConfiguration>>();
         services.AddHttpClient("synentra-governed", c => c.Timeout = outboundHttpConfig.Value.Timeout ?? TimeSpan.FromSeconds(30))
@@ -166,8 +203,8 @@ public static class DependencyInjection
 
         void Plugin(string id, PluginFamily family, Type input, Type output, params string[] capabilities) => services.AddSingleton<IPluginRegistration>(new PluginRegistration(id, family, new[] { input }, new[] { output }, capabilities.ToHashSet()));
 
-        Plugin("http", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response");
-        Plugin("mcp", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response");
+        Plugin("http", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response", "idempotency", "conditional-headers", "bounded-response", "ssrf-guard");
+        Plugin("mcp", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response", "streamable-http", "tools", "pagination", "cancellation", "review-resume");
         Plugin("http-resource", PluginFamily.ResourceResolver, typeof(Domain.Invocations.ToolInvocation), typeof(ResourceResolutionResult), "resource-resolution");
         Plugin("configured-effect", PluginFamily.EffectResolver, typeof(Domain.Invocations.ToolInvocation), typeof(Domain.Effects.ValueObjects.EffectPlan), "bounded-effects");
         Plugin("http-readback", PluginFamily.OutcomeVerifier, typeof(Domain.Execution.ExecutionRecord), typeof(Domain.Execution.Evidence.OutcomeEvidence), "readback");
@@ -202,32 +239,42 @@ public static class DependencyInjection
             services.AddScoped<IInvocationNormalizer>(s => new ConfiguredInvocationNormalizer(s.GetRequiredService<IManifestProvider>(), s.GetRequiredService<IRevisionProvider>(), m));
         }
 
-        services.AddScoped<LocalPrincipalResolver>();
         services.AddSingleton<OidcPrincipalResolver>();
         services.AddScoped<LdapPrincipalResolver>();
-        services.AddScoped<IPrincipalResolver>(s => s.GetRequiredService<IOptions<IdentityOptions>>().Value.Provider switch
+        services.AddScoped<IPrincipalResolver>(s => s.GetRequiredService<IOptions<IdentityConfiguration>>().Value.DefaultProvider.ToLowerInvariant() switch
         {
-            "local" => s.GetRequiredService<LocalPrincipalResolver>(),
             "oidc" => s.GetRequiredService<OidcPrincipalResolver>(),
             "ldap" => s.GetRequiredService<LdapPrincipalResolver>(),
             _ => throw new InvalidOperationException("Unknown identity provider.")
         });
 
+        var secretsConfig = scope.ServiceProvider.GetRequiredService<IOptions<SecretsConfiguration>>();
+
         services.AddScoped<EncryptedDbCredentialProvider>();
+        if (secretsConfig.Value.Providers.EncryptedDatabase.EncryptedDatabaseEnabled)
+            services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<EncryptedDbCredentialProvider>());
+
         services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<EncryptedDbCredentialProvider>());
         services.AddScoped<CredentialProviderRouter>();
-        var secrets = configuration.GetSection("Synentra:Secrets").Get<ExternalSecretOptions>() ?? new();
-        if (secrets.VaultUrl is not null)
+
+        services.AddScoped<IRuntimeCredentialResolver>(s => s.GetRequiredService<CredentialProviderRouter>());
+        services.AddScoped<SecretStateStore>();
+        var secretPlan = configuration.GetSection("SecretPlan").Get<SecretPlan>() ?? new();
+        secretPlan.Cache.Validate();
+        services.AddSingleton(new SecretMaterialCache(secretPlan.Cache));
+
+
+        if (secretsConfig.Value.Providers.HashiCorpVault.VaultUrl is not null)
             services.AddScoped<ICredentialProvider, HashiCorpVaultCredentialProvider>();
-        if (secrets.AzureVaultUrl is not null)
+        if (secretsConfig.Value.Providers.AzureKeyVault.AzureVaultUrl is not null)
         {
-            services.AddSingleton(new Azure.Security.KeyVault.Secrets.SecretClient(new Uri(secrets.AzureVaultUrl), new Azure.Identity.DefaultAzureCredential()));
+            services.AddSingleton(new Azure.Security.KeyVault.Secrets.SecretClient(new Uri(secretsConfig.Value.Providers.AzureKeyVault.AzureVaultUrl), new Azure.Identity.DefaultAzureCredential()));
             services.AddScoped<ICredentialProvider, AzureKeyVaultCredentialProvider>();
         }
 
-        if (secrets.AwsRegion is not null)
+        if (secretsConfig.Value.Providers.AwsSecrets.AwsRegion is not null)
         {
-            services.AddSingleton<Amazon.SecretsManager.IAmazonSecretsManager>(new Amazon.SecretsManager.AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(secrets.AwsRegion)));
+            services.AddSingleton<Amazon.SecretsManager.IAmazonSecretsManager>(new Amazon.SecretsManager.AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(secretsConfig.Value.Providers.AwsSecrets.AwsRegion)));
             services.AddScoped<ICredentialProvider, AwsSecretsManagerCredentialProvider>();
         }
 

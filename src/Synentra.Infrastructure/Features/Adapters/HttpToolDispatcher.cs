@@ -1,19 +1,22 @@
+using Microsoft.Extensions.Options;
+using Synentra.Application.Common.Security;
+using Synentra.Application.Features.Executions.Contracts;
+using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Configuration.DataProtection;
+using Synentra.Infrastructure.Configuration.OutboundHttp;
+using Synentra.Infrastructure.Features.Secrets;
+using Synentra.Infrastructure.Networking;
 using System.Net.Http.Json;
 using System.Security;
 using System.Text;
-using Microsoft.Extensions.Options;
-using Synentra.Application.Features.Executions.Contracts;
-using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Networking;
-using Synentra.Infrastructure.Features.Secrets;
-using Synentra.Infrastructure.Configuration.OutboundHttp;
 
 namespace Synentra.Infrastructure.Features.Adapters;
 
 public sealed class HttpToolDispatcher(
     IHttpClientFactory clients,
-    CredentialProviderRouter credentials,
-    IOptions<OutboundHttpConfiguration> options) : IToolDispatcher
+    IRuntimeCredentialResolver credentials,
+    IOptions<OutboundHttpConfiguration> outboundHttpOptions,
+    IOptions<DataProtectionConfiguration> dataProtectionOptions) : IToolDispatcher
 {
     private static readonly HashSet<string> SafeHeaders = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -46,8 +49,15 @@ public sealed class HttpToolDispatcher(
                 throw new InvalidOperationException($"Configured header '{key}' could not be applied.");
         }
 
+        if (snapshot.CredentialBinding is not null && destination.Scheme != "https")
+            throw new SecurityException("Credentials require HTTPS.");
+
+        ResolvedCredential? resolvedCredential = null;
         if (snapshot.CredentialBinding is { } binding)
-            request.Headers.Authorization = (await credentials.ResolveAsync(binding, identity, snapshot.OperationId.Value, snapshot.TargetId, ct)).ToAuthHeader();
+        {
+            resolvedCredential = await credentials.ResolveAsync(binding, identity, snapshot.OperationId.Value, snapshot.TargetId, ct);
+            request.Headers.Authorization = resolvedCredential.ToAuthHeader();
+        }
 
         if (!string.IsNullOrWhiteSpace(snapshot.IdempotencyKey))
         {
@@ -68,11 +78,14 @@ public sealed class HttpToolDispatcher(
             string? payload = null;
             if (response.Content is not null)
             {
-                var bytes = await BoundedResponse.ReadAsync(response.Content, options.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024), ct);
-                payload = bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes);
+                var bytes = await BoundedResponse.ReadAsync(response.Content, outboundHttpOptions.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024), ct);
+                payload = CredentialResponseRetention.Apply(bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes), snapshot.TargetId, resolvedCredential, dataProtectionOptions.Value);
+
+                //payload = bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes);
             }
 
-            var upstreamReference = response.Headers.Location?.ToString();
+            var upstreamReference = snapshot.CredentialBinding is not null ? null : response.Headers.Location?.ToString();
+            //var upstreamReference = response.Headers.Location?.ToString();
             var status = response.IsSuccessStatusCode ? ReceiptStatus.Responded : ReceiptStatus.ToolError;
             return new(status, upstreamReference, payload, (int)response.StatusCode, timestamp,
                 response.IsSuccessStatusCode ? null : $"HTTP_{(int)response.StatusCode}");

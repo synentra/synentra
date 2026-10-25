@@ -197,4 +197,21 @@ public static class DomainErrors
             sequence: 1, 
             message: "Quarantine already released.");
     }
+
+    public static class Secret
+    {
+        public static Diagnostic SecretRefEmpty = Diagnostic.Define(
+            module: DiagnosticModules.Secrets,
+            kind: DiagnosticKind.Validation,
+            sequence: 1,
+            message: "Secret reference is empty."
+            );
+
+        public static Diagnostic SecretRefAmbiguous = Diagnostic.Define(
+            module: DiagnosticModules.Secrets,
+            kind: DiagnosticKind.Validation,
+            sequence: 2,
+            message: "Secret reference is ambiguous (looks like a Windows path)."
+            );
+    }
 }

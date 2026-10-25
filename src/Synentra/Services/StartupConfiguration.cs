@@ -3,6 +3,7 @@ using Synentra.Middleware;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using Synentra.Infrastructure;
+using Synentra.Infrastructure.Features.Secrets;
 
 namespace Synentra.Services;
 
@@ -13,23 +14,6 @@ internal sealed class StartupConfiguration : IStartupConfiguration
     {
         var services = builder.Services;
         var configuration = builder.Configuration;
-
-        //// Data Protection
-        //var dpKeysDir = Path.Combine(
-        //    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        //    "Synentra",
-        //    "DataProtection",
-        //    "Keys");
-
-        //Directory.CreateDirectory(dpKeysDir);
-
-        //var dataProtectionBuilder = services.AddDataProtection()
-        //    .PersistKeysToFileSystem(new DirectoryInfo(dpKeysDir))
-        //    .SetApplicationName("Synentra");
-
-        //// Apply DPAPI encryption only on Windows
-        //if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        //    dataProtectionBuilder.ProtectKeysWithDpapi();
 
         // JSON options
         services.ConfigureHttpJsonOptions(options =>
@@ -52,14 +36,18 @@ internal sealed class StartupConfiguration : IStartupConfiguration
 
     public async Task ConfigurePipelineAsync(WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        app.UseSynentraCustomException();
+
+        app.Use(async (context, next) =>
         {
-            app.UseDeveloperExceptionPage();
-        }
-        else
-        {
-            app.UseSynentraCustomException();
-        }
+            if (!app.Services.GetRequiredService<StartupSecretState>().IsReady)
+            {
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                await context.Response.WriteAsJsonAsync(new { errorCode = "STARTUP_SECRETS_UNAVAILABLE" });
+                return;
+            }
+            await next(context);
+        });
 
         app.UseSynentraCustomHeaders();
 
@@ -71,7 +59,7 @@ internal sealed class StartupConfiguration : IStartupConfiguration
         app.MapEndpoints();
 
         app.UseSynentraApiDocumentation();
-        //app.UseSynentraHealthCheck();
+        app.UseSynentraHealthCheck();
 
         // Ensure database is created/migrated
         await app.EnsureApplicationDatabaseCreated();

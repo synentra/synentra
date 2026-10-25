@@ -2,18 +2,33 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Configuration.Secrets;
+using Synentra.Infrastructure.Diagnostics;
 using Synentra.Infrastructure.Networking;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
-public sealed class HashiCorpVaultCredentialProvider(IHttpClientFactory clients, IOptions<ExternalSecretOptions> options) : ICredentialProvider
+public sealed class HashiCorpVaultCredentialProvider(IHttpClientFactory clients, IOptions<SecretsConfiguration> options) : ICredentialProvider
 {
     public string ProviderId => "hashicorp-vault";
 
     public async Task<ResolvedCredential> ResolveAsync(CredentialBinding binding, CancellationToken ct)
     {
-        var o = options.Value;
-        if (binding.SecretRef.ProviderId != ProviderId || !int.TryParse(binding.SecretRef.Version, out var version) || version < 1)
+        var o = options.Value.Providers.HashiCorpVault;
+        if (!Uri.TryCreate(o.VaultUrl, UriKind.Absolute, out var baseUri) 
+            || baseUri.Scheme != "https" 
+            || !string.IsNullOrEmpty(baseUri.UserInfo) 
+            || !string.IsNullOrEmpty(baseUri.Query) 
+            || string.IsNullOrWhiteSpace(o.VaultToken) 
+            || o.VaultToken.Any(char.IsControl))
+            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialBootstrapConfigurationInvalid);
+
+        if (binding.SecretRef.SecretPath.Split('/').Any(s => s is "" or "." or ".."))
+            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialInvalidVaultPath);
+
+        if (binding.SecretRef.ProviderId != ProviderId 
+            || !int.TryParse(binding.SecretRef.Version, out var version) 
+            || version < 1)
             throw new InvalidOperationException("Vault requires an explicit KV v2 version.");
 
         var path = string.Join('/', binding.SecretRef.SecretPath.Split('/').Select(Uri.EscapeDataString));
@@ -26,7 +41,7 @@ public sealed class HashiCorpVaultCredentialProvider(IHttpClientFactory clients,
         var data = doc.RootElement.GetProperty("data").GetProperty("data");
 
         var value = data.GetProperty("value").GetString() 
-            ?? throw new Exception("Secret value missing.");
+            ?? throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialValueMissing);
 
         var scheme = data.TryGetProperty("scheme", out var s) ? s.GetString()! : "Bearer";
         DateTimeOffset? expires = data.TryGetProperty("expiresAt", out var e) && e.ValueKind == JsonValueKind.String ? e.GetDateTimeOffset() : null;

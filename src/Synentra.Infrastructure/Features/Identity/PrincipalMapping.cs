@@ -1,12 +1,13 @@
 using System.Security.Claims;
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Configuration.Security;
 
 namespace Synentra.Infrastructure.Features.Identity;
 
 internal static class PrincipalMapping
 {
-    public static CanonicalPrincipal Map(ClaimsPrincipal principal, IdentityOptions options)
+    public static CanonicalPrincipal Map(ClaimsPrincipal principal, IdentityConfiguration identityConfiguration)
     {
         string Required(string name) => principal.FindFirst(name)?.Value is { Length: > 0 } value 
             ? value 
@@ -22,8 +23,8 @@ internal static class PrincipalMapping
             : scopes.Contains("synentra.reviewer") ? PrincipalType.Reviewer : scopes.Contains("synentra.trusted-issuer") ? PrincipalType.TrustedIssuer : PrincipalType.Agent;
 
         return new(
-            Required(options.AgentIdClaim), 
-            Required(options.SecurityScopeClaim), 
+            Required(identityConfiguration.Providers.Oidc.AgentIdClaim), 
+            Required(identityConfiguration.Providers.Oidc.SecurityScopeClaim), 
             Required("iss"), 
             Required("sub"), 
             scopes, 

@@ -6,36 +6,44 @@ namespace Synentra.Infrastructure.Configuration.Identity;
 public sealed class IdentityConfigurationValidator
     : IValidateOptions<IdentityConfiguration>
 {
+    private const string OidcProvider = "oidc";
+    private const string LdapProvider = "ldap";
+
+    private const int MinSigningKeyLengthBytes = 32;
+
     public ValidateOptionsResult Validate(
         string? name,
         IdentityConfiguration options)
     {
         var errors = new List<string>();
 
-        var hasOidc = options.Oidc is not null &&
-            (!string.IsNullOrWhiteSpace(options.Oidc.Authority) ||
-             !string.IsNullOrWhiteSpace(options.Oidc.Audience) ||
-             !string.IsNullOrWhiteSpace(options.Oidc.Issuer) ||
-             !string.IsNullOrWhiteSpace(options.Oidc.SigningKeyBase64));
-
-        var hasLdap = options.Ldap is not null &&
-            (!string.IsNullOrWhiteSpace(options.Ldap.Host) ||
-             !string.IsNullOrWhiteSpace(options.Ldap.BaseDn) ||
-             !string.IsNullOrWhiteSpace(options.Ldap.UserDnPattern) ||
-             !string.IsNullOrWhiteSpace(options.Ldap.BindDn));
-
-        if (!hasOidc && !hasLdap)
+        if (string.IsNullOrWhiteSpace(options.DefaultProvider))
         {
-            errors.Add(
-                "Identity: At least one authentication provider " +
-                "(OIDC or LDAP) must be configured.");
+            errors.Add("Identity:DefaultProvider is required.");
         }
+        else if (options.Providers is null)
+        {
+            errors.Add("Identity:Providers is required.");
+        }
+        else
+        {
+            switch (options.DefaultProvider.ToLowerInvariant())
+            {
+                case OidcProvider:
+                    ValidateOidc(options.Providers.Oidc, errors);
+                    break;
 
-        if (hasOidc)
-            ValidateOidc(options.Oidc!, errors);
+                case LdapProvider:
+                    ValidateLdap(options.Providers.Ldap, errors);
+                    break;
 
-        if (hasLdap)
-            ValidateLdap(options.Ldap!, errors);
+                default:
+                    errors.Add(
+                        "Identity:DefaultProvider must be one of: " +
+                        "local, oidc, ldap.");
+                    break;
+            }
+        }
 
         return errors.Count > 0
             ? ValidateOptionsResult.Fail(errors)
@@ -43,48 +51,190 @@ public sealed class IdentityConfigurationValidator
     }
 
     private static void ValidateOidc(
-        OidcConfiguration options,
+        OidcConfiguration? options,
         List<string> errors)
     {
-        if (string.IsNullOrWhiteSpace(options.Audience))
-            errors.Add("Identity:Oidc:Audience is required.");
+        const string prefix = "Identity:Providers:Oidc";
 
-        if (string.IsNullOrWhiteSpace(options.Issuer))
-            errors.Add("Identity:Oidc:Issuer is required.");
-
-        if (string.IsNullOrWhiteSpace(options.AgentIdClaim))
-            errors.Add("Identity:Oidc:AgentIdClaim is required.");
-
-        if (string.IsNullOrWhiteSpace(options.Authority) &&
-            string.IsNullOrWhiteSpace(options.SigningKeyBase64))
+        if (options is null)
         {
-            errors.Add(
-                "Identity:Oidc requires Authority or SigningKeyBase64.");
+            errors.Add($"{prefix} is required.");
+            return;
+        }
+
+        ValidateCommonJwt(options, errors);
+
+        Require(
+            options.Authority,
+            $"{prefix}:Authority",
+            errors);
+
+        if (!string.IsNullOrWhiteSpace(options.Authority))
+        {
+            ValidateHttpsUrl(
+                options.Authority,
+                $"{prefix}:Authority",
+                errors);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.SigningKeyBase64))
+        {
+            ValidateSigningKey(
+                options.SigningKeyBase64,
+                $"{prefix}:SigningKeyBase64",
+                errors);
         }
     }
 
-    private static void ValidateLdap(
-        LdapConfiguration options,
+    private static void ValidateCommonJwt(
+        OidcConfiguration options,
         List<string> errors)
     {
-        if (string.IsNullOrWhiteSpace(options.Host))
-            errors.Add("Identity:Ldap:Host is required.");
+        const string prefix = "Identity:Providers:Oidc";
 
-        if (string.IsNullOrWhiteSpace(options.BaseDn))
-            errors.Add("Identity:Ldap:BaseDn is required.");
+        Require(
+            options.Issuer,
+            $"{prefix}:Issuer",
+            errors);
 
-        if (string.IsNullOrWhiteSpace(options.UserDnPattern) &&
-            string.IsNullOrWhiteSpace(options.BindDn))
+        Require(
+            options.Audience,
+            $"{prefix}:Audience",
+            errors);
+
+        Require(
+            options.AgentIdClaim,
+            $"{prefix}:AgentIdClaim",
+            errors);
+
+        Require(
+            options.SecurityScopeClaim,
+            $"{prefix}:SecurityScopeClaim",
+            errors);
+    }
+
+    private static void ValidateLdap(
+        LdapConfiguration? options,
+        List<string> errors)
+    {
+        const string prefix = "Identity:Providers:Ldap";
+
+        if (options is null)
         {
-            errors.Add(
-                "Identity:Ldap requires UserDnPattern or BindDn.");
+            errors.Add($"{prefix} is required.");
+            return;
         }
 
-        if (!string.IsNullOrWhiteSpace(options.BindDn) &&
-            string.IsNullOrWhiteSpace(options.BindPassword))
+        Require(
+            options.Host,
+            $"{prefix}:Host",
+            errors);
+
+        if (!string.IsNullOrWhiteSpace(options.Host))
+        {
+            if (Uri.CheckHostName(options.Host) ==
+                UriHostNameType.Unknown)
+            {
+                errors.Add(
+                    $"{prefix}:Host must be a valid " +
+                    "hostname or IP address.");
+            }
+        }
+
+        if (options.Port is < 1 or > 65535)
         {
             errors.Add(
-                "Identity:Ldap:BindPassword is required when BindDn is set.");
+                $"{prefix}:Port must be between 1 and 65535.");
+        }
+
+        Require(
+            options.BaseDn,
+            $"{prefix}:BaseDn",
+            errors);
+
+        var hasServiceDn = !string.IsNullOrWhiteSpace(
+            options.ServiceDn);
+
+        var hasServicePassword = !string.IsNullOrWhiteSpace(
+            options.ServicePassword);
+
+        if (hasServiceDn && !hasServicePassword)
+        {
+            errors.Add(
+                $"{prefix}:ServicePassword is required " +
+                "when ServiceDn is configured.");
+        }
+
+        if (!hasServiceDn && hasServicePassword)
+        {
+            errors.Add(
+                $"{prefix}:ServiceDn is required " +
+                "when ServicePassword is configured.");
+        }
+
+        // Group DNs are optional.
+        // Validate their presence only if the corresponding
+        // authorization roles are mandatory for the deployment.
+    }
+
+    private static void ValidateSigningKey(
+        string? keyBase64,
+        string property,
+        List<string> errors)
+    {
+        if (string.IsNullOrWhiteSpace(keyBase64))
+        {
+            errors.Add($"{property} is required.");
+            return;
+        }
+
+        try
+        {
+            var bytes = Convert.FromBase64String(keyBase64);
+
+            if (bytes.Length < MinSigningKeyLengthBytes)
+            {
+                errors.Add(
+                    $"{property} must decode to at least " +
+                    $"{MinSigningKeyLengthBytes} bytes (256 bits).");
+            }
+        }
+        catch (FormatException)
+        {
+            errors.Add(
+                $"{property} must contain a valid Base64-encoded key.");
+        }
+    }
+
+    private static void ValidateHttpsUrl(
+        string? value,
+        string property,
+        List<string> errors)
+    {
+        if (!Uri.TryCreate(
+                value,
+                UriKind.Absolute,
+                out var uri) ||
+            uri.Scheme != Uri.UriSchemeHttps ||
+            string.IsNullOrWhiteSpace(uri.Host) ||
+            !string.IsNullOrEmpty(uri.UserInfo) ||
+            !string.IsNullOrEmpty(uri.Query) ||
+            !string.IsNullOrEmpty(uri.Fragment))
+        {
+            errors.Add(
+                $"{property} must be a valid HTTPS URL " +
+                "without credentials, query, or fragment.");
+        }
+    }
+
+    private static void Require(
+        string? value,
+        string property,
+        List<string> errors)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            errors.Add($"{property} is required.");
         }
     }
 }

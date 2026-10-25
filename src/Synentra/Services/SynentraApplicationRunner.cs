@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using Synentra.Extensions;
 
 namespace Synentra.Services;
 
@@ -28,7 +29,7 @@ internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
 
         try
         {
-            //builder.AddSynentraSecretManagement();
+            await builder.AddSynentraSecretManagementAsync(cancellationToken);
 
             builder.Logging.AddFilter(
                 "Microsoft.AspNetCore.Hosting.Diagnostics",
@@ -36,9 +37,11 @@ internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
 
             _startupConfiguration.ConfigureServices(builder);
 
-            var app = builder.Build();
+            await using var app = builder.Build();
 
             await _startupConfiguration.ConfigurePipelineAsync(app);
+
+            await app.InitializeStartupSecretsAsync(builder.Configuration, cancellationToken);
 
             await app.RunAsync(cancellationToken);
         }
