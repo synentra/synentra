@@ -2,6 +2,8 @@
 
 public class InternalOnnxConfiguration
 {
+    public bool Enabled { get; set; } = true;
+
     /// <summary>Model distribution type: "Community" (unencrypted ZIP) or "Pro" (AES-256-GCM encrypted ZIP).</summary>
     public string ModelType { get; set; } = "Community";
 
