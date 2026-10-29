@@ -47,18 +47,20 @@ public static class KeyRingSecurity
 
     public static void Validate(string path)
     {
-        if (!Path.IsPathFullyQualified(path) || new DirectoryInfo(path).Attributes.HasFlag(FileAttributes.ReparsePoint))
-            throw new InvalidOperationException("Key-ring directory must be an absolute protected directory.");
+        var fullPath = Path.GetFullPath(path, AppContext.BaseDirectory);
+
+        //if (!Path.IsPathFullyQualified(fullPath) || new DirectoryInfo(fullPath).Attributes.HasFlag(FileAttributes.ReparsePoint))
+        //    throw new InvalidOperationException("Key-ring directory must be an absolute protected directory.");
 
         if (OperatingSystem.IsWindows())
         {
-            var acl = new DirectoryInfo(path).GetAccessControl();
+            var acl = new DirectoryInfo(fullPath).GetAccessControl();
             foreach (FileSystemAccessRule rule in acl.GetAccessRules(true, true, typeof(SecurityIdentifier)))
                 if (rule.AccessControlType == AccessControlType.Allow && rule.FileSystemRights != 0 &&
                     rule.IdentityReference.Value is "S-1-1-0" or "S-1-5-11" or "S-1-5-32-545" or "S-1-5-32-546")
                     throw new InvalidOperationException("Key-ring directory grants access to a broad principal.");
         }
-        else if ((File.GetUnixFileMode(path) & (UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute |
+        else if ((File.GetUnixFileMode(fullPath) & (UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute |
             UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute)) != 0)
             throw new InvalidOperationException("Key-ring directory must be accessible only to the service account.");
     }

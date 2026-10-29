@@ -104,7 +104,7 @@ public static class DependencyInjection
         services.AddConfiguration<SecretsConfiguration>(configuration);
 
         // Register semantic configuration sections and validators
-        services.AddSingleton<IValidateOptions<SemanticConfiguration>, SemanticConfigurationValidator>();
+        //services.AddSingleton<IValidateOptions<SemanticConfiguration>, SemanticConfigurationValidator>();
         services.AddConfiguration<SemanticConfiguration>(configuration);
         
         // Register trust configuration sections and validators

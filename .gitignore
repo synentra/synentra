@@ -423,3 +423,5 @@ FodyWeavers.xsd
 *.db
 *.db-shm
 *.db-wal
+
+[Dd]ata/

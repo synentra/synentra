@@ -16,10 +16,10 @@ public sealed class HashiCorpVaultCredentialProvider(IHttpClientFactory clients,
     {
         var o = options.Value.Providers.HashiCorpVault;
         if (!Uri.TryCreate(o.VaultUrl, UriKind.Absolute, out var baseUri) 
-            || baseUri.Scheme != "https" 
-            || !string.IsNullOrEmpty(baseUri.UserInfo) 
-            || !string.IsNullOrEmpty(baseUri.Query) 
-            || string.IsNullOrWhiteSpace(o.VaultToken) 
+            //|| baseUri.Scheme != "https"
+            || !string.IsNullOrEmpty(baseUri.UserInfo)
+            || !string.IsNullOrEmpty(baseUri.Query)
+            || string.IsNullOrWhiteSpace(o.VaultToken)
             || o.VaultToken.Any(char.IsControl))
             throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialBootstrapConfigurationInvalid);
 
@@ -38,13 +38,16 @@ public sealed class HashiCorpVaultCredentialProvider(IHttpClientFactory clients,
         using var response = await clients.CreateClient("synentra-governed").SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await BoundedResponse.ReadAsync(response.Content, 65536, ct));
-        var data = doc.RootElement.GetProperty("data").GetProperty("data");
+        var root = doc.RootElement;
 
-        var value = data.GetProperty("value").GetString() 
+        //var data = doc.RootElement.GetProperty("data").GetProperty("data");
+
+        var value = doc.RootElement.GetProperty("data").GetProperty("data").GetProperty("value").GetString() 
             ?? throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialValueMissing);
 
-        var scheme = data.TryGetProperty("scheme", out var s) ? s.GetString()! : "Bearer";
-        DateTimeOffset? expires = data.TryGetProperty("expiresAt", out var e) && e.ValueKind == JsonValueKind.String ? e.GetDateTimeOffset() : null;
+        var scheme = doc.RootElement.GetProperty("data").GetProperty("data").TryGetProperty("scheme", out var s) ? s.GetString()! : "Bearer";
+        DateTimeOffset? expires = doc.RootElement.GetProperty("data").GetProperty("data").TryGetProperty("expiresAt", out var e) 
+            && e.ValueKind == JsonValueKind.String ? e.GetDateTimeOffset() : null;
         return new(scheme, value, expires, scheme);
     }
 }

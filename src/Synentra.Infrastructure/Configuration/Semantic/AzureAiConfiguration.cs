@@ -2,6 +2,7 @@ namespace Synentra.Infrastructure.Configuration.Semantic;
 
 public class AzureAiConfiguration
 {
+    public bool Enabled { get; set; } = true;
     public string Endpoint { get; set; } = string.Empty;
     public string ApiKey { get; set; } = string.Empty;
     public string Model { get; set; } = "gpt-4o-mini";

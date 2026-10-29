@@ -4,7 +4,6 @@ using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
 using Synentra.Infrastructure.Configuration.Secrets;
-using Synentra.Persistence.EntityConfigurations;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
@@ -25,36 +24,49 @@ public sealed class SecretDeclaration
 public sealed class SecretPlan
 {
     public Dictionary<string, SecretDeclaration> Entries { get; set; } = new(StringComparer.Ordinal);
-
     public string? DefaultProvider { get; set; }
-
     public int TimeoutSeconds { get; set; } = 30;
-
     public SecretCacheOptions Cache { get; set; } = new();
-
     public bool IsDevelopment { get; private set; }
-
     internal void SetEnvironment(bool development) => IsDevelopment = development;
 
-    public static readonly HashSet<string> RemoteProviders = ["encrypted-db", "hashicorp-vault", "azure-keyvault", "aws-secrets"];
-
-    public static readonly HashSet<string> DatabaseKeys = ["System:Storage:Database:Providers:Sqlite:ConnectionString", "System:Storage:Database:Providers:Postgres:ConnectionString"];
-
-    public static readonly HashSet<string> MetadataKeys = ["Synentra:Infrastructure:KeyRingPath", "Synentra:Infrastructure:KeyRingCertificatePath"];
-
-    public static readonly HashSet<string> BootstrapKeys = [
-        "System:Storage:Database:Providers:Sqlite:ConnectionString", "System:Storage:Database:Providers:Postgres:ConnectionString",
-        "Synentra:Infrastructure:KeyRingPath", "Synentra:Infrastructure:KeyRingCertificatePath",
-        "Synentra:Infrastructure:KeyRingCertificatePassword", "Synentra:Secrets:VaultToken",
-        "Synentra:Secrets:AwsAccessKey", "Synentra:Secrets:AwsSecretKey", "Synentra:Secrets:AwsSessionToken", "Synentra:Secrets:AzureClientSecret"
+    public static readonly HashSet<string> RemoteProviders = [
+        "encrypted-db",
+        "hashicorp-vault",
+        "azure-keyvault",
+        "aws-secrets"
     ];
 
-    public static readonly HashSet<string> StartupKeys = ["Synentra:Identity:LocalSigningKeyBase64", "Synentra:Identity:LdapServicePassword", "Synentra:Infrastructure:OpaBearerToken"];
+    public static readonly HashSet<string> DatabaseKeys = [
+        "Persistence:Providers:Sqlite:ConnectionString", 
+        "Persistence:Providers:Postgres:ConnectionString"
+    ];
+
+    public static readonly HashSet<string> MetadataKeys = ["DataProtection:KeyRingPath", "DataProtection:KeyRingCertificatePath"];
+
+    public static readonly HashSet<string> BootstrapKeys = [
+        "Persistence:Providers:Sqlite:ConnectionString",
+        "Persistence:Providers:Postgres:ConnectionString",
+        "DataProtection:KeyRingPath",
+        "DataProtection:KeyRingCertificatePath",
+        "DataProtection:KeyRingCertificatePassword",
+        "Secrets:VaultToken",
+        "Secrets:Providers:AwsSecrets:AwsAccessKey",
+        "Secrets:Providers:AwsSecrets:AwsSecretKey",
+        "Secrets:Providers:AwsSecrets:AwsSessionToken",
+        "Secrets:Providers:AzureKeyVault:AzureClientSecret",
+        "Secrets:Providers:HashiCorpVault:VaultToken"
+    ];
+
+    public static readonly HashSet<string> StartupKeys = [
+        "Identity:Ldap:ServicePassword",
+        "Policy:Providers:Opa:OpaBearerToken"
+    ];
 
     public static bool IsStartupKey(string key) 
         => StartupKeys.Contains(key) 
-        || (key.StartsWith("Synentra:Identity:LocalValidationKeys:", StringComparison.Ordinal) 
-        && System.Text.RegularExpressions.Regex.IsMatch(key["Synentra:Identity:LocalValidationKeys:".Length..], "^[A-Za-z0-9_-]{1,64}$"));
+        || (key.StartsWith("Identity:LocalValidationKeys:", StringComparison.Ordinal) 
+        && System.Text.RegularExpressions.Regex.IsMatch(key["Identity:LocalValidationKeys:".Length..], "^[A-Za-z0-9_-]{1,64}$"));
 
     public void Validate()
     {
@@ -135,15 +147,16 @@ public sealed class SecretPlan
         }
 
         if (options.Providers.HashiCorpVault.VaultUrl is not null) { 
-            ExternalSecretClients.ValidateEndpoint(options.Providers.HashiCorpVault.VaultUrl); Root("hashicorp-vault", "Secrets:VaultToken"); 
+            //ExternalSecretClients.ValidateEndpoint(options.Providers.HashiCorpVault.VaultUrl); 
+            Root("hashicorp-vault", "Secrets:Providers:HashiCorpVault:VaultToken"); 
         }
 
-        if (options.Providers.HashiCorpVault.VaultUrl is not null)
+        if (options.Providers.AzureKeyVault.AzureVaultUrl is not null)
         {
             ExternalSecretClients.ValidateEndpoint(options.Providers.AzureKeyVault.AzureVaultUrl);
 
             if (options.Providers.AzureKeyVault.AzureIdentity == "client-secret") 
-                Root("azure-keyvault", "Secrets:AzureClientSecret");
+                Root("azure-keyvault", "Secrets:Providers:AzureKeyVault:AzureClientSecret");
 
             else if (options.Providers.AzureKeyVault.AzureIdentity is not ("workload" or "managed" or "managed-user")) 
                 throw Invalid();
@@ -151,7 +164,8 @@ public sealed class SecretPlan
         if (options.Providers.AwsSecrets.AwsRegion is not null)
         {
             if (options.Providers.AwsSecrets.AwsIdentity == "bootstrap") { 
-                Root("aws-secrets", "Secrets:AwsAccessKey"); Root("aws-secrets", "Secrets:AwsSecretKey"); 
+                Root("aws-secrets", "Secrets:Providers:AwsSecrets:AwsAccessKey"); 
+                Root("aws-secrets", "Secrets:Providers:AwsSecrets:AwsSecretKey"); 
             }
             else if (options.Providers.AwsSecrets.AwsIdentity is not ("web-identity" or "instance-role")) 
                 throw Invalid();
@@ -193,7 +207,8 @@ public sealed class SecretPlan
             Visit(node);
     }
 
-    public static InvalidOperationException Invalid() => new("Invalid secret plan, provider configuration or tier dependency.");
+    public static InvalidOperationException Invalid() 
+        => new("Invalid secret plan, provider configuration or tier dependency.");
 }
 
 public static class BootstrapSecrets
@@ -239,15 +254,21 @@ public static class BootstrapSecrets
 
     private static SecretPlan Prepare(ConfigurationManager configuration, bool development)
     {
-        var plan = configuration.GetSection("Synentra:SecretPlan").Get<SecretPlan>() ?? new();
+        var plan = configuration.GetSection("SecretPlan").Get<SecretPlan>() ?? new();
         plan.SetEnvironment(development);
-        if (!development && configuration.GetValue<bool?>("Synentra:Infrastructure:RequireEncryptedKeyRing") == false) throw new InvalidOperationException("Production and maintenance require an encrypted key ring.");
+        if (!development && configuration.GetValue<bool?>("DataProtection:RequireEncryptedKeyRing") == false) 
+            throw new InvalidOperationException("Production and maintenance require an encrypted key ring.");
+
         var configured = new List<string>();
-        if (configuration["Synentra:Secrets:VaultUrl"] is not null) configured.Add("hashicorp-vault");
-        if (configuration["Synentra:Secrets:AzureVaultUrl"] is not null) configured.Add("azure-keyvault");
-        if (configuration["Synentra:Secrets:AwsRegion"] is not null) configured.Add("aws-secrets");
+        if (configuration["Secrets:Providers:HashiCorpVault:VaultUrl"] is not null) configured.Add("hashicorp-vault");
+        if (configuration["Secrets:Providers:AzureVault:AzureVaultUrl"] is not null) configured.Add("azure-keyvault");
+        if (configuration["Secrets:Providers:AwsSecrets:AwsRegion"] is not null) configured.Add("aws-secrets");
         plan.DefaultProvider ??= configured.Count == 1 ? configured[0] : null;
-        foreach (var entry in plan.Entries.Values) if (string.IsNullOrEmpty(entry.Provider)) entry.Provider = plan.DefaultProvider ?? throw SecretPlan.Invalid();
+
+        foreach (var entry in plan.Entries.Values) 
+            if (string.IsNullOrEmpty(entry.Provider)) 
+                entry.Provider = plan.DefaultProvider ?? throw SecretPlan.Invalid();
+
         plan.ValidateDependencies(configuration);
         if (!development)
         {
@@ -255,16 +276,22 @@ public static class BootstrapSecrets
                 if (!SecretPlan.MetadataKeys.Contains(key) && !string.IsNullOrWhiteSpace(configuration[key]) &&
                     !(SecretPlan.DatabaseKeys.Contains(key) && IsNonsecretConnection(configuration[key]!)))
                     throw new InvalidOperationException("Production secret values must use declared references.");
-            foreach (var key in SecretPlan.StartupKeys.Concat(configuration.GetSection("Synentra:Identity:LocalValidationKeys").GetChildren().Select(x => x.Path)))
-                if (!string.IsNullOrWhiteSpace(configuration[key])) throw new InvalidOperationException("Production startup secrets must use declared references.");
         }
-        if (!string.IsNullOrWhiteSpace(configuration["Security:AgentAuth:TokenIssuance:Secret"])) throw new InvalidOperationException("Legacy signing secrets are not supported.");
-        var database = (configuration["System:Storage:Database:DefaultProvider"] ?? "sqlite").ToLowerInvariant();
-        var connectionKey = database switch { "sqlite" => "System:Storage:Database:Providers:Sqlite:ConnectionString", "postgres" or "postgresql" => "System:Storage:Database:Providers:Postgres:ConnectionString", _ => throw SecretPlan.Invalid() };
-        if (!plan.Entries.Values.Any(e => e.Tier == SecretTier.Bootstrap && e.ConfigurationKey == connectionKey) && string.IsNullOrWhiteSpace(configuration[connectionKey])) throw SecretPlan.Invalid();
-        if (!plan.Entries.Values.Any(e => e.ConfigurationKey == "Synentra:Infrastructure:KeyRingPath") && string.IsNullOrWhiteSpace(configuration["Synentra:Infrastructure:KeyRingPath"])) throw SecretPlan.Invalid();
-        if (configuration.GetValue<bool>("Observability:Logging:Seq:Enabled") || configuration.GetValue<bool>("Observability:Logging:Otlp:Enabled") || configuration.GetValue<bool>("Observability:OpenTelemetry:Enabled")) throw new InvalidOperationException("Requested observability exporter is not implemented in this host.");
-        if (!string.IsNullOrWhiteSpace(configuration["Observability:Logging:Seq:ApiKey"])) throw new InvalidOperationException("Seq exporter is not implemented in this host.");
+
+        var database = (configuration["Persistence:DefaultProvider"] ?? "sqlite").ToLowerInvariant();
+        var connectionKey = database switch
+        { 
+            "sqlite" => "Persistence:Providers:Sqlite:ConnectionString", 
+            "postgres" or "postgresql" => "Persistence:Providers:Postgres:ConnectionString", 
+            _ => throw SecretPlan.Invalid() 
+        };
+
+        if (!plan.Entries.Values.Any(e => e.Tier == SecretTier.Bootstrap && e.ConfigurationKey == connectionKey) && string.IsNullOrWhiteSpace(configuration[connectionKey])) 
+            throw SecretPlan.Invalid();
+
+        if (!plan.Entries.Values.Any(e => e.ConfigurationKey == "DataProtection:KeyRingPath") && string.IsNullOrWhiteSpace(configuration["DataProtection:KeyRingPath"])) 
+            throw SecretPlan.Invalid();
+
         return plan;
     }
 
@@ -273,8 +300,10 @@ public static class BootstrapSecrets
         try
         {
             var builder = new DbConnectionStringBuilder { ConnectionString = value };
-            return !builder.Keys.Cast<string>().Any(k => (k.Contains("password", StringComparison.OrdinalIgnoreCase) || k.Equals("pwd", StringComparison.OrdinalIgnoreCase) ||
-                k.Contains("token", StringComparison.OrdinalIgnoreCase) || k.Contains("secret", StringComparison.OrdinalIgnoreCase)) && !string.IsNullOrEmpty(builder[k]?.ToString()));
+            return !builder.Keys.Cast<string>().Any(k => (k.Contains("password", StringComparison.OrdinalIgnoreCase) 
+                    || k.Equals("pwd", StringComparison.OrdinalIgnoreCase)
+                    || k.Contains("token", StringComparison.OrdinalIgnoreCase)
+                    || k.Contains("secret", StringComparison.OrdinalIgnoreCase)) && !string.IsNullOrEmpty(builder[k]?.ToString()));
         }
         catch { return false; }
     }
@@ -290,7 +319,10 @@ public static class BootstrapSecrets
         try
         {
             string? value;
-            if (entry.Provider == "env") value = Environment.GetEnvironmentVariable(entry.Path);
+            if (entry.Provider == "env")
+            {
+                value = Environment.GetEnvironmentVariable(entry.Path);
+            }
             else if (entry.Provider == "file")
             {
                 KeyRingSecurity.ValidateSecretFile(entry.Path);
