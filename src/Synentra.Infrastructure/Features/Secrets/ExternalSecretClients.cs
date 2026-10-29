@@ -71,7 +71,7 @@ public static class ExternalSecretClients
         }
         if (entry.Provider == "hashicorp-vault")
         {
-            ValidateEndpoint(options.Providers.HashiCorpVault.VaultUrl!);
+            //ValidateEndpoint(options.Providers.HashiCorpVault.VaultUrl!);
             using var factory = new BootstrapHttpFactory(outboundHttpConfiguration);
             return await new HashiCorpVaultCredentialProvider(factory, Options.Create(options)).ResolveAsync(binding, ct);
         }
