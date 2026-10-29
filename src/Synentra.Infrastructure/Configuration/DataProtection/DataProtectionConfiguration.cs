@@ -1,6 +1,4 @@
-﻿using Synentra.Infrastructure.Features.Secrets;
-
-namespace Synentra.Infrastructure.Configuration.DataProtection;
+﻿namespace Synentra.Infrastructure.Configuration.DataProtection;
 
 public class DataProtectionConfiguration : ISynentraConfiguration
 {
