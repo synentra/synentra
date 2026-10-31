@@ -1,4 +1,4 @@
-﻿namespace Synentra.Infrastructure.Configuration.DataProtection;
+﻿namespace Synentra.Infrastructure.Configuration.ResponseRetention;
 
 public sealed class AuthenticatedResponsePolicy
 {

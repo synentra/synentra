@@ -1,18 +1,23 @@
-﻿namespace Synentra.Infrastructure.Configuration.DataProtection;
+﻿using System.Security.Cryptography.X509Certificates;
 
-public class DataProtectionConfiguration : ISynentraConfiguration
+namespace Synentra.Infrastructure.Configuration.DataProtection;
+
+public sealed class DataProtectionConfiguration : ISynentraConfiguration
 {
     public static string SectionName => "DataProtection";
 
     public string ApplicationName { get; set; } = "synentra";
     public string KeyRingPath { get; set; } = "./data/keys";
-    public Dictionary<string, AuthenticatedResponsePolicy> AuthenticatedResponsePolicies { get; set; } = new(StringComparer.Ordinal);
-    public string? KeyRingCertificateThumbprint { get; set; }
-    public string KeyRingCertificateStoreLocation { get; set; } = "LocalMachine";
-    public string[] KeyRingPreviousCertificateThumbprints { get; set; } = [];
-    public string? KeyRingCertificatePath { get; set; }
-    public string? KeyRingCertificatePassword { get; set; }
     public bool RequireEncryptedKeyRing { get; set; } = true;
-    public string[] KeyRingPreviousCertificatePaths { get; set; } = [];
-    public TimeSpan? DefaultKeyLifetime { get; set; } = TimeSpan.FromDays(90);
+    public TimeSpan DefaultKeyLifetime { get; set; } = TimeSpan.FromDays(90);
+    public KeyRingCertificateConfiguration Certificate { get; set; } = new();
+}
+
+public sealed class KeyRingCertificateConfiguration
+{
+    public string? Path { get; set; }
+    public string? Password { get; set; }
+    public string? Thumbprint { get; set; }
+    public StoreName StoreName { get; set; } = StoreName.My;
+    public StoreLocation StoreLocation { get; set; } = StoreLocation.CurrentUser;
 }

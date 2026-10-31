@@ -29,6 +29,7 @@ public sealed class McpGateway : EndpointGroupBase
         app.MapPost("/mcp/{serverId}", Post)
             .WithTags("MCP")
             .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(256 * 1024));
+
         app.MapDelete("/mcp/{serverId}", Delete).WithTags("MCP");
     }
 

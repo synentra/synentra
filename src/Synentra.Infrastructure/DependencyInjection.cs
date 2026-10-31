@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Synentra.Application;
 using Synentra.Application.Common.Dispatching;
@@ -29,6 +31,7 @@ using Synentra.Infrastructure.Configuration.OpenTelemetry;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
 using Synentra.Infrastructure.Configuration.Persistence;
 using Synentra.Infrastructure.Configuration.Policy;
+using Synentra.Infrastructure.Configuration.ResponseRetention;
 using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Configuration.Security;
 using Synentra.Infrastructure.Configuration.Semantic;
@@ -51,6 +54,7 @@ using Synentra.Infrastructure.Health;
 using Synentra.Infrastructure.Networking;
 using Synentra.Infrastructure.Plugins;
 using Synentra.Persistence.Features.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Synentra.Infrastructure;
 
@@ -75,6 +79,9 @@ public static class DependencyInjection
         // Register data protection configuration sections and validators
         services.AddSingleton<IValidateOptions<DataProtectionConfiguration>, DataProtectionConfigurationValidator>();
         services.AddConfiguration<DataProtectionConfiguration>(configuration);
+
+        // Register response retention configuration sections and validators
+        services.AddConfiguration<ResponseRetentionConfiguration>(configuration);
 
         // Register identity configuration sections and validators
         services.AddSingleton<IValidateOptions<IdentityConfiguration>, IdentityConfigurationValidator>();
@@ -128,53 +135,66 @@ public static class DependencyInjection
 
     public static IServiceCollection AddSynentraInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
         services.AddSynentraApplication();
         services.AddSynentraConfiguration(configuration);
         services.AddLogging();
 
+        if (services.Any(d => d.ServiceType == typeof(KeyRingCertificateLifetime)))
+            throw new InvalidOperationException("Register the Synentra key ring only once.");
+
         using var scope = services.BuildServiceProvider().CreateScope();
         var dataProtectionConfig = scope.ServiceProvider.GetRequiredService<IOptions<DataProtectionConfiguration>>();
 
-        if (string.IsNullOrWhiteSpace(dataProtectionConfig.Value.KeyRingPath))
+        var path = KeyRingSecurity.ResolvePath(dataProtectionConfig.Value.KeyRingPath);
+        var applicationName = dataProtectionConfig.Value.ApplicationName;
+        var requireEncryption = dataProtectionConfig.Value.RequireEncryptedKeyRing;
+        var hasCertificate = !string.IsNullOrWhiteSpace(dataProtectionConfig.Value.Certificate.Path) ||
+            !string.IsNullOrWhiteSpace(dataProtectionConfig.Value.Certificate.Thumbprint);
+
+        X509Certificate2? active = null;
+        PrivateKeyRingRepository repository;
+        try
         {
-            dataProtectionConfig.Value.KeyRingPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Synentra", "DataProtection", "Keys"
-            );
+            // Certificates are bootstrapped before touching the key-ring directory.
+            if (hasCertificate)
+            {
+                active = KeyRingCertificates.LoadActive(dataProtectionConfig.Value);
+            }
+            repository = new PrivateKeyRingRepository(path, requireEncryption);
+            _ = repository.GetAllElements();
+        }
+        catch
+        {
+            active?.Dispose();
+            throw;
         }
 
-        foreach (var policy in dataProtectionConfig.Value.AuthenticatedResponsePolicies.Values) 
-            policy.Validate();
-
-        Directory.CreateDirectory(dataProtectionConfig.Value.KeyRingPath);
-        KeyRingSecurity.Validate(dataProtectionConfig.Value.KeyRingPath);
-        if (dataProtectionConfig.Value.RequireEncryptedKeyRing) 
-            KeyRingSecurity.ValidateEncryptedKeys(dataProtectionConfig.Value.KeyRingPath);
-
-        services.AddSingleton<StartupSecretState>();
-        services.AddHostedService<StartupSecretGate>();
-        //services.AddSingleton<IOptions<IdentityOptions>>(sp => Options.Create(sp.GetRequiredService<StartupSecretState>().Identity));
-
-        var keyRing = services.AddDataProtection()
-            .SetApplicationName(dataProtectionConfig.Value.ApplicationName)
-            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionConfig.Value.KeyRingPath));
-
-        if (!string.IsNullOrWhiteSpace(dataProtectionConfig.Value.KeyRingCertificatePath) 
-            || !string.IsNullOrWhiteSpace(dataProtectionConfig.Value.KeyRingCertificateThumbprint))
+        // Register a factory, not an already-created IDisposable instance, so DI owns disposal.
+        services.AddSingleton(_ => new KeyRingCertificateLifetime(active));
+        services.AddSingleton(repository);
+        var builder = services.AddDataProtection()
+            .SetApplicationName(applicationName)
+            .SetDefaultKeyLifetime(dataProtectionConfig.Value.DefaultKeyLifetime);
+        services.AddOptions<KeyManagementOptions>()
+            .Configure<PrivateKeyRingRepository>((keyOptions, repo) => keyOptions.XmlRepository = repo);
+        if (active is not null)
         {
-            var cert = KeyRingCertificates.LoadActive(dataProtectionConfig.Value);
-            var previous = KeyRingCertificates.LoadPrevious(dataProtectionConfig.Value);
-            if (previous.Any(c => !c.HasPrivateKey)) 
-                throw new InvalidOperationException("Previous certificates require private keys.");
+            builder.ProtectKeysWithCertificate(active);
+            builder.UnprotectKeysWithAnyCertificate(active);
+        }
 
-            keyRing.ProtectKeysWithCertificate(cert);
-            keyRing.UnprotectKeysWithAnyCertificate(new[] { cert }.Concat(previous).ToArray());
-        }
-        else if (dataProtectionConfig.Value.RequireEncryptedKeyRing)
+        // Host.StartAsync awaits this work. Do not move it into BackgroundService.ExecuteAsync.
+        services.AddSingleton<IHostedService>(sp =>
         {
-            throw new InvalidOperationException(
-                "DataProtection:KeyRingCertificatePath is required when RequireEncryptedKeyRing is enabled. " +
-                "Provision an X.509 certificate outside the application source and securely persist the shared key ring.");
-        }
+            var lifetime = sp.GetRequiredService<KeyRingCertificateLifetime>();
+            return new KeyRingStartupValidator(
+                sp.GetRequiredService<IKeyManager>(),
+                sp.GetRequiredService<IDataProtectionProvider>(),
+                sp.GetRequiredService<PrivateKeyRingRepository>(), lifetime);
+        });
 
 
 

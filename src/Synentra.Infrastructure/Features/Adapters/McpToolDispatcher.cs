@@ -3,8 +3,8 @@ using ModelContextProtocol.Client;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Configuration.DataProtection;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
+using Synentra.Infrastructure.Configuration.ResponseRetention;
 using Synentra.Infrastructure.Features.Secrets;
 using System.Text.Json;
 
@@ -14,7 +14,7 @@ public sealed class McpToolDispatcher(
     IHttpClientFactory clients,
     CredentialProviderRouter credentials,
     IOptions<OutboundHttpConfiguration> outboundHttpOptions,
-    IOptions<DataProtectionConfiguration> dataProtectionOptions) : IToolDispatcher
+    IOptions<ResponseRetentionConfiguration> responseRetentionOptions) : IToolDispatcher
 {
     public string AdapterId => "mcp";
     public string AdapterVersion => "1.0.0";
@@ -54,7 +54,7 @@ public sealed class McpToolDispatcher(
 
             return new(result.IsError == true ? ReceiptStatus.ToolError : ReceiptStatus.Responded,
                 null,
-                CredentialResponseRetention.Apply(payload, snapshot.TargetId, resolvedCredential, dataProtectionOptions.Value),
+                CredentialResponseRetention.Apply(payload, snapshot.TargetId, resolvedCredential, responseRetentionOptions.Value),
                 null,
                 timestamp,
                 result.IsError == true ? "MCP_TOOL_ERROR" : null);
