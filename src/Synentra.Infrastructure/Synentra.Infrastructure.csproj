@@ -5,8 +5,11 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="../Synentra.Persistence/Synentra.Persistence.csproj" />
-		<ProjectReference Include="..\Synentra.Application\Synentra.Application.csproj" />
+		<PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+		<PackageReference Include="Serilog.Enrichers.Span" Version="3.1.0" />
+		<PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+		<PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
+		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
 		<PackageReference Include="Serilog.Sinks.Seq" Version="9.1.0" />
 		<PackageReference Include="YamlDotNet" Version="16.3.0" />
@@ -17,5 +20,9 @@
 		<PackageReference Include="Azure.Identity" Version="1.21.0" />
 		<PackageReference Include="AWSSDK.SecretsManager" Version="4.0.100.19" />
 		<PackageReference Include="ModelContextProtocol" Version="1.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\Synentra.Application\Synentra.Application.csproj" />
+	  <ProjectReference Include="..\Synentra.Persistence\Synentra.Persistence.csproj" />
 	</ItemGroup>
 </Project>
