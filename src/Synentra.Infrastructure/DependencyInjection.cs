@@ -3,7 +3,10 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog;
+using Serilog.Extensions.Logging;
 using Synentra.Application;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Messaging;
@@ -140,7 +143,7 @@ public static class DependencyInjection
 
         services.AddSynentraApplication();
         services.AddSynentraConfiguration(configuration);
-        services.AddLogging();
+        services.AddSynentraLogging();
 
         if (services.Any(d => d.ServiceType == typeof(KeyRingCertificateLifetime)))
             throw new InvalidOperationException("Register the Synentra key ring only once.");
@@ -314,5 +317,21 @@ public static class DependencyInjection
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("synentra-database").AddCheck<ManifestHealthCheck>("synentra-manifest");
         services.AddScoped<IDispatcher, Dispatcher>();
         return services;
+    }
+
+    private static void AddSynentraLogging(this IServiceCollection services)
+    {
+        services.AddSingleton<Logging.ILoggerFactory, Logging.LoggerFactory>();
+
+        services.AddLogging(builder =>
+        {
+            builder.ClearProviders();
+            services.AddSingleton<ILoggerProvider>(sp =>
+            {
+                var logger = sp.GetRequiredService<Logging.ILoggerFactory>().CreateLogger();
+                Log.Logger = logger;
+                return new SerilogLoggerProvider(logger, dispose: true);
+            });
+        });
     }
 }
