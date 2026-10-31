@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Invocations.Commands.SimulateInvocation;
@@ -7,7 +8,10 @@ namespace Synentra.Endpoints.V1;
 
 public sealed class Simulation : EndpointGroupBase
 {
-    public override void Map(WebApplication app) => app.MapPost("/v1/simulate", Simulate).WithTags("Simulation").WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(256 * 1024));
+    public override void Map(WebApplication app) 
+        => app.MapPost("/v1/simulate", Simulate)
+              .WithTags("Simulation")
+              .WithMetadata(new RequestSizeLimitAttribute(256 * 1024));
     private static async Task<IResult> Simulate(InvocationRequest request, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
     {
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);

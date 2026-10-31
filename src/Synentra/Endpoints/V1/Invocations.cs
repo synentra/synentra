@@ -19,34 +19,69 @@ public sealed class Invocations : EndpointGroupBase
         g.MapPost("/{id}/resume", Resume);
     }
 
-    private static async Task<IResult> Submit(InvocationRequest request, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
+    private static async Task<IResult> Submit(
+        InvocationRequest request, 
+        HttpContext context, 
+        IDispatcher dispatcher, 
+        IPrincipalResolver principals, 
+        CancellationToken ct)
     {
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var result = await dispatcher.Dispatch(new SubmitInvocationCommand(request, principal, ApiEndpointSupport.GetIdempotencyKey(context.Request)), ct);
         context.Response.Headers.Location = $"/v1/invocations/{result.InvocationId}";
-        if (result.Decision.Outcome == "deny") return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);
-        if (result.Decision.Outcome == "review" || result.Execution.Status is "not_started" or "claimed" or "dispatching" or "unknown") return Results.Json(result, statusCode: StatusCodes.Status202Accepted);
+
+        if (result.Decision.Outcome == "deny") 
+            return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);
+
+        if (result.Decision.Outcome == "review" || result.Execution.Status is "not_started" or "claimed" or "dispatching" or "unknown") 
+            return Results.Json(result, statusCode: StatusCodes.Status202Accepted);
+
         return Results.Ok(result);
     }
 
-    private static async Task<IResult> Get(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
+    private static async Task<IResult> Get(
+        string id, 
+        HttpContext context, 
+        IDispatcher dispatcher, 
+        IPrincipalResolver principals, 
+        CancellationToken ct)
     {
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var invocation = await dispatcher.Dispatch(new GetInvocationQuery(id), ct);
-        if (invocation is null || (principal.Type != PrincipalType.Admin && (invocation.AuthenticatedAgentId != principal.AgentId || invocation.SecurityScope != principal.SecurityScope))) return Results.NotFound();
+        if (invocation is null 
+            || (principal.Type != PrincipalType.Admin && (invocation.AuthenticatedAgentId != principal.AgentId 
+            || invocation.SecurityScope != principal.SecurityScope))) 
+            return Results.NotFound();
+
         var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 
-    private static async Task<IResult> Resume(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, IInvocationStore store, CancellationToken ct)
+    private static async Task<IResult> Resume(
+        string id, 
+        HttpContext context,
+        IDispatcher dispatcher, 
+        IPrincipalResolver principals, 
+        IInvocationStore store, 
+        CancellationToken ct)
     {
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var admission = await dispatcher.Dispatch(new ResumeInvocationCommand(id, principal), ct);
-        await store.SaveDecisionAsync(id, new RecordedDecision(admission.Decision.Outcome.ToString().ToLowerInvariant(), admission.Decision.ReasonCodes, admission.Decision.PolicyRevision, admission.Decision.ExpiresAt), ct);
+        await store.SaveDecisionAsync(
+            id, 
+            new RecordedDecision(admission.Decision.Outcome.ToString().ToLowerInvariant(), 
+            admission.Decision.ReasonCodes, 
+            admission.Decision.PolicyRevision, 
+            admission.Decision.ExpiresAt), ct);
+
         var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
-        if (result is null) return Results.NotFound();
+
+        if (result is null) 
+            return Results.NotFound();
         context.Response.Headers.Location = $"/v1/invocations/{id}";
-        if (!admission.Admitted) return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);
+        if (!admission.Admitted) 
+            return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);
+
         return Results.Json(result, statusCode: StatusCodes.Status202Accepted);
     }
 }

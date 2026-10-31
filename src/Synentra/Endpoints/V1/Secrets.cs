@@ -1,6 +1,10 @@
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Features.Secrets;
+using Synentra.Persistence;
 using Synentra.Persistence.Features.Security;
 
 namespace Synentra.Endpoints.V1;
@@ -14,7 +18,7 @@ public sealed class Secrets : EndpointGroupBase
             if (context.Request.Path.StartsWithSegments("/v1/admin/credentials"))
             {
                 if (context.Request.ContentLength > 70000) { context.Response.StatusCode = 413; return; }
-                var limit = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+                var limit = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
                 if (limit is { IsReadOnly: false }) limit.MaxRequestBodySize = 70000;
             }
             await next(context);
@@ -28,7 +32,7 @@ public sealed class Secrets : EndpointGroupBase
             var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
             await secrets.StoreVersionAsync(path, version, request.Scheme, request.Value, request.ExpiresAt, ct, admin.AgentId);
             return Results.NoContent();
-        }).WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(70000));
+        }).WithMetadata(new RequestSizeLimitAttribute(70000));
 
         group.MapDelete("/secrets/{path}/{version}", async (string path, string version, HttpContext context,
             IPrincipalResolver principals, EncryptedDbCredentialProvider secrets, CancellationToken ct) =>
@@ -81,11 +85,12 @@ public sealed class Secrets : EndpointGroupBase
             return Results.Ok(new { generation, revoked = request.Revoke });
         });
 
-        group.MapGet("/secrets", async (int? page, HttpContext context, IPrincipalResolver principals, Synentra.Persistence.SynentraDbContext db, CancellationToken ct) =>
+        group.MapGet("/secrets", async (int? page, HttpContext context, IPrincipalResolver principals, IDbContextFactory<SynentraDbContext> dbFactory, CancellationToken ct) =>
         {
             await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
             var number = Math.Clamp(page ?? 1, 1, 10000);
-            var rows = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToArrayAsync(
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+            var rows = await EntityFrameworkQueryableExtensions.ToArrayAsync(
                 db.Secrets.OrderBy(x => x.Id).Skip((number - 1) * 50).Take(50).Select(x => new { x.Path, x.SecretVersion, x.Type, x.ExpiresAt }), ct);
             return Results.Ok(new { page = number, items = rows });
         });
