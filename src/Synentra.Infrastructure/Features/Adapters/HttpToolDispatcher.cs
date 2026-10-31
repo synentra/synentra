@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Configuration.DataProtection;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
+using Synentra.Infrastructure.Configuration.ResponseRetention;
 using Synentra.Infrastructure.Features.Secrets;
 using Synentra.Infrastructure.Networking;
 using System.Net.Http.Json;
@@ -16,7 +16,7 @@ public sealed class HttpToolDispatcher(
     IHttpClientFactory clients,
     IRuntimeCredentialResolver credentials,
     IOptions<OutboundHttpConfiguration> outboundHttpOptions,
-    IOptions<DataProtectionConfiguration> dataProtectionOptions) : IToolDispatcher
+    IOptions<ResponseRetentionConfiguration> responseRetentionOptions) : IToolDispatcher
 {
     private static readonly HashSet<string> SafeHeaders = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -79,7 +79,7 @@ public sealed class HttpToolDispatcher(
             if (response.Content is not null)
             {
                 var bytes = await BoundedResponse.ReadAsync(response.Content, outboundHttpOptions.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024), ct);
-                payload = CredentialResponseRetention.Apply(bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes), snapshot.TargetId, resolvedCredential, dataProtectionOptions.Value);
+                payload = CredentialResponseRetention.Apply(bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes), snapshot.TargetId, resolvedCredential, responseRetentionOptions.Value);
 
                 //payload = bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes);
             }

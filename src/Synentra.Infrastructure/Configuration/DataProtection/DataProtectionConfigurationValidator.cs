@@ -5,9 +5,6 @@ namespace Synentra.Infrastructure.Configuration.DataProtection;
 public sealed class DataProtectionConfigurationValidator
     : IValidateOptions<DataProtectionConfiguration>
 {
-    private static readonly TimeSpan MinKeyLifetime = TimeSpan.FromDays(7);
-    private static readonly TimeSpan MaxKeyLifetime = TimeSpan.FromDays(365);
-
     public ValidateOptionsResult Validate(
         string? name,
         DataProtectionConfiguration options)
@@ -20,10 +17,6 @@ public sealed class DataProtectionConfigurationValidator
 
         ValidateKeyRingPath(
             options.KeyRingPath,
-            errors);
-
-        ValidateDefaultKeyLifetime(
-            options.DefaultKeyLifetime,
             errors);
 
         return errors.Count > 0
@@ -77,25 +70,6 @@ public sealed class DataProtectionConfigurationValidator
             PathTooLongException)
         {
             errors.Add($"{property} must be a valid filesystem path.");
-        }
-    }
-
-    private static void ValidateDefaultKeyLifetime(
-        TimeSpan? lifetime,
-        List<string> errors)
-    {
-        const string property = "DataProtection:DefaultKeyLifetime";
-
-        if (lifetime is null)
-        {
-            errors.Add($"{property} is required.");
-            return;
-        }
-
-        if (lifetime < MinKeyLifetime ||
-            lifetime > MaxKeyLifetime)
-        {
-            errors.Add($"{property} must be between {MinKeyLifetime.TotalDays:0} and {MaxKeyLifetime.TotalDays:0} days.");
         }
     }
 }

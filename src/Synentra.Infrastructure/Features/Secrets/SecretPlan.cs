@@ -42,14 +42,14 @@ public sealed class SecretPlan
         "Persistence:Providers:Postgres:ConnectionString"
     ];
 
-    public static readonly HashSet<string> MetadataKeys = ["DataProtection:KeyRingPath", "DataProtection:KeyRingCertificatePath"];
+    public static readonly HashSet<string> MetadataKeys = ["DataProtection:KeyRingPath", "DataProtection:Certificate:Path"];
 
     public static readonly HashSet<string> BootstrapKeys = [
         "Persistence:Providers:Sqlite:ConnectionString",
         "Persistence:Providers:Postgres:ConnectionString",
         "DataProtection:KeyRingPath",
-        "DataProtection:KeyRingCertificatePath",
-        "DataProtection:KeyRingCertificatePassword",
+        "DataProtection:Certificate:Path",
+        "DataProtection:Certificate:Password",
         "Secrets:VaultToken",
         "Secrets:Providers:AwsSecrets:AwsAccessKey",
         "Secrets:Providers:AwsSecrets:AwsSecretKey",

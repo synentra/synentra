@@ -41,7 +41,7 @@ internal sealed class SynentraApplicationRunner : ISynentraApplicationRunner
 
             await _startupConfiguration.ConfigurePipelineAsync(app);
 
-            await app.InitializeStartupSecretsAsync(builder.Configuration, cancellationToken);
+            //await app.InitializeStartupSecretsAsync(builder.Configuration, cancellationToken);
 
             await app.RunAsync(cancellationToken);
         }

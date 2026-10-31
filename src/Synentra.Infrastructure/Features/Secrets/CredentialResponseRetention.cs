@@ -1,25 +1,34 @@
+using Synentra.Application.Common.Security;
+using Synentra.Infrastructure.Configuration.ResponseRetention;
 using System.Text;
 using System.Text.Json.Nodes;
-using Synentra.Application.Common.Security;
-using Synentra.Infrastructure.Configuration.DataProtection;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
 public static class CredentialResponseRetention
 {
-    public static string? Apply(string? payload, string target, ResolvedCredential? credential, DataProtectionConfiguration options)
+    public static string? Apply(string? payload, string target, ResolvedCredential? credential, ResponseRetentionConfiguration options)
     {
-        if (credential is null) return payload;
-        if (!options.AuthenticatedResponsePolicies.TryGetValue(target, out var policy)) return null;
+        if (credential is null) 
+            return payload;
+
+        if (!options.AuthenticatedResponsePolicies.TryGetValue(target, out var policy)) 
+            return null;
+
         policy.Validate();
-        if (policy.Mode == "omit" || payload is null) return null;
+
+        if (policy.Mode == "omit" || payload is null) 
+            return null;
+
         try
         {
             if (JsonNode.Parse(payload) is not JsonObject source) return null;
             var variants = Variants(credential);
             var result = new JsonObject();
             foreach (var name in policy.AllowedProperties)
-                if (!SensitiveName(name) && !variants.Any(v => name.Contains(v, StringComparison.Ordinal)) && source.TryGetPropertyValue(name, out var value)) result[name] = Clean(value, variants);
+                if (!SensitiveName(name) && !variants.Any(v => name.Contains(v, StringComparison.Ordinal)) && source.TryGetPropertyValue(name, out var value)) 
+                    result[name] = Clean(value, variants);
+
             return result.ToJsonString();
         }
         catch (System.Text.Json.JsonException) { return null; }
