@@ -336,6 +336,3 @@ public static class BootstrapSecrets
         catch { throw new InvalidOperationException("Bootstrap secret unavailable or invalid."); }
     }
 }
-
-
-

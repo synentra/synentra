@@ -58,8 +58,6 @@ internal static class ApiEndpointSupport
 
     private static string? GetCredential(HttpRequest request)
     {
-        if (request.Headers.TryGetValue("Synentra-Authorization", out var synentra) && !string.IsNullOrWhiteSpace(synentra))
-            return StripBearer(synentra.ToString());
         if (request.Headers.TryGetValue("Authorization", out var authorization) && !string.IsNullOrWhiteSpace(authorization))
             return StripBearer(authorization.ToString());
         return null;

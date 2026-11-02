@@ -71,17 +71,9 @@ public sealed class IdentityConfigurationValidator
 
         if (!string.IsNullOrWhiteSpace(options.Authority))
         {
-            ValidateHttpsUrl(
+            ValidateUrl(
                 options.Authority,
                 $"{prefix}:Authority",
-                errors);
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.SigningKeyBase64))
-        {
-            ValidateSigningKey(
-                options.SigningKeyBase64,
-                $"{prefix}:SigningKeyBase64",
                 errors);
         }
     }
@@ -177,36 +169,7 @@ public sealed class IdentityConfigurationValidator
         // authorization roles are mandatory for the deployment.
     }
 
-    private static void ValidateSigningKey(
-        string? keyBase64,
-        string property,
-        List<string> errors)
-    {
-        if (string.IsNullOrWhiteSpace(keyBase64))
-        {
-            errors.Add($"{property} is required.");
-            return;
-        }
-
-        try
-        {
-            var bytes = Convert.FromBase64String(keyBase64);
-
-            if (bytes.Length < MinSigningKeyLengthBytes)
-            {
-                errors.Add(
-                    $"{property} must decode to at least " +
-                    $"{MinSigningKeyLengthBytes} bytes (256 bits).");
-            }
-        }
-        catch (FormatException)
-        {
-            errors.Add(
-                $"{property} must contain a valid Base64-encoded key.");
-        }
-    }
-
-    private static void ValidateHttpsUrl(
+    private static void ValidateUrl(
         string? value,
         string property,
         List<string> errors)
@@ -215,14 +178,13 @@ public sealed class IdentityConfigurationValidator
                 value,
                 UriKind.Absolute,
                 out var uri) ||
-            uri.Scheme != Uri.UriSchemeHttps ||
             string.IsNullOrWhiteSpace(uri.Host) ||
             !string.IsNullOrEmpty(uri.UserInfo) ||
             !string.IsNullOrEmpty(uri.Query) ||
             !string.IsNullOrEmpty(uri.Fragment))
         {
             errors.Add(
-                $"{property} must be a valid HTTPS URL " +
+                $"{property} must be a valid URL " +
                 "without credentials, query, or fragment.");
         }
     }
