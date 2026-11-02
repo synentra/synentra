@@ -4,6 +4,12 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugSymbols>False</DebugSymbols>
+		<DebugType>None</DebugType>
+	</PropertyGroup>
+	
 	<ItemGroup>
 		<ProjectReference Include="../Synentra.Persistence/Synentra.Persistence.csproj"/>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13"/>
