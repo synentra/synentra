@@ -1,18 +1,16 @@
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.Security;
-using Synentra.Infrastructure.Features.Identity;
 using Synentra.Infrastructure.Features.Secrets;
-using Synentra.Persistence;
-using Synentra.Persistence.Entities;
 
 namespace Synentra.Extensions;
 
 public static class SecretManagementExtensions
 {
-    public static async Task<WebApplicationBuilder> AddSynentraSecretManagementAsync(this WebApplicationBuilder builder, CancellationToken ct = default)
+    public static async Task<WebApplicationBuilder> AddSynentraSecretManagementAsync(
+        this WebApplicationBuilder builder, 
+        CancellationToken ct = default)
     {
         if (builder.Environment.IsProduction() && builder.Configuration.GetValue<bool?>("DataProtection:RequireEncryptedKeyRing") == false)
             throw new InvalidOperationException("Production requires an encrypted key ring.");
@@ -21,35 +19,153 @@ public static class SecretManagementExtensions
         return builder;
     }
 
-    public static async Task InitializeStartupSecretsAsync(this WebApplication app, ConfigurationManager configuration, CancellationToken ct)
+    public static async Task InitializeStartupSecretsAsync(
+        this WebApplication app,
+        ConfigurationManager configuration,
+        CancellationToken ct = default)
     {
-        using var scope = app.Services.CreateScope();
-        var plan = scope.ServiceProvider.GetRequiredService<SecretPlan>();
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        await using var scope = app.Services.CreateAsyncScope();
+
+        var services = scope.ServiceProvider;
+        var plan = services.GetRequiredService<SecretPlan>();
+        var state = services.GetRequiredService<StartupSecretState>();
+
         plan.Validate();
+
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
         timeout.CancelAfter(TimeSpan.FromSeconds(plan.TimeoutSeconds));
 
-        var providers = scope.ServiceProvider.GetServices<ICredentialProvider>().ToArray();
-        var values = new Dictionary<string, string?>();
-        DateTimeOffset? expires = null;
-        foreach (var (name, entry) in plan.Entries.Where(e => e.Value.Tier == SecretTier.Startup))
+        var token = timeout.Token;
+
+        var providers = services
+            .GetServices<ICredentialProvider>()
+            .ToArray();
+
+        var values = new Dictionary<string, string?>(
+            StringComparer.OrdinalIgnoreCase);
+
+        DateTimeOffset? earliestExpiry = null;
+
+        foreach (var (name, entry) in plan.Entries)
         {
-            if (entry.Provider is "env" or "file") values.Add(entry.ConfigurationKey!, BootstrapSecrets.Read(entry));
+            if (entry.Tier != SecretTier.Startup)
+                continue;
+
+            token.ThrowIfCancellationRequested();
+
+            if (string.IsNullOrWhiteSpace(entry.ConfigurationKey))
+                throw SecretPlan.Invalid();
+
+            string value;
+
+            if (entry.Provider is "env" or "file")
+            {
+                value = BootstrapSecrets.Read(entry);
+            }
             else
             {
-                var provider = providers.SingleOrDefault(p => p.ProviderId == entry.Provider) ?? throw SecretPlan.Invalid();
-                var binding = new CredentialBinding(name, "startup", "host", "host", new HashSet<string> { "startup" }, entry.Reference, "startup");
-                var secret = await provider.ResolveAsync(binding, timeout.Token);
-                SecretPayload.Validate(secret);
-                if (secret.ExpiresAt is { } expiry && (expires is null || expiry < expires)) expires = expiry;
-                values.Add(entry.ConfigurationKey!, secret.Value);
+                var matches = providers
+                    .Where(provider => string.Equals(
+                        provider.ProviderId,
+                        entry.Provider,
+                        StringComparison.Ordinal))
+                    .ToArray();
+
+                if (matches.Length != 1)
+                {
+                    throw new InvalidOperationException(
+                        $"Startup secret '{name}' requires exactly one " +
+                        $"registered provider named '{entry.Provider}'.");
+                }
+
+                var binding = new CredentialBinding(
+                    name,
+                    "startup",
+                    "host",
+                    "host",
+                    new HashSet<string>(StringComparer.Ordinal)
+                    {
+                        "startup"
+                    },
+                    entry.Reference,
+                    "startup");
+
+                var credential = await matches[0].ResolveAsync(
+                    binding,
+                    token);
+
+                token.ThrowIfCancellationRequested();
+
+                SecretPayload.Validate(credential);
+
+                value = credential.Value;
+
+                if (credential.ExpiresAt is { } expiry &&
+                    (earliestExpiry is null ||
+                     expiry < earliestExpiry.Value))
+                {
+                    earliestExpiry = expiry;
+                }
+            }
+
+            if (!values.TryAdd(entry.ConfigurationKey, value))
+            {
+                throw new InvalidOperationException(
+                    "Multiple startup secrets target the same " +
+                    "configuration key.");
             }
         }
-        var candidate = new ConfigurationBuilder().AddConfiguration(configuration).AddInMemoryCollection(values).Build();
-        using var candidateLifetime = candidate as IDisposable;
-        var identity = candidate.GetSection("Identity").Get<IdentityConfiguration>() ?? new();
+
+        token.ThrowIfCancellationRequested();
+
+        // Validate the merged configuration before applying it.
+        var candidate = new ConfigurationBuilder()
+            .AddConfiguration(configuration)
+            .AddInMemoryCollection(values)
+            .Build();
+
+        var identity = candidate
+            .GetSection(IdentityConfiguration.SectionName)
+            .Get<IdentityConfiguration>()
+            ?? throw new InvalidOperationException(
+                "Identity configuration is missing.");
+
+        // Direct configuration binding does not run options validators.
+        foreach (var validator in services
+                     .GetServices<IValidateOptions<IdentityConfiguration>>())
+        {
+            var result = validator.Validate(
+                Options.DefaultName,
+                identity);
+
+            if (result.Failed)
+            {
+                // Do not include validation details that might expose
+                // resolved secret values.
+                throw new InvalidOperationException(
+                    "Identity configuration is invalid after " +
+                    "startup secret resolution.");
+            }
+        }
+
+        token.ThrowIfCancellationRequested();
+
+        // Earlier credentials may expire while later ones are resolved.
+        if (earliestExpiry is { } expiration &&
+            expiration <= DateTimeOffset.UtcNow)
+        {
+            throw new InvalidOperationException(
+                "A mandatory startup secret expired during initialization.");
+        }
 
         configuration.AddInMemoryCollection(values);
-        //scope.ServiceProvider.GetRequiredService<StartupSecretState>().Publish(identity, expires, oidc);
+
+        // Publish last. Any failure above leaves startup blocked.
+        // OIDC remains owned by its existing DI registration.
+        state.Publish(identity, earliestExpiry);
     }
 }

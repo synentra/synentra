@@ -286,7 +286,6 @@ public static class DependencyInjection
         secretPlan.Cache.Validate();
         services.AddSingleton(new SecretMaterialCache(secretPlan.Cache));
 
-
         if (secretsConfig.Value.Providers.HashiCorpVault.VaultUrl is not null)
             services.AddScoped<ICredentialProvider, HashiCorpVaultCredentialProvider>();
         if (secretsConfig.Value.Providers.AzureKeyVault.AzureVaultUrl is not null)
@@ -300,6 +299,9 @@ public static class DependencyInjection
             services.AddSingleton<Amazon.SecretsManager.IAmazonSecretsManager>(new Amazon.SecretsManager.AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(secretsConfig.Value.Providers.AwsSecrets.AwsRegion)));
             services.AddScoped<ICredentialProvider, AwsSecretsManagerCredentialProvider>();
         }
+
+        services.AddSingleton<StartupSecretState>();
+        services.AddHostedService<StartupSecretGate>();
 
         services.AddScoped<IToolDispatcher, HttpToolDispatcher>();
         services.AddScoped<IToolDispatcher, McpToolDispatcher>();
