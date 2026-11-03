@@ -14,14 +14,14 @@ public sealed class PersistenceConfigurationValidator
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(options.DefaultProvider))
+        if (string.IsNullOrWhiteSpace(options.Provider))
         {
-            errors.Add("Persistence:DefaultProvider is required.");
+            errors.Add("Persistence:Provider is required.");
         }
-        else if (!IsSupportedProvider(options.DefaultProvider))
+        else if (!IsSupportedProvider(options.Provider))
         {
             errors.Add(
-                "Persistence:DefaultProvider must be " +
+                "Persistence:Provider must be " +
                 "'Sqlite' or 'Postgres'.");
         }
 
@@ -29,13 +29,13 @@ public sealed class PersistenceConfigurationValidator
         {
             errors.Add("Persistence:Providers is required.");
         }
-        else if (options.DefaultProvider.Equals(
+        else if (options.Provider.Equals(
                      SqliteProvider,
                      StringComparison.OrdinalIgnoreCase))
         {
             ValidateSqlite(options.Providers.Sqlite, errors);
         }
-        else if (options.DefaultProvider.Equals(
+        else if (options.Provider.Equals(
                      PostgresProvider,
                      StringComparison.OrdinalIgnoreCase))
         {

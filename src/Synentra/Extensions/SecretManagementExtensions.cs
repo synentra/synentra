@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Configuration.Security;
 using Synentra.Infrastructure.Features.Secrets;
 
@@ -9,10 +10,10 @@ namespace Synentra.Extensions;
 public static class SecretManagementExtensions
 {
     public static async Task<WebApplicationBuilder> AddSynentraSecretManagementAsync(
-        this WebApplicationBuilder builder, 
+        this WebApplicationBuilder builder,
         CancellationToken ct = default)
     {
-        if (builder.Environment.IsProduction() && builder.Configuration.GetValue<bool?>("DataProtection:RequireEncryptedKeyRing") == false)
+        if (builder.Configuration.GetValue<bool?>("DataProtection:RequireEncryptedKeyRing") == false)
             throw new InvalidOperationException("Production requires an encrypted key ring.");
 
         builder.Services.AddSingleton(await BootstrapSecrets.ApplyAsync(builder.Configuration, builder.Environment.IsDevelopment(), ct));
@@ -30,14 +31,14 @@ public static class SecretManagementExtensions
         await using var scope = app.Services.CreateAsyncScope();
 
         var services = scope.ServiceProvider;
-        var plan = services.GetRequiredService<SecretPlan>();
+        var plan = services.GetRequiredService<SecretsConfiguration>();
         var state = services.GetRequiredService<StartupSecretState>();
 
         plan.Validate();
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
-        timeout.CancelAfter(TimeSpan.FromSeconds(plan.TimeoutSeconds));
+        timeout.CancelAfter(plan.Resolution.Timeout);
 
         var token = timeout.Token;
 
@@ -50,7 +51,7 @@ public static class SecretManagementExtensions
 
         DateTimeOffset? earliestExpiry = null;
 
-        foreach (var (name, entry) in plan.Entries)
+        foreach (var (name, entry) in plan.Bindings)
         {
             if (entry.Tier != SecretTier.Startup)
                 continue;
@@ -58,7 +59,7 @@ public static class SecretManagementExtensions
             token.ThrowIfCancellationRequested();
 
             if (string.IsNullOrWhiteSpace(entry.ConfigurationKey))
-                throw SecretPlan.Invalid();
+                throw SecretsConfiguration.Invalid();
 
             string value;
 

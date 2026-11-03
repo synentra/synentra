@@ -31,22 +31,3 @@ public sealed class StartupSecretState
 
     public override string ToString() => "StartupSecretState([REDACTED])";
 }
-
-public sealed class StartupSecretGate(StartupSecretState state) : IHostedService
-{
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        if (!state.IsReady) 
-            throw new InvalidOperationException("Mandatory secret initialization has not completed.");
-
-        return Task.CompletedTask;
-    }
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-}
-
-public sealed class StartupSecretHealthCheck(StartupSecretState state) : IHealthCheck
-{
-    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-        => Task.FromResult(state.IsReady ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy("Mandatory startup credentials unavailable or expired."));
-}
-

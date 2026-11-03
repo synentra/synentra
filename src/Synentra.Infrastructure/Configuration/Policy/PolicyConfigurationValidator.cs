@@ -14,16 +14,16 @@ public sealed class PolicyConfigurationValidator
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(options.DefaultProvider))
+        if (string.IsNullOrWhiteSpace(options.Provider))
         {
-            errors.Add("Policy:DefaultProvider is required.");
+            errors.Add("Policy:Provider is required.");
         }
-        else if (!IsSupportedProvider(options.DefaultProvider))
+        else if (!IsSupportedProvider(options.Provider))
         {
-            errors.Add("Policy:DefaultProvider must be 'Declarative' or 'Opa'.");
+            errors.Add("Policy:Provider must be 'Declarative' or 'Opa'.");
         }
 
-        if (options.DefaultProvider?.Equals(
+        if (options.Provider?.Equals(
                 OpaProvider,
                 StringComparison.OrdinalIgnoreCase) == true)
         {

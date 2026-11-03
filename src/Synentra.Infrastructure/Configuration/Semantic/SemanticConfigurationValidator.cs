@@ -24,9 +24,9 @@
 //            options.ConfidenceThreshold,
 //            errors);
 
-//        if (string.IsNullOrWhiteSpace(options.DefaultProvider))
+//        if (string.IsNullOrWhiteSpace(options.Provider))
 //        {
-//            errors.Add("Semantic:DefaultProvider is required.");
+//            errors.Add("Semantic:Provider is required.");
 //        }
 //        else if (options.Providers is null)
 //        {
@@ -34,7 +34,7 @@
 //        }
 //        else
 //        {
-//            switch (options.DefaultProvider.ToUpperInvariant())
+//            switch (options.Provider.ToUpperInvariant())
 //            {
 //                case "INTERNAL":
 //                    ValidateInternal(options.Providers.Internal, errors);
@@ -58,7 +58,7 @@
 
 //                default:
 //                    errors.Add(
-//                        "Semantic:DefaultProvider must be one of: " +
+//                        "Semantic:Provider must be one of: " +
 //                        "Internal, AzureAi, OpenAi, Gemini, Ollama.");
 //                    break;
 //            }

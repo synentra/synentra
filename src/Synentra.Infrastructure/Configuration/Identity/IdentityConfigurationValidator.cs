@@ -17,9 +17,9 @@ public sealed class IdentityConfigurationValidator
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(options.DefaultProvider))
+        if (string.IsNullOrWhiteSpace(options.Provider))
         {
-            errors.Add("Identity:DefaultProvider is required.");
+            errors.Add("Identity:Provider is required.");
         }
         else if (options.Providers is null)
         {
@@ -27,7 +27,7 @@ public sealed class IdentityConfigurationValidator
         }
         else
         {
-            switch (options.DefaultProvider.ToLowerInvariant())
+            switch (options.Provider.ToLowerInvariant())
             {
                 case OidcProvider:
                     ValidateOidc(options.Providers.Oidc, errors);
@@ -39,7 +39,7 @@ public sealed class IdentityConfigurationValidator
 
                 default:
                     errors.Add(
-                        "Identity:DefaultProvider must be one of: " +
+                        "Identity:Provider must be one of: " +
                         "local, oidc, ldap.");
                     break;
             }

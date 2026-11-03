@@ -15,7 +15,7 @@ public sealed class HashiCorpVaultCredentialProvider(
 {
     private const int MaximumResponseBytes = 65_536;
 
-    public string ProviderId => "hashicorp-vault";
+    public string ProviderId => "HashiCorpVault";
 
     public async Task<ResolvedCredential> ResolveAsync(
         CredentialBinding binding,
@@ -57,13 +57,13 @@ public sealed class HashiCorpVaultCredentialProvider(
         }
 
         if (!Uri.TryCreate(
-                configuration.VaultUrl,
+                configuration.Endpoint,
                 UriKind.Absolute,
                 out var baseUri) ||
             !IsAllowedVaultUri(baseUri) ||
-            string.IsNullOrWhiteSpace(configuration.VaultToken) ||
-            configuration.VaultToken.Any(char.IsControl) ||
-            !IsValidPath(configuration.VaultMount))
+            string.IsNullOrWhiteSpace(configuration.Token) ||
+            configuration.Token.Any(char.IsControl) ||
+            !IsValidPath(configuration.Mount))
         {
             throw new CredentialNotFoundException(
                 InfrastructureErrors.Credential
@@ -82,7 +82,7 @@ public sealed class HashiCorpVaultCredentialProvider(
             baseUri.AbsoluteUri.TrimEnd('/') + "/",
             UriKind.Absolute);
 
-        var mount = EscapePath(configuration.VaultMount);
+        var mount = EscapePath(configuration.Mount);
         var path = EscapePath(secretRef.SecretPath);
         var versionText = version.ToString(CultureInfo.InvariantCulture);
 
@@ -96,7 +96,7 @@ public sealed class HashiCorpVaultCredentialProvider(
 
         request.Headers.Add(
             "X-Vault-Token",
-            configuration.VaultToken);
+            configuration.Token);
 
         request.Headers.Accept.ParseAdd("application/json");
 
