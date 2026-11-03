@@ -162,17 +162,26 @@ public class SecretsConfiguration : ISynentraConfiguration
         Cache ??= new SecretCacheOptions();
         Bindings ??= new Dictionary<string, SecretDeclaration>(StringComparer.Ordinal);
 
-        var providers = Providers
-            ?? throw new InvalidOperationException(
-                "Secrets:Providers must configure at least one of AwsSecrets, AzureKeyVault, or HashiCorpVault.");
+        var providers = Providers ?? new SecretProviders();
 
         var vault = providers.HashiCorpVault;
         var azure = providers.AzureKeyVault;
         var aws = providers.AwsSecrets;
 
-        var hasVault = vault?.Endpoint is not null;
-        var hasAzure = azure?.Endpoint is not null;
+        var hasVault = vault?.Endpoint is not null && !string.IsNullOrWhiteSpace(vault?.Endpoint);
+        var hasAzure = azure?.Endpoint is not null && !string.IsNullOrWhiteSpace(azure?.Endpoint);
         var hasAws = !string.IsNullOrWhiteSpace(aws?.Region);
+
+        var isNoSecretsMode =
+            string.Equals(Provider, "none", StringComparison.OrdinalIgnoreCase)
+            || (string.IsNullOrWhiteSpace(Provider)
+                && Bindings.Count == 0
+                && !hasVault
+                && !hasAzure
+                && !hasAws);
+
+        if (isNoSecretsMode)
+            return;
 
         if (!hasVault && !hasAzure && !hasAws)
         {
@@ -181,6 +190,13 @@ public class SecretsConfiguration : ISynentraConfiguration
         }
 
         Validate();
+
+        if (Bindings is null)
+            Bindings = new Dictionary<string, SecretDeclaration>(StringComparer.Ordinal);
+
+        var bindingCount = Bindings.Count;
+        if (bindingCount == 0)
+            return;
 
         var bindingsByName = Bindings.ToDictionary(
             pair => pair.Key,
@@ -312,7 +328,7 @@ public class SecretsConfiguration : ISynentraConfiguration
             foreach (var dependency in entry.DependsOn)
                 AddEdge(node, SecretNode(dependency));
 
-            switch (entry.Provider)
+            switch (entry.Provider.ToLowerInvariant())
             {
                 case "env":
                 case "file":
