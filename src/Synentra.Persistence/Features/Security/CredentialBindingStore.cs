@@ -42,7 +42,7 @@ public sealed class CredentialBindingStore(
             || value.AllowedOperations.Any(string.IsNullOrWhiteSpace) 
             || string.IsNullOrWhiteSpace(value.SecretRef.SecretPath) 
             || string.IsNullOrWhiteSpace(value.SecretRef.Version) 
-            || value.SecretRef.ProviderId is not ("encrypted-db" or "hashicorp-vault" or "azure-keyvault" or "aws-secrets"))
+            || value.SecretRef.ProviderId.ToLowerInvariant() is not ("localvault" or "hashicorpvault" or "azurekeyvault" or "awssecrets"))
                 throw new InvalidOperationException("INVALID_CREDENTIAL_BINDING");
 
             if (r is null && (materialOnly || value.AuthorityVersion != value.Version)) 

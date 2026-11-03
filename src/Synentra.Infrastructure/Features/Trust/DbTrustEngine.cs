@@ -87,13 +87,13 @@ public sealed class DbTrustEngine(
                 if (evidence.Type == TrustEvidenceType.ManualAdjustment)
                     throw new InvalidOperationException("Use authenticated administrative trust adjustment.");
 
-                var delta = options.Value.EvidenceWeights.GetValueOrDefault(evidence.Type.ToString(), 0);
-                row.Score = Math.Clamp(row.Score + delta, 0, 100);
+                var delta = options.Value?.EvidenceWeights?.GetValueOrDefault(evidence.Type.ToString(), 0);
+                row.Score = Math.Clamp(row.Score + (delta ?? 0), 0, 100);
                 row.State = row.Score < 30 ? "Restricted" : "Normal";
             }
 
             row.UpdatedAt = Keys.Now;
-            if (row.Score <= options.Value.QuarantineThreshold && !await db.Quarantines.AnyAsync(q => q.AgentId == evidence.AgentId && q.SecurityScope == evidence.SecurityScope && q.ReleasedAt == null, token))
+            if (row.Score <= options.Value?.QuarantineThreshold && !await db.Quarantines.AnyAsync(q => q.AgentId == evidence.AgentId && q.SecurityScope == evidence.SecurityScope && q.ReleasedAt == null, token))
                 db.Add(new QuarantineEntity { 
                     Id = Guid.NewGuid().ToString("N"), 
                     AgentId = evidence.AgentId, 

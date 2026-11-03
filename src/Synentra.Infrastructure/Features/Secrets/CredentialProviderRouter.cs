@@ -1,5 +1,6 @@
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Diagnostics;
 using Synentra.Persistence.Features.Security;
 
@@ -8,7 +9,7 @@ namespace Synentra.Infrastructure.Features.Secrets;
 public sealed class CredentialProviderRouter(
     IEnumerable<ICredentialProvider> providers,
     CredentialBindingStore bindings,
-    SecretPlan? plan = null, 
+    SecretsConfiguration? plan = null, 
     SecretMaterialCache? cache = null, 
     SecretStateStore? states = null) : IRuntimeCredentialResolver
 {
@@ -21,18 +22,18 @@ public sealed class CredentialProviderRouter(
     {
         ct.ThrowIfCancellationRequested();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        deadline.CancelAfter(TimeSpan.FromSeconds(plan?.TimeoutSeconds ?? 30));
+        deadline.CancelAfter(plan?.Resolution.Timeout ?? TimeSpan.FromSeconds(30));
         ct = deadline.Token;
 
         var current = await bindings.GetAsync(binding.Id, ct);
         if (current is null || !current.HasSameAuthority(binding)) 
             throw new UnauthorizedAccessException("Credential authority revoked or replaced.");
 
-        if (plan?.Entries.TryGetValue(binding.Id, out var declaration) == true && declaration.Tier == SecretTier.Runtime && declaration.Reference != current.SecretRef)
+        if (plan?.Bindings.TryGetValue(binding.Id, out var declaration) == true && declaration.Tier == SecretTier.Runtime && declaration.Reference != current.SecretRef)
             throw new UnauthorizedAccessException("Runtime binding differs from the deployment secret catalog.");
 
         binding = current; // An explicit material rotation may replace the reference without changing authority.
-        if (!SecretPlan.RemoteProviders.Contains(binding.SecretRef.ProviderId)) 
+        if (!SecretsConfiguration.RemoteProviders.Contains(binding.SecretRef.ProviderId)) 
             throw new UnauthorizedAccessException("Runtime source is not permitted.");
 
         if (binding.AllowedPrincipal != identity.AgentId 

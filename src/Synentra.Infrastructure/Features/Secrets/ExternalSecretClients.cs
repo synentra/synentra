@@ -22,37 +22,37 @@ public static class ExternalSecretClients
 
     public static SecretClient Azure(SecretsConfiguration options)
     {
-        ValidateEndpoint(options.Providers.AzureKeyVault.AzureVaultUrl!);
-        TokenCredential credential = options.Providers.AzureKeyVault.AzureIdentity switch
+        ValidateEndpoint(options.Providers.AzureKeyVault.Endpoint!);
+        TokenCredential credential = options.Providers.AzureKeyVault.Identity switch
         {
             "workload" => new WorkloadIdentityCredential(),
             "managed" => new ManagedIdentityCredential(ManagedIdentityId.SystemAssigned),
-            "managed-user" when !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.AzureClientId) => new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(options.Providers.AzureKeyVault.AzureClientId)),
-            "client-secret" when !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.AzureClientSecret) && !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.AzureTenantId) && !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.AzureClientId) =>
-                new ClientSecretCredential(options.Providers.AzureKeyVault.AzureTenantId, options.Providers.AzureKeyVault.AzureClientId, options.Providers.AzureKeyVault.AzureClientSecret),
+            "managed-user" when !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.ClientId) => new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(options.Providers.AzureKeyVault.ClientId)),
+            "client-secret" when !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.ClientSecret) && !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.TenantId) && !string.IsNullOrWhiteSpace(options.Providers.AzureKeyVault.ClientId) =>
+                new ClientSecretCredential(options.Providers.AzureKeyVault.TenantId, options.Providers.AzureKeyVault.ClientId, options.Providers.AzureKeyVault.ClientSecret),
             _ => throw new InvalidOperationException("Invalid Azure identity configuration.")
         };
         var settings = new SecretClientOptions();
         settings.Retry.MaxRetries = 2;
         settings.Retry.NetworkTimeout = TimeSpan.FromSeconds(10);
         settings.Diagnostics.IsLoggingContentEnabled = false;
-        return new SecretClient(new Uri(options.Providers.AzureKeyVault.AzureVaultUrl!), credential, settings);
+        return new SecretClient(new Uri(options.Providers.AzureKeyVault.Endpoint!), credential, settings);
     }
 
     public static IAmazonSecretsManager Aws(SecretsConfiguration options)
     {
-        AWSCredentials credentials = options.Providers.AwsSecrets.AwsIdentity switch
+        AWSCredentials credentials = options.Providers.AwsSecrets.Identity switch
         {
             "web-identity" => AssumeRoleWithWebIdentityCredentials.FromEnvironmentVariables(),
             "instance-role" when Environment.GetEnvironmentVariable("AWS_EC2_METADATA_V1_DISABLED") == "true" => new InstanceProfileAWSCredentials(),
-            "bootstrap" when !string.IsNullOrWhiteSpace(options.Providers.AwsSecrets.AwsAccessKey) && !string.IsNullOrWhiteSpace(options.Providers.AwsSecrets.AwsSecretKey) =>
-                string.IsNullOrWhiteSpace(options.Providers.AwsSecrets.AwsSessionToken)
-                    ? new BasicAWSCredentials(options.Providers.AwsSecrets.AwsAccessKey, options.Providers.AwsSecrets.AwsSecretKey)
-                    : new SessionAWSCredentials(options.Providers.AwsSecrets.AwsAccessKey, options.Providers.AwsSecrets.AwsSecretKey, options.Providers.AwsSecrets.AwsSessionToken),
+            "bootstrap" when !string.IsNullOrWhiteSpace(options.Providers.AwsSecrets.AccessKey) && !string.IsNullOrWhiteSpace(options.Providers.AwsSecrets.SecretKey) =>
+                string.IsNullOrWhiteSpace(options.Providers.AwsSecrets.SessionToken)
+                    ? new BasicAWSCredentials(options.Providers.AwsSecrets.AccessKey, options.Providers.AwsSecrets.SecretKey)
+                    : new SessionAWSCredentials(options.Providers.AwsSecrets.AccessKey, options.Providers.AwsSecrets.SecretKey, options.Providers.AwsSecrets.SessionToken),
             _ => throw new InvalidOperationException("Invalid AWS identity configuration; instance roles require IMDSv1 disabled.")
         };
         return new AmazonSecretsManagerClient(credentials, new AmazonSecretsManagerConfig {
-            RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(options.Providers.AwsSecrets.AwsRegion), MaxErrorRetry = 2, Timeout = TimeSpan.FromSeconds(10) });
+            RegionEndpoint = Amazon.RegionEndpoint.GetBySystemName(options.Providers.AwsSecrets.Region), MaxErrorRetry = 2, Timeout = TimeSpan.FromSeconds(10) });
     }
 
     public static async Task<ResolvedCredential> ReadBootstrapAsync(
@@ -63,19 +63,19 @@ public static class ExternalSecretClients
     {
         var binding = new Synentra.Domain.Security.ValueObjects.CredentialBinding("bootstrap", "host", "host", "host",
             new HashSet<string> { "bootstrap" }, entry.Reference, "bootstrap");
-        if (entry.Provider == "azure-keyvault") return await new AzureKeyVaultCredentialProvider(Azure(options)).ResolveAsync(binding, ct);
-        if (entry.Provider == "aws-secrets")
+        if (entry.Provider == "azurekeyvault") return await new AzureKeyVaultCredentialProvider(Azure(options)).ResolveAsync(binding, ct);
+        if (entry.Provider == "awssecrets")
         {
             using var client = Aws(options);
             return await new AwsSecretsManagerCredentialProvider(client).ResolveAsync(binding, ct);
         }
-        if (entry.Provider == "hashicorp-vault")
+        if (entry.Provider.ToLowerInvariant() == "hashicorpvault")
         {
             //ValidateEndpoint(options.Providers.HashiCorpVault.VaultUrl!);
             using var factory = new BootstrapHttpFactory(outboundHttpConfiguration);
             return await new HashiCorpVaultCredentialProvider(factory, Options.Create(options)).ResolveAsync(binding, ct);
         }
-        throw SecretPlan.Invalid();
+        throw SecretsConfiguration.Invalid();
     }
 
     private sealed class BootstrapHttpFactory(OutboundHttpConfiguration options) : IHttpClientFactory, IDisposable

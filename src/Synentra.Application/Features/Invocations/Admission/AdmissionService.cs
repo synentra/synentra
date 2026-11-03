@@ -161,13 +161,13 @@ public sealed class AdmissionService : IExecutionAdmission
                         if (!grantLease.CanReserve(total))
                             return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "TASK_GRANT_AGGREGATE_EXCEEDED" }));
 
-                        grantLease.Reserve(total, executionId);
+                        await grantLease.Reserve(total, executionId);
                     }
                 }
 
                 // All reservations validated — commit
                 for (int i = 0; i < effectPlan.Quantities.Count; i++)
-                    reservations[i].Reserve(effectPlan.Quantities[i].UpperBound, executionId);
+                    await reservations[i].Reserve(effectPlan.Quantities[i].UpperBound, executionId);
             }
 
             // Acquire durable claim (single-winner across replicas)

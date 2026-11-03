@@ -2,7 +2,7 @@ namespace Synentra.Infrastructure.Configuration.SecretManagement;
 
 public class HashiCorpVaultConfiguration
 {
-    public string? VaultUrl { get; set; }
-    public string VaultMount { get; set; } = "secret";
-    public string VaultToken { get; set; } = "";
+    public string Endpoint { get; set; } = string.Empty;
+    public string Mount { get; set; } = "secret";
+    public string Token { get; set; } = "";
 }

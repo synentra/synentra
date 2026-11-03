@@ -7,7 +7,7 @@ namespace Synentra.Infrastructure.Features.Secrets;
 
 public sealed class AzureKeyVaultCredentialProvider(SecretClient client) : ICredentialProvider
 {
-    public string ProviderId => "azure-keyvault";
+    public string ProviderId => "azurekeyvault";
 
     public async Task<ResolvedCredential> ResolveAsync(CredentialBinding binding, CancellationToken ct)
     {

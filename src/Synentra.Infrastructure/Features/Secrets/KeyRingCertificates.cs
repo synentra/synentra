@@ -72,16 +72,3 @@ public static class KeyRingCertificates
         return normalized;
     }
 }
-
-internal sealed class KeyRingCertificateLifetime : IDisposable
-{
-    private readonly X509Certificate2? certificate;
-    private bool disposed;
-    public KeyRingCertificateLifetime(X509Certificate2? certificate) => this.certificate = certificate;
-    public void Dispose()
-    {
-        if (disposed) return;
-        disposed = true;
-        certificate?.Dispose();
-    }
-}

@@ -13,17 +13,17 @@ using Synentra.Infrastructure.Configuration.Secrets;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
-public sealed class EncryptedDbCredentialProvider(
+public sealed class LocalVaultCredentialProvider(
     IDbContextFactory<SynentraDbContext> dbFactory,
     IDataProtectionProvider provider, 
     IUnitOfWork work, 
     IOptions<SecretsConfiguration>? options = null) : ICredentialProvider
 {
-    public string ProviderId => "encrypted-db";
+    public string ProviderId => "localvault";
 
     private void RequireEnabled() 
     { 
-        if (options is not null && !options.Value.Providers.EncryptedDatabase.EncryptedDatabaseEnabled) 
+        if (options is not null && !options.Value.Providers.LocalVault.Enabled) 
             throw new InvalidOperationException("Encrypted database secrets are not enabled."); 
     }
 

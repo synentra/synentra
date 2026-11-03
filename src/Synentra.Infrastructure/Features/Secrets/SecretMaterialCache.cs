@@ -1,44 +1,20 @@
 using Synentra.Application.Common.Security;
+using Synentra.Infrastructure.Configuration.Secrets;
 
 namespace Synentra.Infrastructure.Features.Secrets;
-
-public sealed class SecretCacheOptions
-{
-    public string Mode { get; set; } = "none";
-    public int TtlSeconds { get; set; } = 60;
-    public int MaximumEntries { get; set; } = 1024;
-    public string OutagePolicy { get; set; } = "use-unexpired-cache";
-    public void Validate()
-    {
-        if (Mode is not ("none" or "memory") 
-            || TtlSeconds is < 1 or > 3600 
-            || MaximumEntries is < 1 or > 100000 
-            || OutagePolicy is not ("use-unexpired-cache" or "require-provider")) 
-            throw SecretPlan.Invalid();
-    }
-}
-
-public readonly record struct SecretCacheKey(
-    string Provider,
-    string Path,
-    string Version,
-    long Generation,
-    string BindingId,
-    string Principal,
-    string Scope,
-    string Target,
-    string Operation);
 
 /// <summary>Only immutable material is shared. Provider work executes in the winning caller's own scope.</summary>
 public sealed class SecretMaterialCache : IDisposable
 {
     private readonly TimeProvider clock;
-    private readonly SecretCacheOptions options;
+    private readonly SecretsConfiguration _options;
     private readonly ITimer timer;
-    public SecretMaterialCache(SecretCacheOptions options, TimeProvider? time = null)
+    public SecretMaterialCache(SecretsConfiguration options, TimeProvider? time = null)
     {
-        options.Validate(); this.options = options; clock = time ?? TimeProvider.System;
-        var period = TimeSpan.FromSeconds(Math.Min(options.TtlSeconds, 60));
+        options.Validate(); 
+        _options = options; 
+        clock = time ?? TimeProvider.System;
+        var period = TimeSpan.FromSeconds(Math.Min(options.Resolution.Timeout.Seconds, 60));
         timer = clock.CreateTimer(_ => PruneExpired(), null, period, period);
     }
 
@@ -55,8 +31,8 @@ public sealed class SecretMaterialCache : IDisposable
     public async Task<ResolvedCredential> ResolveAsync(SecretCacheKey key, Func<CancellationToken, Task<ResolvedCredential>> fetch, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        options.Validate();
-        if (options.Mode == "none" || options.OutagePolicy == "require-provider") 
+        _options.Validate();
+        if (_options.Cache.Mode == "none" || _options.Cache.OutagePolicy == "require-provider") 
             return await ReadAsync(fetch, ct);
 
         if (TryGet(key, out var cached)) 
@@ -70,12 +46,12 @@ public sealed class SecretMaterialCache : IDisposable
                 return cached!;
 
             var material = await ReadAsync(fetch, ct);
-            var until = clock.GetUtcNow().AddSeconds(options.TtlSeconds);
+            var until = clock.GetUtcNow().AddSeconds(_options.Cache.Ttl.Seconds);
             if (material.ExpiresAt is { } expiry && expiry < until) until = expiry;
             lock (sync)
             {
                 foreach (var expired in entries.Where(x => x.Value.Until <= clock.GetUtcNow()).Select(x => x.Key).ToArray()) entries.Remove(expired);
-                if (entries.Count >= options.MaximumEntries && !entries.ContainsKey(key)) entries.Remove(entries.MinBy(x => x.Value.Until).Key);
+                if (entries.Count >= _options.Cache.MaximumEntries && !entries.ContainsKey(key)) entries.Remove(entries.MinBy(x => x.Value.Until).Key);
                 entries[key] = new(material, until);
             }
             return material;

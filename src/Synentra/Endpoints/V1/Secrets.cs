@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Features.Secrets;
 using Synentra.Persistence;
 using Synentra.Persistence.Features.Security;
@@ -27,7 +28,7 @@ public sealed class Secrets : EndpointGroupBase
         var group = app.MapGroup("/v1/admin/credentials").WithTags("Secret administration");
 
         group.MapPut("/secrets/{path}/{version}", async (string path, string version, StoreSecret request, HttpContext context,
-            IPrincipalResolver principals, EncryptedDbCredentialProvider secrets, CancellationToken ct) =>
+            IPrincipalResolver principals, LocalVaultCredentialProvider secrets, CancellationToken ct) =>
         {
             var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
             await secrets.StoreVersionAsync(path, version, request.Scheme, request.Value, request.ExpiresAt, ct, admin.AgentId);
@@ -35,7 +36,7 @@ public sealed class Secrets : EndpointGroupBase
         }).WithMetadata(new RequestSizeLimitAttribute(70000));
 
         group.MapDelete("/secrets/{path}/{version}", async (string path, string version, HttpContext context,
-            IPrincipalResolver principals, EncryptedDbCredentialProvider secrets, CancellationToken ct) =>
+            IPrincipalResolver principals, LocalVaultCredentialProvider secrets, CancellationToken ct) =>
         {
             var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
             await secrets.RevokeVersionAsync(path, version, ct, admin.AgentId);
@@ -73,14 +74,14 @@ public sealed class Secrets : EndpointGroupBase
         group.MapGet("/state", async (string providerId, string path, string version, HttpContext context, IPrincipalResolver principals, SecretStateStore states, CancellationToken ct) =>
         {
             await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-            if (!SecretPlan.RemoteProviders.Contains(providerId)) return Results.BadRequest();
+            if (!SecretsConfiguration.RemoteProviders.Contains(providerId)) return Results.BadRequest();
             return Results.Ok(await states.GetAsync(new(providerId, path, version), ct));
         });
 
         group.MapPost("/state", async (ChangeSecretState request, HttpContext context, IPrincipalResolver principals, SecretStateStore states, CancellationToken ct) =>
         {
             var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-            if (request.SecretRef is null || !SecretPlan.RemoteProviders.Contains(request.SecretRef.ProviderId) || string.IsNullOrWhiteSpace(request.SecretRef.SecretPath) || string.IsNullOrWhiteSpace(request.SecretRef.Version)) return Results.BadRequest();
+            if (request.SecretRef is null || !SecretsConfiguration.RemoteProviders.Contains(request.SecretRef.ProviderId) || string.IsNullOrWhiteSpace(request.SecretRef.SecretPath) || string.IsNullOrWhiteSpace(request.SecretRef.Version)) return Results.BadRequest();
             var generation = await states.ChangeAsync(request.SecretRef, request.ExpectedGeneration, request.Revoke, admin.AgentId, ct);
             return Results.Ok(new { generation, revoked = request.Revoke });
         });

@@ -64,7 +64,7 @@ namespace Synentra.Infrastructure;
 public static class DependencyInjection
 {
     public static IServiceCollection AddSynentraConfiguration(
-        this IServiceCollection services, 
+        this IServiceCollection services,
         IConfiguration configuration)
     {
         // Register approvals configuration sections and validators
@@ -111,12 +111,14 @@ public static class DependencyInjection
         services.AddConfiguration<PolicyConfiguration>(configuration);
 
         // Register secret management configuration sections and validators
+        services.AddSingleton<IPostConfigureOptions<SecretsConfiguration>, SecretsConfigurationPostConfigure>();
+        services.AddSingleton<IValidateOptions<SecretsConfiguration>, SecretsConfigurationValidator>();
         services.AddConfiguration<SecretsConfiguration>(configuration);
 
         // Register semantic configuration sections and validators
         //services.AddSingleton<IValidateOptions<SemanticConfiguration>, SemanticConfigurationValidator>();
         services.AddConfiguration<SemanticConfiguration>(configuration);
-        
+
         // Register trust configuration sections and validators
         services.AddSingleton<IValidateOptions<TrustConfiguration>, TrustConfigurationValidator>();
         services.AddConfiguration<TrustConfiguration>(configuration);
@@ -238,7 +240,7 @@ public static class DependencyInjection
 
         services.AddScoped<DeclarativePolicyEngine>();
         services.AddScoped<OpaPolicyEngine>();
-        services.AddScoped<IPolicyEngine>(s => policyConfig.Value.DefaultProvider.ToLowerInvariant() switch
+        services.AddScoped<IPolicyEngine>(s => policyConfig.Value.Provider.ToLowerInvariant() switch
         {
             "declarative" => s.GetRequiredService<DeclarativePolicyEngine>(),
             "opa" => s.GetRequiredService<OpaPolicyEngine>(),
@@ -264,7 +266,7 @@ public static class DependencyInjection
 
         services.AddSingleton<OidcPrincipalResolver>();
         services.AddScoped<LdapPrincipalResolver>();
-        services.AddScoped<IPrincipalResolver>(s => s.GetRequiredService<IOptions<IdentityConfiguration>>().Value.DefaultProvider.ToLowerInvariant() switch
+        services.AddScoped<IPrincipalResolver>(s => s.GetRequiredService<IOptions<IdentityConfiguration>>().Value.Provider.ToLowerInvariant() switch
         {
             "oidc" => s.GetRequiredService<OidcPrincipalResolver>(),
             "ldap" => s.GetRequiredService<LdapPrincipalResolver>(),
@@ -273,30 +275,30 @@ public static class DependencyInjection
 
         var secretsConfig = scope.ServiceProvider.GetRequiredService<IOptions<SecretsConfiguration>>();
 
-        services.AddScoped<EncryptedDbCredentialProvider>();
-        if (secretsConfig.Value.Providers.EncryptedDatabase.EncryptedDatabaseEnabled)
-            services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<EncryptedDbCredentialProvider>());
+        services.AddScoped<LocalVaultCredentialProvider>();
+        if (secretsConfig.Value.Providers.LocalVault.Enabled)
+            services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<LocalVaultCredentialProvider>());
 
-        services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<EncryptedDbCredentialProvider>());
+        services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<LocalVaultCredentialProvider>());
         services.AddScoped<CredentialProviderRouter>();
 
         services.AddScoped<IRuntimeCredentialResolver>(s => s.GetRequiredService<CredentialProviderRouter>());
         services.AddScoped<SecretStateStore>();
-        var secretPlan = configuration.GetSection("SecretPlan").Get<SecretPlan>() ?? new();
-        secretPlan.Cache.Validate();
-        services.AddSingleton(new SecretMaterialCache(secretPlan.Cache));
 
-        if (secretsConfig.Value.Providers.HashiCorpVault.VaultUrl is not null)
+        secretsConfig.Value.Cache.Validate();
+        services.AddSingleton(new SecretMaterialCache(secretsConfig.Value));
+
+        if (secretsConfig.Value.Providers.HashiCorpVault.Endpoint is not null)
             services.AddScoped<ICredentialProvider, HashiCorpVaultCredentialProvider>();
-        if (secretsConfig.Value.Providers.AzureKeyVault.AzureVaultUrl is not null)
+        if (secretsConfig.Value.Providers.AzureKeyVault.Endpoint is not null)
         {
-            services.AddSingleton(new Azure.Security.KeyVault.Secrets.SecretClient(new Uri(secretsConfig.Value.Providers.AzureKeyVault.AzureVaultUrl), new Azure.Identity.DefaultAzureCredential()));
+            services.AddSingleton(new Azure.Security.KeyVault.Secrets.SecretClient(new Uri(secretsConfig.Value.Providers.AzureKeyVault.Endpoint), new Azure.Identity.DefaultAzureCredential()));
             services.AddScoped<ICredentialProvider, AzureKeyVaultCredentialProvider>();
         }
 
-        if (secretsConfig.Value.Providers.AwsSecrets.AwsRegion is not null)
+        if (secretsConfig.Value.Providers.AwsSecrets.Region is not null)
         {
-            services.AddSingleton<Amazon.SecretsManager.IAmazonSecretsManager>(new Amazon.SecretsManager.AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(secretsConfig.Value.Providers.AwsSecrets.AwsRegion)));
+            services.AddSingleton<Amazon.SecretsManager.IAmazonSecretsManager>(new Amazon.SecretsManager.AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(secretsConfig.Value.Providers.AwsSecrets.Region)));
             services.AddScoped<ICredentialProvider, AwsSecretsManagerCredentialProvider>();
         }
 

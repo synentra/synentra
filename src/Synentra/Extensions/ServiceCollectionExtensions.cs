@@ -77,7 +77,7 @@ public static class ServiceCollectionExtensions
         using var scope = services.BuildServiceProvider().CreateScope();
         var systemConfig = scope.ServiceProvider.GetRequiredService<IOptions<PersistenceConfiguration>>().Value;
 
-        var provider = systemConfig.DefaultProvider;
+        var provider = systemConfig.Provider;
 
         switch (provider?.ToLowerInvariant())
         {
