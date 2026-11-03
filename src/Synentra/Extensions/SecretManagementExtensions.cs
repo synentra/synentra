@@ -13,7 +13,7 @@ public static class SecretManagementExtensions
         this WebApplicationBuilder builder,
         CancellationToken ct = default)
     {
-        if (builder.Configuration.GetValue<bool?>("DataProtection:RequireEncryptedKeyRing") == false)
+        if (builder.Environment.IsProduction() && builder.Configuration.GetValue<bool?>("DataProtection:RequireEncryptedKeyRing") == false)
             throw new InvalidOperationException("Production requires an encrypted key ring.");
 
         builder.Services.AddSingleton(await BootstrapSecrets.ApplyAsync(builder.Configuration, builder.Environment.IsDevelopment(), ct));

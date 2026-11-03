@@ -288,15 +288,15 @@ public static class DependencyInjection
         secretsConfig.Value.Cache.Validate();
         services.AddSingleton(new SecretMaterialCache(secretsConfig.Value));
 
-        if (secretsConfig.Value.Providers.HashiCorpVault.Endpoint is not null)
+        if (secretsConfig.Value.Providers.HashiCorpVault.Endpoint is not null && !string.IsNullOrWhiteSpace(secretsConfig.Value.Providers.HashiCorpVault.Endpoint))
             services.AddScoped<ICredentialProvider, HashiCorpVaultCredentialProvider>();
-        if (secretsConfig.Value.Providers.AzureKeyVault.Endpoint is not null)
+        if (secretsConfig.Value.Providers.AzureKeyVault.Endpoint is not null && !string.IsNullOrWhiteSpace(secretsConfig.Value.Providers.AzureKeyVault.Endpoint))
         {
             services.AddSingleton(new Azure.Security.KeyVault.Secrets.SecretClient(new Uri(secretsConfig.Value.Providers.AzureKeyVault.Endpoint), new Azure.Identity.DefaultAzureCredential()));
             services.AddScoped<ICredentialProvider, AzureKeyVaultCredentialProvider>();
         }
 
-        if (secretsConfig.Value.Providers.AwsSecrets.Region is not null)
+        if (secretsConfig.Value.Providers.AwsSecrets.Region is not null && !string.IsNullOrWhiteSpace(secretsConfig.Value.Providers.AwsSecrets.Region))
         {
             services.AddSingleton<Amazon.SecretsManager.IAmazonSecretsManager>(new Amazon.SecretsManager.AmazonSecretsManagerClient(Amazon.RegionEndpoint.GetBySystemName(secretsConfig.Value.Providers.AwsSecrets.Region)));
             services.AddScoped<ICredentialProvider, AwsSecretsManagerCredentialProvider>();

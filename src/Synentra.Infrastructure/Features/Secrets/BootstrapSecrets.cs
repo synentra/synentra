@@ -99,6 +99,17 @@ public static class BootstrapSecrets
         if (string.Equals(plan.Provider, "none", StringComparison.OrdinalIgnoreCase))
             plan.Provider = null;
 
+        var hasConfiguredSecrets =
+            plan.Bindings.Count > 0
+            || !string.IsNullOrWhiteSpace(plan.Provider)
+            || DetectSoleConfiguredProvider(configuration) is not null;
+
+        if (!hasConfiguredSecrets)
+        {
+            plan.Provider = null;
+            return plan;
+        }
+
         // Infer a plan-level provider when exactly one remote provider is configured.
         plan.Provider ??= DetectSoleConfiguredProvider(configuration) ?? throw SecretsConfiguration.Invalid();
 

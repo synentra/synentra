@@ -25,7 +25,16 @@ public sealed class SecretsConfigurationValidator
         var hasAzure = providers?.AzureKeyVault?.Endpoint is not null;
         var hasVault = providers?.HashiCorpVault?.Endpoint is not null;
 
-        if (!hasAws && !hasAzure && !hasVault)
+        var isNoSecretsMode =
+            string.Equals(options.Provider, "none", StringComparison.OrdinalIgnoreCase)
+            || (string.IsNullOrWhiteSpace(options.Provider)
+                && options.Bindings is not null
+                && options.Bindings.Count == 0
+                && !hasAws
+                && !hasAzure
+                && !hasVault);
+
+        if (!isNoSecretsMode && !hasAws && !hasAzure && !hasVault)
         {
             failures.Add(
                 "Secrets:Providers must configure at least one of AwsSecrets, AzureKeyVault, or HashiCorpVault.");
