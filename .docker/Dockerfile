@@ -8,12 +8,12 @@ WORKDIR /src
 COPY Synentra.slnx .
 
 COPY src/Synentra/Synentra.csproj src/Synentra/
-COPY src/Synentra.Application/Synentra.Application.csproj src/Synentra.Application/
 COPY src/Synentra.Domain/Synentra.Domain.csproj src/Synentra.Domain/
-COPY src/Synentra.BuildingBlocks/Synentra.BuildingBlocks.csproj src/Synentra.BuildingBlocks/
+COPY src/Synentra.Application/Synentra.Application.csproj src/Synentra.Application/
+COPY src/Synentra.Persistence/Synentra.Persistence.csproj src/Synentra.Persistence/
 COPY src/Synentra.Infrastructure/Synentra.Infrastructure.csproj src/Synentra.Infrastructure/
-COPY src/Synentra.Infrastructure.Persistence.Common/Synentra.Infrastructure.Persistence.Common.csproj src/Synentra.Infrastructure.Persistence.Common/
-COPY src/Synentra.Infrastructure.Persistence.Sqlite/Synentra.Infrastructure.Persistence.Sqlite.csproj src/Synentra.Infrastructure.Persistence.Sqlite/
+COPY src/Synentra.Persistence.PostgreSql/Synentra.Persistence.PostgreSql.csproj src/Synentra.Persistence.PostgreSql/
+COPY src/Synentra.Persistence.Sqlite/Synentra.Persistence.Sqlite.csproj src/Synentra.Persistence.Sqlite/
 
 RUN dotnet restore src/Synentra/Synentra.csproj --runtime linux-x64
 
@@ -34,7 +34,7 @@ WORKDIR /app
 
 # Static OCI image metadata
 LABEL org.opencontainers.image.title="Synentra"
-LABEL org.opencontainers.image.description="Intent-aware governance gateway for autonomous AI agents"
+LABEL org.opencontainers.image.description="Intent-Aware Runtime Governance for AI Agents"
 LABEL org.opencontainers.image.source="https://github.com/synentra/synentra"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
