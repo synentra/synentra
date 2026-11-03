@@ -6,7 +6,7 @@ namespace Synentra.Infrastructure.Features.Risk;
 
 public sealed class DefaultRiskEngine(IEnumerable<IRiskFactorPlugin> factors) : IRiskEngine
 {
-    public string CalculatorId => "weighted-risk";
+    public string CalculatorId => "default-risk";
     public string Version => "1.0.0";
 
     public async Task<RiskAssessment> EvaluateAsync(RiskInput input, CancellationToken ct)
