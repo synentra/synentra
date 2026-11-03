@@ -8,7 +8,7 @@ public sealed class DataProtectionConfiguration : ISynentraConfiguration
 
     public string ApplicationName { get; set; } = "synentra";
     public string KeyRingPath { get; set; } = "./data/keys";
-    public bool RequireEncryptedKeyRing { get; set; } = true;
+    public bool RequireEncryptedKeyRing { get; set; } = false;
     public TimeSpan DefaultKeyLifetime { get; set; } = TimeSpan.FromDays(90);
     public KeyRingCertificateConfiguration Certificate { get; set; } = new();
 }

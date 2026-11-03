@@ -14,7 +14,7 @@ public sealed class HttpIntentProvider(
     CredentialBindingStore bindings,
     IRuntimeCredentialResolver credentials) : IIntentProvider
 {
-    public string ProviderId => "semantic-http";
+    public string ProviderId => "default-semantic";
     public string ContractVersion => "1.0.0";
     public IntentModality SupportedModalities => (IntentModality)(-1);
 
