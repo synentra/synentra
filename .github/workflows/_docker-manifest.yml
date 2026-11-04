@@ -49,11 +49,9 @@ jobs:
             REFS="$REFS ${IMAGE}@${d}"
           done
 
-          docker manifest create ${IMAGE}:${VERSION} $REFS
-          docker manifest push ${IMAGE}:${VERSION}
+          docker buildx imagetools create --tag ${IMAGE}:${VERSION} $REFS
 
           # Only tag latest for stable releases (no pre-release suffix e.g. -rc.1, -beta.1)
           if [[ "$VERSION" != *"-"* ]]; then
-            docker manifest create ${IMAGE}:latest $REFS
-            docker manifest push ${IMAGE}:latest
+            docker buildx imagetools create --tag ${IMAGE}:latest $REFS
           fi
