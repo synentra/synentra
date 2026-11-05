@@ -10,6 +10,7 @@ namespace Synentra.Persistence.Features.Invocations;
 
 public sealed class InvocationStore(
     IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     PayloadCodec codec, 
     IUnitOfWork work) : IInvocationStore
 {
@@ -43,7 +44,7 @@ public sealed class InvocationStore(
     {
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(token);
+            var db = scope.Current;
             var row = await db.Invocations.FindAsync(new object[] { value.Id.ToString() }, token);
             if (row is not null)
             {
@@ -68,7 +69,7 @@ public sealed class InvocationStore(
     {
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(token);
+            var db = scope.Current;
             var row = await db.Invocations.FindAsync(new object[] { invocationId }, token) ?? throw new InvalidOperationException("Invocation missing.");
 
             var invocation = Map(row);

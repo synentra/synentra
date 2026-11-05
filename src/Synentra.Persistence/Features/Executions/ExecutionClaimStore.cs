@@ -7,7 +7,7 @@ using Synentra.Application.Features.Invocations.Admission;
 namespace Synentra.Persistence.Features.Executions;
 
 public sealed class ExecutionClaimStore(
-    IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     IUnitOfWork work) : IExecutionClaimStore
 {
     public Task<string?> TryAcquireAsync(string invocationId, string claimedBy, TimeSpan ttl, CancellationToken ct) => work.ExecuteAsync<string?>(async token =>
@@ -15,7 +15,7 @@ public sealed class ExecutionClaimStore(
         if (ttl <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(ttl));
 
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var db = scope.Current;
         if (await db.ExecutionClaims.AnyAsync(x => x.InvocationId == invocationId, token))
             return null;
 
@@ -35,7 +35,7 @@ public sealed class ExecutionClaimStore(
 
     public Task<bool> TransitionToDispatchingAsync(string claimId, CancellationToken ct) => work.ExecuteAsync(async token =>
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var db = scope.Current;
         var now = Keys.Now;
 
         return await db.ExecutionClaims
@@ -48,7 +48,7 @@ public sealed class ExecutionClaimStore(
     {
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
+            var db = scope.Current;
             var changed = await db.ExecutionClaims
                                 .Where(x => x.Id == claimId && x.State == "Dispatching")
                                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.State, "Responded")
@@ -63,7 +63,7 @@ public sealed class ExecutionClaimStore(
 
     public Task<bool> CancelBeforeDispatchAsync(string invocationId, CancellationToken ct) => work.ExecuteAsync(async token =>
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var db = scope.Current;
         var changed = await db.ExecutionClaims
                     .Where(x => x.InvocationId == invocationId && x.State == "Claimed")
                     .ExecuteUpdateAsync(s => s.SetProperty(x => x.State, "CancelledBeforeDispatch")

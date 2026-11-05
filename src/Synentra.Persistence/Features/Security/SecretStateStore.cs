@@ -11,10 +11,13 @@ public readonly record struct SecretState(long Generation, bool Revoked);
 
 public sealed class SecretStateStore(
     IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     IUnitOfWork work, 
     PayloadCodec codec)
 {
-    public static string Key(SecretProviderRef reference) => Keys.Of(reference.ProviderId, reference.SecretPath, reference.Version);
+    public static string Key(SecretProviderRef reference) 
+        => Keys.Of(reference.ProviderId, reference.SecretPath, reference.Version);
+
     public async Task<SecretState> GetAsync(SecretProviderRef reference, CancellationToken ct)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
@@ -31,7 +34,7 @@ public sealed class SecretStateStore(
         CancellationToken ct)
         => work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(token);
+            var db = scope.Current;
             var id = Key(reference);
             var row = await db.SecretStates.SingleOrDefaultAsync(x => x.Id == id, token);
             if ((row?.Generation ?? 0) != expectedGeneration || row?.Revoked == true) 

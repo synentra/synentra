@@ -12,5 +12,14 @@ public class SqliteDatabaseInitializer : BaseDatabaseInitializer<SqliteSynentraD
     {
     }
 
+    public override async Task EnsureDatabaseCreatedAsync(CancellationToken cancellationToken = default)
+    {
+        await base.EnsureDatabaseCreatedAsync(cancellationToken);
+
+        await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = WAL;", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA synchronous = NORMAL;", cancellationToken);
+    }
+
     protected override string GetProviderName() => "SQLite";
 }
