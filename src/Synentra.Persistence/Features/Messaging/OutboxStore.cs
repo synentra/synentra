@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Synentra.Persistence.Features.Messaging;
 
 public sealed class OutboxStore(
-    IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     PayloadCodec codec, 
     IUnitOfWork work) : IOutbox
 {
@@ -21,8 +21,13 @@ public sealed class OutboxStore(
 
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(token);
-            db.Add(new OutboxEntity { Id = Guid.NewGuid().ToString("N"), Type = "dispatch.v1", Payload = codec.Encode(message), CreatedAt = Keys.Now });
+            var db = scope.Current;
+            db.Outboxes.Add(new OutboxEntity { 
+                Id = Guid.NewGuid().ToString("N"), 
+                Type = "dispatch.v1", 
+                Payload = codec.Encode(message), 
+                CreatedAt = Keys.Now
+            });
             await db.SaveChangesAsync(token);
             return true;
         }, ct: ct);

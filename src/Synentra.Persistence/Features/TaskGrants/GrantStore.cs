@@ -11,6 +11,7 @@ namespace Synentra.Persistence.Features.TaskGrants;
 
 public sealed class GrantStore(
     IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     PayloadCodec codec, 
     IUnitOfWork work) : IGrantStore
 {
@@ -27,7 +28,7 @@ public sealed class GrantStore(
     {
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(token);
+            var db = scope.Current;
             var r = await db.Grants.FindAsync(new object[] { value.Id.ToString() }, token);
             if (r is null)
             {

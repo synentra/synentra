@@ -43,13 +43,19 @@ internal static class AggregateReader
             Read<GrantState>(e, "state"), 
             Read<DateTimeOffset>(e, "createdAt"));
 
-    public static ExecutionRecord Execution(JsonElement e) 
+    public static ExecutionRecord Execution(JsonElement e)
         => ExecutionRecord.Restore(
-            Read<string>(e, "id"), 
-            Read<InvocationId>(e, "invocationId"), 
-            Read<ExecutionStatus>(e, "status"), 
-            Read<string?>(e, "upstreamReference"), 
-            Read<DateTimeOffset?>(e, "dispatchedAt"), 
-            Read<DateTimeOffset?>(e, "respondedAt"), 
-            Read<string?>(e, "errorMessage"));
+            Read<string>(e, "id"),
+            Read<InvocationId>(e, "invocationId"),
+            Read<ExecutionStatus>(e, "status"),
+            Read<string?>(e, "upstreamReference"),
+            Read<DateTimeOffset?>(e, "dispatchedAt"),
+            Read<DateTimeOffset?>(e, "respondedAt"),
+            Read<string?>(e, "errorMessage"),
+            e.TryGetProperty("responsePayload", out var payload)
+                ? payload.Deserialize<string?>(PayloadCodec.Json)
+                : null,
+            e.TryGetProperty("responseStatusCode", out var statusCode)
+                ? statusCode.Deserialize<int?>(PayloadCodec.Json)
+                : null);
 }

@@ -11,11 +11,12 @@ namespace Synentra.Persistence.Features.Manifests;
 
 public sealed class ManifestStore(
     IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     IUnitOfWork work) : IManifestStore
 {
     public Task<string> StoreVersionAsync(string manifestId, string version, string bundleJson, string contentHash, CancellationToken ct) => work.ExecuteAsync(async token =>
     {
-        await using var db = await dbFactory.CreateDbContextAsync(token);
+        var db = scope.Current;
         var actual = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(bundleJson)));
 
         if (!string.Equals(actual, contentHash, StringComparison.OrdinalIgnoreCase))
@@ -59,7 +60,7 @@ public sealed class ManifestStore(
     }
     public Task<string> ActivateAtomicallyAsync(string manifestId, string revision, string? expectedCurrent, CancellationToken ct) => work.ExecuteAsync(async token =>
     {
-        await using var db = await dbFactory.CreateDbContextAsync(token);
+        var db = scope.Current;
         var current = await db.ActiveManifests.SingleAsync(x => x.Id == 1, token);
 
         if (current.Revision != expectedCurrent)
