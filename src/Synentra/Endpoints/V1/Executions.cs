@@ -37,7 +37,19 @@ public sealed class Executions : EndpointGroupBase
         if (invocation is null || (principal.Type != PrincipalType.Admin && (principal.AgentId != invocation.AuthenticatedAgentId || principal.SecurityScope != invocation.SecurityScope))) return Results.NotFound();
 
         var outcomes = await evidence.GetAsync(id, ct);
-        return Results.Ok(new { id = execution.Id, invocationId = execution.InvocationId.ToString(), status = LifecycleStatusNames.Execution(execution.Status), execution.UpstreamReference, execution.DispatchedAt, execution.RespondedAt, execution.ErrorMessage, outcomeEvidence = outcomes });
+        return Results.Ok(new
+        {
+            id = execution.Id,
+            invocationId = execution.InvocationId.ToString(),
+            status = LifecycleStatusNames.Execution(execution.Status),
+            execution.UpstreamReference,
+            execution.DispatchedAt,
+            execution.RespondedAt,
+            execution.ResponseStatusCode,
+            execution.ResponsePayload,
+            execution.ErrorMessage,
+            outcomeEvidence = outcomes
+        });
     }
 
     private static async Task<IResult> Reconcile(
