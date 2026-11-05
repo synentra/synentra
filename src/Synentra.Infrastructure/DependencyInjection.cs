@@ -279,7 +279,7 @@ public static class DependencyInjection
         if (secretsConfig.Value.Providers.LocalVault.Enabled)
             services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<LocalVaultCredentialProvider>());
 
-        services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<LocalVaultCredentialProvider>());
+        //services.AddScoped<ICredentialProvider>(s => s.GetRequiredService<LocalVaultCredentialProvider>());
         services.AddScoped<CredentialProviderRouter>();
 
         services.AddScoped<IRuntimeCredentialResolver>(s => s.GetRequiredService<CredentialProviderRouter>());

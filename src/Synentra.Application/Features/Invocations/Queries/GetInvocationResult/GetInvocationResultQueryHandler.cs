@@ -31,8 +31,14 @@ public sealed class GetInvocationResultQueryHandler(
             InvocationId = request.InvocationId, 
             Decision = new DecisionDto(decision.Outcome, decision.ReasonCodes, 
             decision.PolicyRevision), 
-            Approval = approval is null ? null : new ApprovalDto(approval.Id, approval.Status.ToString().ToLowerInvariant()), 
-            Execution = new ExecutionDto(execution is null ? "not_started" : LifecycleStatusNames.Execution(execution.Status), execution?.UpstreamReference), 
+            Approval = approval is null ? null : new ApprovalDto(approval.Id, approval.Status.ToString().ToLowerInvariant()),
+            Execution = new ExecutionDto(Status: execution is null ? "not_started" : LifecycleStatusNames.Execution(execution.Status),
+                UpstreamReference: execution?.UpstreamReference,
+                ResponseStatusCode: execution?.ResponseStatusCode,
+                ResponsePayload: execution?.ResponsePayload,
+                ErrorMessage: execution?.ErrorMessage,
+                DispatchedAt: execution?.DispatchedAt,
+                RespondedAt: execution?.RespondedAt),
             Outcome = new OutcomeDto(evidence is null ? "not_checked" : LifecycleStatusNames.Outcome(evidence.Status)) 
         };
     }

@@ -17,6 +17,7 @@ public sealed class LocalVaultCredentialProvider(
     IDbContextFactory<SynentraDbContext> dbFactory,
     IDataProtectionProvider provider, 
     IUnitOfWork work, 
+    IDbContextScope dbScope,
     IOptions<SecretsConfiguration>? options = null) : ICredentialProvider
 {
     public string ProviderId => "localvault";
@@ -75,16 +76,14 @@ public sealed class LocalVaultCredentialProvider(
 
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
+            var db = dbScope.Current;
             var id = Keys.Of(path, version);
             if (await db.Secrets.AnyAsync(x => x.Id == id, token))
                 throw new InvalidOperationException("Secret versions are immutable.");
 
             db.Add(new SecretEntity { Id = id, Path = path, SecretVersion = version, Type = scheme, Ciphertext = "v2:" + Protector(id, scheme, expiresAt?.ToUnixTimeMilliseconds()).Protect(secret), ExpiresAt = expiresAt?.ToUnixTimeMilliseconds() });
 
-            await Audit("SecretVersionCreated", id, actorId, token);
-
-            await db.SaveChangesAsync(token);
+            Audit(db, "SecretVersionCreated", id, actorId);
             return true;
         }, ct: ct);
     }
@@ -100,7 +99,7 @@ public sealed class LocalVaultCredentialProvider(
         // A monotonic expiry update keeps an immutable tombstone; a revoked version cannot be recreated.
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
+            var db = dbScope.Current;
             var id = Keys.Of(path, version);
             var count = await db.Secrets.Where(x => x.Id == id)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.ExpiresAt, 0L), token);
@@ -108,7 +107,7 @@ public sealed class LocalVaultCredentialProvider(
             if (count != 1) 
                 throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialVersionNotFound);
 
-            await Audit("SecretVersionRevoked", id, actorId, token);
+            Audit(db, "SecretVersionRevoked", id, actorId);
             return true;
         }, ct: ct);
     }
@@ -123,7 +122,7 @@ public sealed class LocalVaultCredentialProvider(
     {
         RequireEnabled();
 
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var db = dbScope.Current;
         var count = 0;
         while (true)
         {
@@ -139,11 +138,11 @@ public sealed class LocalVaultCredentialProvider(
             await db.SaveChangesAsync(token);
             foreach (var row in rows) db.Entry(row).State = EntityState.Detached;
         }
-        await Audit("LegacySecretCiphertextMigrated", count.ToString(System.Globalization.CultureInfo.InvariantCulture), "offline-maintenance", ct);
+        Audit(db, "LegacySecretCiphertextMigrated", count.ToString(System.Globalization.CultureInfo.InvariantCulture), "offline-maintenance");
         return count;
     }, ct: ct);
 
-    private async Task Audit(string category, string id, string actorId, CancellationToken cancellationToken)
+    private void Audit(SynentraDbContext db, string category, string id, string actorId)
     {
         var entry = new AuditEntity
         {
@@ -155,7 +154,6 @@ public sealed class LocalVaultCredentialProvider(
             Payload = new PayloadCodec(provider).Encode(new { secretId = id })
         };
 
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         db.Add(entry);
     }
 }

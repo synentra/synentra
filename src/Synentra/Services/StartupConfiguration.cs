@@ -24,8 +24,8 @@ internal sealed class StartupConfiguration : IStartupConfiguration
 
         // Synentra-specific service registrations
         services
-            .AddSynentraPersistence()
             .AddSynentraInfrastructure(configuration)
+            .AddSynentraPersistence()
             .AddSynentraApiDocumentation()
             .AddSynentraProxyForwarder()
             .AddSynentraVersion()

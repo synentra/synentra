@@ -9,18 +9,35 @@ namespace Synentra.Infrastructure.Networking;
 
 public sealed class GovernedHttpHandler(IOptions<OutboundHttpConfiguration> options) : DelegatingHandler(CreateSockets(options))
 {
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
-        var uri = request.RequestUri ?? throw new SecurityException("Missing destination.");
+        var uri = request.RequestUri
+        ?? throw new SecurityException("Missing destination URI.");
 
-        if (uri.Scheme is not ("http" or "https") 
-            || !string.IsNullOrEmpty(uri.UserInfo) 
-            || !options.Value.AllowedDestinations.Contains(uri.GetLeftPart(UriPartial.Authority)))
-            throw new SecurityException("Destination origin is not allowed.");
+        if (uri.Scheme is not ("http" or "https"))
+            throw new SecurityException("Unsupported destination scheme.");
 
-        // Host is derived from URI, never a caller-supplied header.
+        if (!string.IsNullOrEmpty(uri.UserInfo))
+            throw new SecurityException("Destination must not contain user information.");
+
+        var origin = uri.GetLeftPart(UriPartial.Authority);
+
+        var allowed = options.Value.AllowedDestinations.Any(
+        configured =>
+            Uri.TryCreate(configured, UriKind.Absolute, out var allowedUri) &&
+            string.Equals(
+                allowedUri.GetLeftPart(UriPartial.Authority),
+                origin,
+                StringComparison.OrdinalIgnoreCase));
+
+        if (!allowed)
+        {
+            throw new SecurityException(
+                $"Destination origin '{origin}' is not allowed.");
+        }
+
         request.Headers.Host = null;
-        return base.SendAsync(request, ct);
+        return await base.SendAsync(request, ct);
     }
 
     private static SocketsHttpHandler CreateSockets(IOptions<OutboundHttpConfiguration> options) => new()

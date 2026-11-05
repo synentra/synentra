@@ -49,9 +49,6 @@ public sealed class HttpToolDispatcher(
                 throw new InvalidOperationException($"Configured header '{key}' could not be applied.");
         }
 
-        if (snapshot.CredentialBinding is not null && destination.Scheme != "https")
-            throw new SecurityException("Credentials require HTTPS.");
-
         ResolvedCredential? resolvedCredential = null;
         if (snapshot.CredentialBinding is { } binding)
         {
