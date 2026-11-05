@@ -7,7 +7,10 @@ using System.Text.Json;
 
 namespace Synentra.Persistence.Features.Budgets;
 
-public sealed class BudgetStore(IDbContextFactory<SynentraDbContext> dbFactory, IDbContextScope scope, IUnitOfWork work) : IBudgetStore
+public sealed class BudgetStore(
+    IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope, 
+    IUnitOfWork work) : IBudgetStore
 {
     public static string Id(BudgetKey key) => Keys.Of(key.Measure, key.Unit, key.Scale, key.Scope, key.BudgetIdentity);
     // Administrative provisioning only. Never infer authority from the first grant in a scope.
@@ -50,7 +53,7 @@ public sealed class BudgetStore(IDbContextFactory<SynentraDbContext> dbFactory, 
         var account = await db.BudgetAccounts.FindAsync(new object[] { id }, ct) ?? throw new InvalidOperationException("BUDGET_NOT_CONFIGURED");
         var reservations = await db.Reservations.Where(x => x.BudgetId == id).ToListAsync(ct);
 
-        return new Lease(dbFactory, account, reservations);
+        return new Lease(scope, account, reservations);
     }
 
     public async Task<IBudgetLease> LockGrantAsync(string grantId, string measure, string unit, int scale, long? authorizedLimit, CancellationToken ct)
@@ -78,7 +81,7 @@ public sealed class BudgetStore(IDbContextFactory<SynentraDbContext> dbFactory, 
             throw new InvalidOperationException("Grant limit cannot change after admission.");
 
         var reservations = await db.Reservations.Where(x => x.BudgetId == id).ToListAsync(ct);
-        return new Lease(dbFactory, account, reservations);
+        return new Lease(scope, account, reservations);
     }
 
 
@@ -114,8 +117,7 @@ public sealed class BudgetStore(IDbContextFactory<SynentraDbContext> dbFactory, 
         return true;
     }, ct: ct);
 
-    private sealed class Lease(IDbContextFactory<SynentraDbContext> dbFactory, 
-        BudgetAccountEntity account, List<ReservationEntity> rows) : IBudgetLease
+    private sealed class Lease(IDbContextScope scope, BudgetAccountEntity account, List<ReservationEntity> rows) : IBudgetLease
     {
         private bool disposed;
         public long AuthorizedLimit => account.AuthorizedLimit;
@@ -154,7 +156,7 @@ public sealed class BudgetStore(IDbContextFactory<SynentraDbContext> dbFactory, 
             };
             rows.Add(row);
 
-            await using var db = await dbFactory.CreateDbContextAsync();
+            var db = scope.Current;
             await db.AddAsync(row);
             account.ActiveReserved = checked(account.ActiveReserved + amount);
         }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Synentra.Persistence.Sqlite;
@@ -10,9 +11,14 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         services.AddScoped<IDatabaseInitializer, SqliteDatabaseInitializer>();
+        var sqlite = new SqliteConnectionStringBuilder(connectionString)
+        {
+            DefaultTimeout = 30
+        };
+
         services.AddPooledDbContextFactory<SqliteSynentraDbContext>((sp, options) =>
         {
-            options.UseSqlite(connectionString);
+            options.UseSqlite(sqlite.ConnectionString);
         });
 
         services.AddScoped<IDbContextFactory<SynentraDbContext>>(sp =>

@@ -10,30 +10,41 @@ using Synentra.Application.Features.Trust.Contracts;
 using Synentra.Domain.Execution;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Persistence;
-using Synentra.Persistence.Entities;
 using Synentra.Persistence.Common;
 using Synentra.Persistence.Serialization;
 using Synentra.Application.Features.TaskGrants.Contracts;
 using Synentra.Persistence.Features.Security;
+using Microsoft.Extensions.Logging;
 
 namespace Synentra.Infrastructure.Features.Executions;
 
 public sealed class OutboxProcessor(
-    IDbContextFactory<SynentraDbContext> dbFactory, IUnitOfWork work, 
-    PayloadCodec codec, IExecutionClaimStore claims, IExecutionRecordStore records, 
-    IInvocationStore invocations, IRevisionProvider revisions, IManifestProvider manifests, 
-    ITrustEngine trust, IGrantStore grants, 
-    CredentialBindingStore credentials, IEnumerable<IToolDispatcher> dispatchers) 
-    : IOutboxProcessor
+    IDbContextFactory<SynentraDbContext> dbFactory, 
+    IUnitOfWork work, 
+    IDbContextScope scope,
+    PayloadCodec codec, 
+    IExecutionClaimStore claims, 
+    IExecutionRecordStore records, 
+    IInvocationStore invocations, 
+    IRevisionProvider revisions, 
+    IManifestProvider manifests, 
+    ITrustEngine trust, 
+    IGrantStore grants, 
+    CredentialBindingStore credentials, 
+    IEnumerable<IToolDispatcher> dispatchers,
+    ILogger<OutboxProcessor> logger) : IOutboxProcessor
 {
     public async Task ProcessPendingAsync(CancellationToken ct)
     {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
-        var ids = await db.Outboxes.AsNoTracking()
-            .Where(x => x.ProcessedAt == null && x.Attempts < 5)
-            .OrderBy(x => x.CreatedAt)
-            .Select(x => x.Id).Take(20)
-            .ToListAsync(ct);
+        List<string> ids;
+        await using (var db = await dbFactory.CreateDbContextAsync(ct))
+        {
+            ids = await db.Outboxes.AsNoTracking()
+                .Where(x => x.ProcessedAt == null && x.Attempts < 5)
+                .OrderBy(x => x.CreatedAt)
+                .Select(x => x.Id).Take(20)
+                .ToListAsync(ct);
+        }
 
         foreach (var id in ids)
         {
@@ -43,7 +54,8 @@ public sealed class OutboxProcessor(
             {
                 command = await work.ExecuteAsync<DispatchCommand?>(async token =>
                 {
-                    var message = await db.Set<OutboxEntity>().SingleAsync(x => x.Id == id, token);
+                    var txDb = scope.Current;
+                    var message = await txDb.Outboxes.SingleAsync(x => x.Id == id, token);
                     if (message.ProcessedAt is not null)
                         return null;
 
@@ -117,7 +129,8 @@ public sealed class OutboxProcessor(
                 // The failed transaction rolled back its attempt count. Persist a bounded retry/dead-letter record separately.
                 await work.ExecuteAsync(async token =>
                 {
-                    var message = await db.Outboxes.SingleAsync(x => x.Id == id, token);
+                    var txDb = scope.Current;
+                    var message = await txDb.Outboxes.SingleAsync(x => x.Id == id, token);
                     if (message.ProcessedAt is null)
                     {
                         message.Attempts++;
@@ -141,8 +154,13 @@ public sealed class OutboxProcessor(
             {
                 receipt = await dispatcher.DispatchAsync(command.Snapshot, new ExecutionIdentity(invocationForDispatch.AuthenticatedAgentId, invocationForDispatch.SecurityScope, invocationForDispatch.AuthenticatedAgentId, null, null), ct);
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(
+                    ex,
+                    "Dispatch failed for invocation {InvocationId}, execution {ExecutionId}",
+                    command.InvocationId,
+                    command.ExecutionRecordId);
                 receipt = TransportReceipt.Unknown("DISPATCH_UNCERTAIN");
             }
 
@@ -161,7 +179,8 @@ public sealed class OutboxProcessor(
                 else
                 {
                     record.MarkUnknown("DISPATCH_UNCERTAIN");
-                    await db.ExecutionClaims
+                    var txDb = scope.Current;
+                    await txDb.ExecutionClaims
                         .Where(x => x.Id == command.ClaimId && x.State == "Dispatching")
                         .ExecuteUpdateAsync(s => s.SetProperty(x => x.State, "Unknown")
                         .SetProperty(x => x.Version, x => x.Version + 1), token);

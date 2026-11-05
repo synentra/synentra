@@ -10,6 +10,7 @@ namespace Synentra.Persistence.Features.Executions;
 
 public sealed class OutcomeEvidenceStore(
     IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     PayloadCodec codec, 
     IUnitOfWork work) : IOutcomeEvidenceStore
 {
@@ -20,7 +21,7 @@ public sealed class OutcomeEvidenceStore(
             if (evidence.ExecutionId != executionId) 
                 throw new InvalidOperationException("Evidence execution mismatch.");
 
-            await using var db = await dbFactory.CreateDbContextAsync(token);
+            var db = scope.Current;
             var existing = await db.OutcomeEvidences.FindAsync(new object[] { evidence.Id }, token);
             if (existing is not null)
             {

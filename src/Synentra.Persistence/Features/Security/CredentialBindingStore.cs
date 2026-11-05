@@ -9,6 +9,7 @@ namespace Synentra.Persistence.Features.Security;
 
 public sealed class CredentialBindingStore(
     IDbContextFactory<SynentraDbContext> dbFactory, 
+    IDbContextScope scope,
     PayloadCodec codec, 
     IUnitOfWork work)
 {
@@ -30,7 +31,7 @@ public sealed class CredentialBindingStore(
     {
         await work.ExecuteAsync(async token =>
         {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
+            var db = scope.Current;
             var r = await db.Set<CredentialBindingEntity>().FindAsync(new object[] { value.Id }, token);
 
             if (string.IsNullOrWhiteSpace(value.Version) 
