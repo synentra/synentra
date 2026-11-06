@@ -5,6 +5,7 @@ public sealed class TargetModel
     public string Id { get; set; } = "";
     public string AdapterRef { get; set; } = "";
     public Dictionary<string, object> Configuration { get; set; } = new();
+    public ResponseRetentionModel? ResponseRetention { get; set; }
     public string? CredentialBindingRef { get; set; }
     public string? CapabilityProfileRef { get; set; }
 }

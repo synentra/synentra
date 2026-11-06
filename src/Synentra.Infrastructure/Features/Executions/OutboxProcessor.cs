@@ -92,7 +92,9 @@ public sealed class OutboxProcessor(
                     var grant = invocation.TaskGrantId is { } grantId ? await grants.GetAsync(grantId, token) : null;
                     var grantInvalid = invocation.RequiresGrant && (grant is null || !grant.IsValidAt(DateTimeOffset.UtcNow) || grant.AgentId != invocation.AuthenticatedAgentId || grant.SecurityScope != invocation.SecurityScope);
 
-                    if (grantInvalid || credentialChanged || snapshot.Quarantined || revisions.ActiveRevision != cmd.ManifestRevision || adapter is null)
+                    if (grantInvalid || credentialChanged || snapshot.Quarantined || revisions.ActiveRevision != cmd.ManifestRevision ||
+                        cmd.Snapshot.AuthorizedTarget.ManifestRevision != cmd.ManifestRevision ||
+                        cmd.Snapshot.AuthorizedTarget.TargetId != invocation.TargetId || adapter is null)
                     {
                         record.MarkFailedBeforeDispatch("DISPATCH_REVALIDATION_FAILED");
                         await records.SaveAsync(record, token);

@@ -1,9 +1,10 @@
-﻿namespace Synentra.Infrastructure.Configuration.ResponseRetention;
+namespace Synentra.Application.Features.Manifests.Models;
 
-public sealed class AuthenticatedResponsePolicy
+public sealed class ResponseRetentionModel
 {
     public string Mode { get; set; } = "omit";
     public string[] AllowedProperties { get; set; } = [];
+
     public void Validate()
     {
         if (Mode is not ("omit" or "json-allowlist")

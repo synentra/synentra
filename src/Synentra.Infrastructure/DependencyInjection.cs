@@ -35,7 +35,6 @@ using Synentra.Infrastructure.Configuration.OpenTelemetry;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
 using Synentra.Infrastructure.Configuration.Persistence;
 using Synentra.Infrastructure.Configuration.Policy;
-using Synentra.Infrastructure.Configuration.ResponseRetention;
 using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Configuration.Semantic;
 using Synentra.Infrastructure.Configuration.Trust;
@@ -86,9 +85,6 @@ public static class DependencyInjection
         // Register data protection configuration sections and validators
         services.AddSingleton<IValidateOptions<DataProtectionConfiguration>, DataProtectionConfigurationValidator>();
         services.AddConfiguration<DataProtectionConfiguration>(configuration);
-
-        // Register response retention configuration sections and validators
-        services.AddConfiguration<ResponseRetentionConfiguration>(configuration);
 
         // Register identity configuration sections and validators
         services.AddSingleton<IValidateOptions<IdentityConfiguration>, IdentityConfigurationValidator>();
