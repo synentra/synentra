@@ -7,7 +7,7 @@ public sealed class SimulateInvocationCommandValidator : AbstractValidator<Simul
 {
     public SimulateInvocationCommandValidator()
     {
-        RuleFor(x => x.Request.SchemaVersion).Equal("synentra.invocation.v1");
+        RuleFor(x => x.Request.SchemaVersion).Equal("synentra.invocation.v2");
         RuleFor(x => x.Request.OperationId).NotEmpty().MaximumLength(256);
         RuleFor(x => x.Request.BindingId).MaximumLength(256).When(x => x.Request.BindingId is not null);
         RuleFor(x => x.Request)

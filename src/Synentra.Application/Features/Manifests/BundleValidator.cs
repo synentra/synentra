@@ -8,7 +8,7 @@ public sealed class BundleValidator
 {
     private static readonly HashSet<string> AllowedApiVersions = new()
     {
-        "synentra.io/v1alpha2"
+        "synentra.io/v2alpha2"
     };
     private static readonly HashSet<string> AllowedExecutionModels = new()
     {

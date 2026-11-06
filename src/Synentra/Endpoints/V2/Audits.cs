@@ -5,11 +5,11 @@ using Synentra.Domain.Security;
 using Synentra.Application.Features.Auditing;
 using Synentra.Extensions;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Audits : EndpointGroupBase
 {
-    public override void Map(WebApplication app) => app.MapGet("/v1/audits", Query).WithTags("Audit");
+    public override void Map(WebApplication app) => app.MapGet("/v2/audits", Query).WithTags("Audit");
 
     private static async Task<IResult> Query(
         string? actorId, 

@@ -7,13 +7,13 @@ using Synentra.Application.Features.Invocations.Queries.GetInvocation;
 using Synentra.Application.Features.Invocations.Queries.GetInvocationResult;
 using Synentra.Domain.Security;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Invocations : EndpointGroupBase
 {
     public override void Map(WebApplication app)
     {
-        var g = app.MapGroup("/v1/invocations").WithTags("Invocations");
+        var g = app.MapGroup("/v2/invocations").WithTags("Invocations");
         g.MapPost("", Submit).WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(256 * 1024));
         g.MapGet("/{id}", Get);
         g.MapPost("/{id}/resume", Resume);
@@ -28,7 +28,7 @@ public sealed class Invocations : EndpointGroupBase
     {
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var result = await dispatcher.Dispatch(new SubmitInvocationCommand(request, principal, ApiEndpointSupport.GetIdempotencyKey(context.Request)), ct);
-        context.Response.Headers.Location = $"/v1/invocations/{result.InvocationId}";
+        context.Response.Headers.Location = $"/v2/invocations/{result.InvocationId}";
 
         if (result.Decision.Outcome == "deny") 
             return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);
@@ -78,7 +78,7 @@ public sealed class Invocations : EndpointGroupBase
 
         if (result is null) 
             return Results.NotFound();
-        context.Response.Headers.Location = $"/v1/invocations/{id}";
+        context.Response.Headers.Location = $"/v2/invocations/{id}";
         if (!admission.Admitted) 
             return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);
 

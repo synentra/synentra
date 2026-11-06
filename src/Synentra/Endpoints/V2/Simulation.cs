@@ -4,12 +4,12 @@ using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Invocations.Commands.SimulateInvocation;
 using Synentra.Application.Features.Invocations.Contracts;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Simulation : EndpointGroupBase
 {
     public override void Map(WebApplication app) 
-        => app.MapPost("/v1/simulate", Simulate)
+        => app.MapPost("/v2/simulate", Simulate)
               .WithTags("Simulation")
               .WithMetadata(new RequestSizeLimitAttribute(256 * 1024));
     private static async Task<IResult> Simulate(InvocationRequest request, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)

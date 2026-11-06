@@ -8,13 +8,13 @@ using Synentra.Application.Features.Approvals.Queries.GetApproval;
 using Synentra.Domain.Security;
 using Synentra.Extensions;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Approvals : EndpointGroupBase
 {
     public override void Map(WebApplication app)
     {
-        var g = app.MapGroup("/v1/approvals").WithTags("Approvals");
+        var g = app.MapGroup("/v2/approvals").WithTags("Approvals");
         g.MapGet("", List);
         g.MapGet("/{id}", Get);
         g.MapPost("/{id}/approve", Approve);

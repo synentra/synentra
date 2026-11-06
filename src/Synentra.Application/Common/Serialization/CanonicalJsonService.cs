@@ -13,7 +13,7 @@ public sealed class CanonicalJsonService
     public BindingDigest ComputeDigest(ToolInvocation invocation)
     {
         var sb = new StringBuilder(1024);
-        sb.Append("v1|");
+        sb.Append("v2|");
         sb.Append(invocation.AuthenticatedAgentId).Append('|');
         sb.Append(invocation.SecurityScope).Append('|');
         sb.Append(invocation.OperationId.Value).Append('|');

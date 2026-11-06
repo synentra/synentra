@@ -127,7 +127,7 @@ public sealed class SubmitInvocationCommandHandler(
 
     private static string ComputeCanonicalInputDigest(string? grantId, string argumentDigest)
     {
-        var bytes = Encoding.UTF8.GetBytes($"v1|{grantId ?? string.Empty}|{argumentDigest}");
+        var bytes = Encoding.UTF8.GetBytes($"v2|{grantId ?? string.Empty}|{argumentDigest}");
         return Convert.ToHexString(SHA256.HashData(bytes));
     }
 

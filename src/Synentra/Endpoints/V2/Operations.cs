@@ -3,11 +3,11 @@ using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Operations;
 using Synentra.Extensions;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Operations : EndpointGroupBase
 {
-    public override void Map(WebApplication app) => app.MapGet("/v1/operations", Get).WithTags("Operations");
+    public override void Map(WebApplication app) => app.MapGet("/v2/operations", Get).WithTags("Operations");
 
     private static async Task<IResult> Get(
         int? pageNumber, 

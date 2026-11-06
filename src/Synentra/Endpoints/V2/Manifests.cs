@@ -7,13 +7,13 @@ using Synentra.Application.Features.Manifests.Commands.StoreManifest;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Application.Features.Manifests.Queries.ValidateManifest;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Manifests : EndpointGroupBase
 {
     public override void Map(WebApplication app)
     {
-        var group = app.MapGroup("/v1/manifests").WithTags("Manifests");
+        var group = app.MapGroup("/v2/manifests").WithTags("Manifests");
         group.MapPost("/validate", Validate)
             .Accepts<string>("application/json", "application/yaml", "text/yaml")
             .WithMetadata(new RequestSizeLimitAttribute(512 * 1024));

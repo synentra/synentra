@@ -8,13 +8,13 @@ using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Domain.Security;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Executions : EndpointGroupBase
 {
     public override void Map(WebApplication app)
     {
-        var g = app.MapGroup("/v1/executions").WithTags("Executions");
+        var g = app.MapGroup("/v2/executions").WithTags("Executions");
         g.MapGet("/{id}", Get);
         g.MapPost("/{id}/reconcile", Reconcile);
         g.MapPost("/{id}/cancel", Cancel);
@@ -96,7 +96,7 @@ public sealed class Executions : EndpointGroupBase
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var cancelled = await dispatcher.Dispatch(new CancelExecutionCommand(id, principal), ct);
         return cancelled 
-            ? Results.Accepted($"/v1/executions/{id}", new { id, status = "cancelled_before_dispatch" }) 
+            ? Results.Accepted($"/v2/executions/{id}", new { id, status = "cancelled_before_dispatch" }) 
             : Results.Conflict(new { errorCode = "CANCELLATION_UNSUPPORTED_OR_ALREADY_DISPATCHED" });
     }
 }

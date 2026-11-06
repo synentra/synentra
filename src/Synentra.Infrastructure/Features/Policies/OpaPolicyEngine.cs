@@ -28,7 +28,7 @@ public sealed class OpaPolicyEngine(
             var endpoint = new Uri(new Uri(o.Providers.Opa.BaseUrl ?? throw new InvalidOperationException("OPA endpoint missing.")), "v1/data/" + path);
             using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
             {
-                Content = JsonContent.Create(new { input = new { schema = "synentra.policy-input.v1", agent = new { id = input.AuthenticatedAgentId, securityScope = input.SecurityScope }, operation = input.Invocation, resources = input.Resources, grant = input.TaskGrantId, evidence = new { intent = input.Intent, risk = input.Risk, trust = input.Trust }, untrustedContext = input.UntrustedContext } })
+                Content = JsonContent.Create(new { input = new { schema = "synentra.policy-input.v2", agent = new { id = input.AuthenticatedAgentId, securityScope = input.SecurityScope }, operation = input.Invocation, resources = input.Resources, grant = input.TaskGrantId, evidence = new { intent = input.Intent, risk = input.Risk, trust = input.Trust }, untrustedContext = input.UntrustedContext } })
             };
 
             if (!string.IsNullOrWhiteSpace(o.Providers.Opa.OpaBearerToken))

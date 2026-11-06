@@ -10,13 +10,13 @@ using Synentra.Domain.Grants.ValueObjects;
 using Synentra.Domain.Security;
 using System.Text.Json;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class TaskGrants : EndpointGroupBase
 {
     public override void Map(WebApplication app)
     {
-        var g = app.MapGroup("/v1/task-grants").WithTags("Task Grants");
+        var g = app.MapGroup("/v2/task-grants").WithTags("Task Grants");
         g.MapPost("", Create);
         g.MapGet("/{id}", Get);
         g.MapPost("/{id}/revoke", Revoke);
@@ -29,7 +29,7 @@ public sealed class TaskGrants : EndpointGroupBase
         var grant = new TaskGrant(Guid.NewGuid().ToString("N"), issuer.AgentId, request.AgentId, issuer.SecurityScope, request.OperationIds, request.ResourceScopes.Select(x => new ResourceScope(x.Role, x.Type, x.Ids)).ToArray(), request.Limits.Select(x => new GrantLimit(x.Measure, x.Unit, x.Scale, x.PerInvocation, x.Aggregate)).ToArray(), request.ExpiresAt, request.ExternalReference);
         var ceilings = ResolveIssuerCeilings(issuer, request);
         var effective = await dispatcher.Dispatch(new IssueTaskGrantCommand(issuer, grant, ceilings), ct);
-        return Results.Created($"/v1/task-grants/{effective.Id}", ToResponse(effective));
+        return Results.Created($"/v2/task-grants/{effective.Id}", ToResponse(effective));
     }
     private static async Task<IResult> Get(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, IBudgetStore budgets, CancellationToken ct)
     {

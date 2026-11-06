@@ -43,7 +43,7 @@ public sealed class BundleParser : IBundleParser
             CheckKeys(doc.RootElement);
             var model = JsonSerializer.Deserialize<GovernanceBundleModel>(text, Options) ?? throw Invalid("EMPTY_BUNDLE");
 
-            if (model.ApiVersion != "synentra.io/v1alpha2" || model.Kind != "GovernanceBundle")
+            if (model.ApiVersion != "synentra.io/v2alpha2" || model.Kind != "GovernanceBundle")
                 throw Invalid("UNSUPPORTED_BUNDLE_VERSION");
 
             if (string.IsNullOrWhiteSpace(model.Metadata?.Name) || string.IsNullOrWhiteSpace(model.Metadata.Version) || model.Spec is null)
