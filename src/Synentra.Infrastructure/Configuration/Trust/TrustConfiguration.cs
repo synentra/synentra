@@ -6,5 +6,6 @@ public class TrustConfiguration: ISynentraConfiguration
 
     public int? InitialScore { get; set; } = 50;
     public int? QuarantineThreshold { get; set; } = 10;
+    public int? MaxManualAdjustment { get; set; } = 10;
     public Dictionary<string, double>? EvidenceWeights { get; set; } = new();
 }

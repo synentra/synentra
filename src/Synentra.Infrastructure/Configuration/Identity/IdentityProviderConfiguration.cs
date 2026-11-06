@@ -1,6 +1,4 @@
-﻿using Synentra.Infrastructure.Configuration.Identity;
-
-namespace Synentra.Infrastructure.Configuration.Security;
+﻿namespace Synentra.Infrastructure.Configuration.Identity;
 
 public class IdentityProviderConfiguration
 {

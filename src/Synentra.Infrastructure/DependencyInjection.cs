@@ -29,6 +29,7 @@ using Synentra.Infrastructure.Configuration.BackgroundJobs;
 using Synentra.Infrastructure.Configuration.Cors;
 using Synentra.Infrastructure.Configuration.DataProtection;
 using Synentra.Infrastructure.Configuration.Identity;
+using Synentra.Infrastructure.Configuration.Initialization;
 using Synentra.Infrastructure.Configuration.Logging;
 using Synentra.Infrastructure.Configuration.OpenTelemetry;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
@@ -36,7 +37,6 @@ using Synentra.Infrastructure.Configuration.Persistence;
 using Synentra.Infrastructure.Configuration.Policy;
 using Synentra.Infrastructure.Configuration.ResponseRetention;
 using Synentra.Infrastructure.Configuration.Secrets;
-using Synentra.Infrastructure.Configuration.Security;
 using Synentra.Infrastructure.Configuration.Semantic;
 using Synentra.Infrastructure.Configuration.Trust;
 using Synentra.Infrastructure.Dispatchers;
@@ -74,6 +74,10 @@ public static class DependencyInjection
         // Register background jobs configuration sections and validators
         services.AddSingleton<IValidateOptions<BackgroundJobsConfiguration>, BackgroundJobsConfigurationValidator>();
         services.AddConfiguration<BackgroundJobsConfiguration>(configuration);
+
+        // Register initialization configuration sections and validators
+        services.AddSingleton<IValidateOptions<InitializationConfiguration>, InitializationConfigurationValidator>();
+        services.AddConfiguration<InitializationConfiguration>(configuration);
 
         // Register CORS configuration sections and validators
         services.AddSingleton<IValidateOptions<CorsConfiguration>, CorsConfigurationValidator>();

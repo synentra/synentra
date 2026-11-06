@@ -5,7 +5,6 @@ using Synentra.Application.Common.Security;
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.Identity;
-using Synentra.Infrastructure.Configuration.Security;
 
 namespace Synentra.Infrastructure.Features.Identity;
 
@@ -24,7 +23,7 @@ public sealed class LdapPrincipalResolver(IOptions<IdentityConfiguration> option
 
         var o = options.Value.Providers.Ldap;
         using var lookup = Connect(o);
-        lookup.Bind(new NetworkCredential(o.ServiceDn, o.ServicePassword));
+        lookup.Bind(new NetworkCredential(o.BindDn, o.BindPasswordSecretRef));
         var response = (SearchResponse)lookup
                         .SendRequest(new SearchRequest(
                             o.BaseDn, 
@@ -58,14 +57,14 @@ public sealed class LdapPrincipalResolver(IOptions<IdentityConfiguration> option
         return new CanonicalPrincipal(
             Required("uid"), 
             Required("securityScope"), 
-            "ldaps://" + o.Host, 
+            o.Endpoint, 
             entry.DistinguishedName,
             groups, new Dictionary<string, string>(), type);
     }, ct);
 
     private static LdapConnection Connect(LdapConfiguration o)
     {
-        var connection = new LdapConnection(new LdapDirectoryIdentifier(o.Host, o.Port))
+        var connection = new LdapConnection(new LdapDirectoryIdentifier(o.Endpoint))
         {
             AuthType = AuthType.Basic,
             Timeout = TimeSpan.FromSeconds(10)

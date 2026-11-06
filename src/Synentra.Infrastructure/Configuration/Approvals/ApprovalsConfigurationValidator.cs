@@ -8,12 +8,6 @@ public sealed class ApprovalsConfigurationValidator : IValidateOptions<Approvals
         string? name,
         ApprovalsConfiguration options)
     {
-        if (options.MaxManualTrustAdjustment < 0)
-        {
-            return ValidateOptionsResult.Fail(
-                $"{nameof(options.MaxManualTrustAdjustment)} must be greater than or equal to 0.");
-        }
-
         return ValidateOptionsResult.Success;
     }
 }

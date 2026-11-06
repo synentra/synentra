@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.Secrets;
-using Synentra.Infrastructure.Configuration.Security;
+using Synentra.Infrastructure.Configuration.Identity;
 using Synentra.Infrastructure.Features.Secrets;
 
 namespace Synentra.Extensions;

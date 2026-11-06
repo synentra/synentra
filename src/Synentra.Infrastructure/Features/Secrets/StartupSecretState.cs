@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Synentra.Infrastructure.Features.Identity;
-using Synentra.Infrastructure.Configuration.Security;
+using Synentra.Infrastructure.Configuration.Identity;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 

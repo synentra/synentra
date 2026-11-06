@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Configuration.Security;
+using Synentra.Infrastructure.Configuration.Identity;
 using System.Security.Claims;
 
 namespace Synentra.Infrastructure.Features.Identity;
@@ -15,7 +15,7 @@ public sealed class OidcPrincipalResolver : IPrincipalResolver, IDisposable
 {
     private const int MaximumTokenSizeInBytes = 32 * 1024;
 
-    private readonly IdentityConfiguration options;
+    private readonly IdentityConfiguration _options;
     private readonly string expectedIssuer;
     private readonly HttpClient http;
     private readonly ConfigurationManager<OpenIdConnectConfiguration> configuration;
@@ -32,8 +32,8 @@ public sealed class OidcPrincipalResolver : IPrincipalResolver, IDisposable
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(environment);
 
-        this.options = options.Value;
-        var oidc = this.options.Providers.Oidc;
+        _options = options.Value;
+        var oidc = _options.Providers.Oidc;
 
         // Validate everything before allocating the owned HttpClient.
         var authority = ParseEndpoint(oidc.Authority, "OIDC authority");
@@ -150,7 +150,7 @@ public sealed class OidcPrincipalResolver : IPrincipalResolver, IDisposable
 
             AuthenticationType = "oidc",
             NameClaimType = "preferred_username",
-            RoleClaimType = oidc.RoleClaim,
+            RoleClaimType = _options.Claims.Roles,
 
             // Do not attach the credential to failed validation results.
             IncludeTokenOnFailedValidation = false,
@@ -239,7 +239,7 @@ public sealed class OidcPrincipalResolver : IPrincipalResolver, IDisposable
         // Preserve your application's canonical identity mapping.
         // This mapper must reject missing/ambiguous required agent-ID
         // and security-scope claims.
-        return PrincipalMapping.Map(principal, options);
+        return PrincipalMapping.Map(principal, _options);
     }
 
     private void ValidateMetadata(OpenIdConnectConfiguration document)

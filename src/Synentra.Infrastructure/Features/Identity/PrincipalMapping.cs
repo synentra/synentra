@@ -1,6 +1,6 @@
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Configuration.Security;
+using Synentra.Infrastructure.Configuration.Identity;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -32,13 +32,13 @@ internal static class PrincipalMapping
         var identity = identities[0];
 
         var agentIdClaim = RequireClaimName(
-            oidc.AgentIdClaim, nameof(oidc.AgentIdClaim));
+            identityConfiguration.Claims.AgentId, nameof(identityConfiguration.Claims.AgentId));
 
         var securityScopeClaim = RequireClaimName(
-            oidc.SecurityScopeClaim, nameof(oidc.SecurityScopeClaim));
+            identityConfiguration.Claims.SecurityScope, nameof(identityConfiguration.Claims.SecurityScope));
 
         var roleClaim = RequireClaimName(
-            oidc.RoleClaim, nameof(oidc.RoleClaim));
+            identityConfiguration.Claims.Roles, nameof(identityConfiguration.Claims.Roles));
 
         var agentId = RequiredSingle(identity, agentIdClaim);
         var securityScope = RequiredSingle(identity, securityScopeClaim);

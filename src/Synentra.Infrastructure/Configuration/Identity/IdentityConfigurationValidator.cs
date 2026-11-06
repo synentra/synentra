@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using Synentra.Infrastructure.Configuration.Security;
 
 namespace Synentra.Infrastructure.Configuration.Identity;
 
@@ -16,6 +15,8 @@ public sealed class IdentityConfigurationValidator
         IdentityConfiguration options)
     {
         var errors = new List<string>();
+
+        ValidateClaims(options.Claims, errors);
 
         if (string.IsNullOrWhiteSpace(options.Provider))
         {
@@ -48,6 +49,28 @@ public sealed class IdentityConfigurationValidator
         return errors.Count > 0
             ? ValidateOptionsResult.Fail(errors)
             : ValidateOptionsResult.Success;
+    }
+
+    private static void ValidateClaims(
+    IdentityClaimConfiguration options,
+    List<string> errors)
+    {
+        const string prefix = "Identity:Claims";
+
+        Require(
+            options.AgentId,
+            $"{prefix}:AgentId",
+            errors);
+
+        Require(
+            options.Roles,
+            $"{prefix}:Roles",
+            errors);
+
+        Require(
+            options.SecurityScope,
+            $"{prefix}:SecurityScopeClaim",
+            errors);
     }
 
     private static void ValidateOidc(
@@ -93,16 +116,6 @@ public sealed class IdentityConfigurationValidator
             options.Audience,
             $"{prefix}:Audience",
             errors);
-
-        Require(
-            options.AgentIdClaim,
-            $"{prefix}:AgentIdClaim",
-            errors);
-
-        Require(
-            options.SecurityScopeClaim,
-            $"{prefix}:SecurityScopeClaim",
-            errors);
     }
 
     private static void ValidateLdap(
@@ -118,25 +131,19 @@ public sealed class IdentityConfigurationValidator
         }
 
         Require(
-            options.Host,
-            $"{prefix}:Host",
+            options.Endpoint,
+            $"{prefix}:Endpoint",
             errors);
 
-        if (!string.IsNullOrWhiteSpace(options.Host))
+        if (!string.IsNullOrWhiteSpace(options.Endpoint))
         {
-            if (Uri.CheckHostName(options.Host) ==
+            if (Uri.CheckHostName(options.Endpoint) ==
                 UriHostNameType.Unknown)
             {
                 errors.Add(
-                    $"{prefix}:Host must be a valid " +
+                    $"{prefix}:Endpoint must be a valid " +
                     "hostname or IP address.");
             }
-        }
-
-        if (options.Port is < 1 or > 65535)
-        {
-            errors.Add(
-                $"{prefix}:Port must be between 1 and 65535.");
         }
 
         Require(
@@ -145,10 +152,10 @@ public sealed class IdentityConfigurationValidator
             errors);
 
         var hasServiceDn = !string.IsNullOrWhiteSpace(
-            options.ServiceDn);
+            options.BindDn);
 
         var hasServicePassword = !string.IsNullOrWhiteSpace(
-            options.ServicePassword);
+            options.BindPasswordSecretRef);
 
         if (hasServiceDn && !hasServicePassword)
         {
