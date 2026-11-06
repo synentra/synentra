@@ -14,7 +14,7 @@ using Synentra.Domain.Execution;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Mcp;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class McpGateway : EndpointGroupBase
 {

@@ -60,7 +60,7 @@ public sealed class OutboxProcessor(
                         return null;
 
                     message.Attempts++;
-                    if (message.Type != "dispatch.v1")
+                    if (message.Type != "dispatch.v2")
                     {
                         message.ProcessedAt = Keys.Now;
                         message.LastError = "UNREGISTERED_MESSAGE";

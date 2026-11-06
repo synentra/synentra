@@ -24,7 +24,7 @@ public sealed class OutboxStore(
             var db = scope.Current;
             db.Outboxes.Add(new OutboxEntity { 
                 Id = Guid.NewGuid().ToString("N"), 
-                Type = "dispatch.v1", 
+                Type = "dispatch.v2", 
                 Payload = codec.Encode(message), 
                 CreatedAt = Keys.Now
             });

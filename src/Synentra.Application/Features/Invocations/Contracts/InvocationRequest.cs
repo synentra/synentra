@@ -4,7 +4,7 @@ namespace Synentra.Application.Features.Invocations.Contracts;
 
 public sealed record InvocationRequest
 {
-    public string SchemaVersion { get; init; } = "synentra.invocation.v1";
+    public string SchemaVersion { get; init; } = "synentra.invocation.v2";
     public required string OperationId { get; init; }
     public string? BindingId { get; init; }
     public string? TaskGrantId { get; init; }

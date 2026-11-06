@@ -88,7 +88,7 @@ public sealed class HashiCorpVaultCredentialProvider(
 
         var requestUri = new Uri(
             normalizedBaseUri,
-            $"v1/{mount}/data/{path}?version={versionText}");
+            $"v2/{mount}/data/{path}?version={versionText}");
 
         using var request = new HttpRequestMessage(
             HttpMethod.Get,

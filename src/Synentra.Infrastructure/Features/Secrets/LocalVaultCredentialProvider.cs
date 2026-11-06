@@ -131,7 +131,7 @@ public sealed class LocalVaultCredentialProvider(
             foreach (var row in rows)
             {
                 if (row.Id != Keys.Of(row.Path, row.SecretVersion)) throw new InvalidDataException("Secret reference identity mismatch.");
-                var plaintext = provider.CreateProtector("Synentra.Secrets.v1").Unprotect(row.Ciphertext);
+                var plaintext = provider.CreateProtector("Synentra.Secrets.v2").Unprotect(row.Ciphertext);
                 row.Ciphertext = "v2:" + Protector(row.Id, row.Type, row.ExpiresAt).Protect(plaintext);
                 count++;
             }

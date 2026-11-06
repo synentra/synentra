@@ -15,7 +15,7 @@ public sealed class PayloadCodec(IDataProtectionProvider protection)
         }
     };
 
-    private readonly IDataProtector protector = protection.CreateProtector("Synentra.Persistence.Payload.v1");
+    private readonly IDataProtector protector = protection.CreateProtector("Synentra.Persistence.Payload.v2");
 
     public string Encode<T>(T value) 
         => protector.Protect(JsonSerializer.Serialize(value, Json));

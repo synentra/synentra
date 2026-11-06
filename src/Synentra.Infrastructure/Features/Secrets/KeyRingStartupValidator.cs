@@ -34,7 +34,7 @@ public sealed class KeyRingStartupValidator : IHostedService
         }
 
         // Also exercises default-key selection, first-run generation, persistence and use.
-        var protector = provider.CreateProtector("Synentra.KeyRing.StartupProbe.v1");
+        var protector = provider.CreateProtector("Synentra.KeyRing.StartupProbe.v2");
         var plaintext = RandomNumberGenerator.GetBytes(32);
         byte[]? recovered = null;
         try

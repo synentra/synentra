@@ -4,7 +4,7 @@ using Synentra.Application.Features.Invocations.Exceptions;
 using Synentra.Application.Features.Manifests.Exceptions;
 using Synentra.Domain.Common.Diagnostics;
 using Synentra.Domain.Common.Exceptions;
-using Synentra.Endpoints.V1;
+using Synentra.Endpoints.V2;
 
 namespace Synentra.Middleware;
 

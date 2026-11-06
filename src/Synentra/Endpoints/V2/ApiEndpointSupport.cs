@@ -2,7 +2,7 @@ using Synentra.Application.Common.Security;
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 internal static class ApiEndpointSupport
 {

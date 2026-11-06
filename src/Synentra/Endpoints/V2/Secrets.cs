@@ -8,7 +8,7 @@ using Synentra.Infrastructure.Features.Secrets;
 using Synentra.Persistence;
 using Synentra.Persistence.Features.Security;
 
-namespace Synentra.Endpoints.V1;
+namespace Synentra.Endpoints.V2;
 
 public sealed class Secrets : EndpointGroupBase
 {
@@ -16,7 +16,7 @@ public sealed class Secrets : EndpointGroupBase
     {
         app.Use(async (context, next) =>
         {
-            if (context.Request.Path.StartsWithSegments("/v1/admin/credentials"))
+            if (context.Request.Path.StartsWithSegments("/v2/admin/credentials"))
             {
                 if (context.Request.ContentLength > 70000) { context.Response.StatusCode = 413; return; }
                 var limit = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
@@ -25,7 +25,7 @@ public sealed class Secrets : EndpointGroupBase
             await next(context);
         });
 
-        var group = app.MapGroup("/v1/admin/credentials").WithTags("Secret administration");
+        var group = app.MapGroup("/v2/admin/credentials").WithTags("Secret administration");
 
         group.MapPut("/secrets/{path}/{version}", async (string path, string version, StoreSecret request, HttpContext context,
             IPrincipalResolver principals, LocalVaultCredentialProvider secrets, CancellationToken ct) =>
