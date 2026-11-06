@@ -1,5 +1,5 @@
 using Synentra.Application.Common.Security;
-using Synentra.Infrastructure.Configuration.ResponseRetention;
+using Synentra.Application.Features.Manifests.Models;
 using System.Text;
 using System.Text.Json.Nodes;
 
@@ -7,12 +7,12 @@ namespace Synentra.Infrastructure.Features.Secrets;
 
 public static class CredentialResponseRetention
 {
-    public static string? Apply(string? payload, string target, ResolvedCredential? credential, ResponseRetentionConfiguration options)
+    public static string? Apply(string? payload, ResponseRetentionModel? policy, ResolvedCredential? credential)
     {
         if (credential is null) 
             return payload;
 
-        if (!options.AuthenticatedResponsePolicies.TryGetValue(target, out var policy)) 
+        if (policy is null)
             return null;
 
         policy.Validate();

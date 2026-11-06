@@ -10,6 +10,7 @@ public sealed record AdmittedSnapshot
     public OperationId OperationId { get; }
     public string BindingId { get; }
     public string TargetId { get; }
+    public AuthorizedHttpTarget AuthorizedTarget { get; }
     public string Method { get; }
     public string Path { get; }
     public IReadOnlyDictionary<string, object> Arguments { get; }
@@ -27,6 +28,7 @@ public sealed record AdmittedSnapshot
         OperationId operationId, 
         string bindingId, 
         string targetId, 
+        AuthorizedHttpTarget authorizedTarget,
         string method, 
         string path, 
         IReadOnlyDictionary<string, object> arguments, 
@@ -43,6 +45,7 @@ public sealed record AdmittedSnapshot
         OperationId = operationId;
         BindingId = bindingId;
         TargetId = targetId;
+        AuthorizedTarget = authorizedTarget;
         Method = method;
         Path = path;
         Arguments = arguments;

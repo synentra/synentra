@@ -11,10 +11,6 @@ public sealed class OutboundHttpConfigurationValidator
     {
         var errors = new List<string>();
 
-        ValidateAllowedDestinations(
-            options.AllowedDestinations,
-            errors);
-
         ValidateAllowPrivateAddresses(
             options.AllowPrivateAddresses,
             errors);
@@ -30,69 +26,6 @@ public sealed class OutboundHttpConfigurationValidator
         return errors.Count > 0
             ? ValidateOptionsResult.Fail(errors)
             : ValidateOptionsResult.Success;
-    }
-
-    private static void ValidateAllowedDestinations(
-        string[]? destinations,
-        List<string> errors)
-    {
-        const string property = "OutboundHttp:AllowedDestinations";
-
-        if (destinations is null || destinations.Length == 0)
-        {
-            return;
-        }
-
-        var seen = new HashSet<string>(
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (var destination in destinations)
-        {
-            if (string.IsNullOrWhiteSpace(destination))
-            {
-                errors.Add($"{property} contains an empty destination.");
-                continue;
-            }
-
-            if (destination.Contains('*'))
-            {
-                errors.Add(
-                    $"{property} does not allow wildcard destinations: " +
-                    $"'{destination}'.");
-                continue;
-            }
-
-            if (!Uri.TryCreate(
-                    destination,
-                    UriKind.Absolute,
-                    out var uri) ||
-                (uri.Scheme != Uri.UriSchemeHttp &&
-                 uri.Scheme != Uri.UriSchemeHttps) ||
-                string.IsNullOrWhiteSpace(uri.Host) ||
-                uri.AbsolutePath != "/" ||
-                !string.IsNullOrEmpty(uri.Query) ||
-                !string.IsNullOrEmpty(uri.Fragment) ||
-                !string.IsNullOrEmpty(uri.UserInfo) ||
-                !string.Equals(
-                    destination,
-                    uri.GetLeftPart(UriPartial.Authority),
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                errors.Add(
-                    $"{property} contains an invalid destination: " +
-                    $"'{destination}'.");
-                continue;
-            }
-
-            var normalized = uri.GetLeftPart(UriPartial.Authority);
-
-            if (!seen.Add(normalized))
-            {
-                errors.Add(
-                    $"{property} contains duplicate destination: " +
-                    $"'{destination}'.");
-            }
-        }
     }
 
     private static void ValidateAllowPrivateAddresses(

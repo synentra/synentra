@@ -2,12 +2,15 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security;
 using Microsoft.Extensions.Options;
+using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Infrastructure.Configuration;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
 
 namespace Synentra.Infrastructure.Networking;
 
-public sealed class GovernedHttpHandler(IOptions<OutboundHttpConfiguration> options) : DelegatingHandler(CreateSockets(options))
+public sealed class GovernedHttpHandler(
+    IOptions<OutboundHttpConfiguration> options,
+    AuthorizedHttpTarget? authorizedTarget = null) : DelegatingHandler(CreateSockets(options))
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
@@ -20,20 +23,16 @@ public sealed class GovernedHttpHandler(IOptions<OutboundHttpConfiguration> opti
         if (!string.IsNullOrEmpty(uri.UserInfo))
             throw new SecurityException("Destination must not contain user information.");
 
-        var origin = uri.GetLeftPart(UriPartial.Authority);
-
-        var allowed = options.Value.AllowedDestinations.Any(
-        configured =>
-            Uri.TryCreate(configured, UriKind.Absolute, out var allowedUri) &&
-            string.Equals(
-                allowedUri.GetLeftPart(UriPartial.Authority),
-                origin,
-                StringComparison.OrdinalIgnoreCase));
-
-        if (!allowed)
+        if (authorizedTarget is not null)
         {
-            throw new SecurityException(
-                $"Destination origin '{origin}' is not allowed.");
+            if (!authorizedTarget.IsValid)
+                throw new SecurityException("Authorized GovernanceBundle target context is invalid.");
+
+            if (!authorizedTarget.Matches(uri))
+                throw new SecurityException("Destination does not match the authorized GovernanceBundle operation URI.");
+
+            if (authorizedTarget.RequiresHttps && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                throw new SecurityException("Credentials require HTTPS.");
         }
 
         request.Headers.Host = null;

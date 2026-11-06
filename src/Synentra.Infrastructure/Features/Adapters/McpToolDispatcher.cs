@@ -2,19 +2,19 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol.Client;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Executions.Contracts;
+using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
-using Synentra.Infrastructure.Configuration.ResponseRetention;
 using Synentra.Infrastructure.Features.Secrets;
+using Synentra.Infrastructure.Networking;
 using System.Text.Json;
 
 namespace Synentra.Infrastructure.Features.Adapters;
 
 public sealed class McpToolDispatcher(
-    IHttpClientFactory clients,
     CredentialProviderRouter credentials,
     IOptions<OutboundHttpConfiguration> outboundHttpOptions,
-    IOptions<ResponseRetentionConfiguration> responseRetentionOptions) : IToolDispatcher
+    IManifestProvider manifests) : IToolDispatcher
 {
     public string AdapterId => "mcp";
     public string AdapterVersion => "1.0.0";
@@ -26,7 +26,10 @@ public sealed class McpToolDispatcher(
         if (!Uri.TryCreate(snapshot.Path, UriKind.Absolute, out var endpoint))
             return new(ReceiptStatus.ConnectionFailed, null, null, null, timestamp, "INVALID_MCP_ENDPOINT");
 
-        using var http = clients.CreateClient("synentra-governed");
+        using var http = new HttpClient(new GovernedHttpHandler(outboundHttpOptions, snapshot.AuthorizedTarget))
+        {
+            Timeout = outboundHttpOptions.Value.Timeout ?? TimeSpan.FromSeconds(30)
+        };
         if (snapshot.CredentialBinding is not null && endpoint.Scheme != "https")
             throw new System.Security.SecurityException("Credentials require HTTPS.");
 
@@ -52,9 +55,10 @@ public sealed class McpToolDispatcher(
             if (System.Text.Encoding.UTF8.GetByteCount(payload) > (outboundHttpOptions.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024)))
                 return new(ReceiptStatus.Unknown, null, null, null, timestamp, "MCP_RESULT_TOO_LARGE");
 
+            var responseRetention = manifests.ActiveBundle?.Spec.Targets.SingleOrDefault(x => x.Id == snapshot.TargetId)?.ResponseRetention;
             return new(result.IsError == true ? ReceiptStatus.ToolError : ReceiptStatus.Responded,
                 null,
-                CredentialResponseRetention.Apply(payload, snapshot.TargetId, resolvedCredential, responseRetentionOptions.Value),
+                CredentialResponseRetention.Apply(payload, responseRetention, resolvedCredential),
                 null,
                 timestamp,
                 result.IsError == true ? "MCP_TOOL_ERROR" : null);

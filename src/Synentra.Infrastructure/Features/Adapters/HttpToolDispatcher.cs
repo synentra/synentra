@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Options;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Executions.Contracts;
+using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
-using Synentra.Infrastructure.Configuration.ResponseRetention;
 using Synentra.Infrastructure.Features.Secrets;
 using Synentra.Infrastructure.Networking;
 using System.Net.Http.Json;
@@ -13,10 +13,9 @@ using System.Text;
 namespace Synentra.Infrastructure.Features.Adapters;
 
 public sealed class HttpToolDispatcher(
-    IHttpClientFactory clients,
     IRuntimeCredentialResolver credentials,
     IOptions<OutboundHttpConfiguration> outboundHttpOptions,
-    IOptions<ResponseRetentionConfiguration> responseRetentionOptions) : IToolDispatcher
+    IManifestProvider manifests) : IToolDispatcher
 {
     private static readonly HashSet<string> SafeHeaders = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -69,20 +68,22 @@ public sealed class HttpToolDispatcher(
 
         try
         {
-            using var response = await clients.CreateClient("synentra-governed")
+            using var client = new HttpClient(new GovernedHttpHandler(outboundHttpOptions, snapshot.AuthorizedTarget))
+            {
+                Timeout = outboundHttpOptions.Value.Timeout ?? TimeSpan.FromSeconds(30)
+            };
+            using var response = await client
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
             string? payload = null;
             if (response.Content is not null)
             {
                 var bytes = await BoundedResponse.ReadAsync(response.Content, outboundHttpOptions.Value.MaxResponseBodySizeBytes ?? (2 * 1024 * 1024), ct);
-                payload = CredentialResponseRetention.Apply(bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes), snapshot.TargetId, resolvedCredential, responseRetentionOptions.Value);
-
-                //payload = bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes);
+                var responseRetention = manifests.ActiveBundle?.Spec.Targets.SingleOrDefault(x => x.Id == snapshot.TargetId)?.ResponseRetention;
+                payload = CredentialResponseRetention.Apply(bytes.Length == 0 ? null : Encoding.UTF8.GetString(bytes), responseRetention, resolvedCredential);
             }
 
             var upstreamReference = snapshot.CredentialBinding is not null ? null : response.Headers.Location?.ToString();
-            //var upstreamReference = response.Headers.Location?.ToString();
             var status = response.IsSuccessStatusCode ? ReceiptStatus.Responded : ReceiptStatus.ToolError;
             return new(status, upstreamReference, payload, (int)response.StatusCode, timestamp,
                 response.IsSuccessStatusCode ? null : $"HTTP_{(int)response.StatusCode}");
