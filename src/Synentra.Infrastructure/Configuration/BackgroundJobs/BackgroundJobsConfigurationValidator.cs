@@ -14,7 +14,6 @@ public sealed class BackgroundJobsConfigurationValidator : IValidateOptions<Back
         {
             ValidateOutboxConfiguration(options.Outbox, errors);
             ValidateClaimExpirationConfiguration(options.ClaimExpiration, errors);
-            ValidateInitializationConfiguration(options.Initialization, errors);
         }
 
         return errors.Count > 0 ? ValidateOptionsResult.Fail(errors) : ValidateOptionsResult.Success;
@@ -52,21 +51,6 @@ public sealed class BackgroundJobsConfigurationValidator : IValidateOptions<Back
         if (claimExpiration.PollingInterval.HasValue && claimExpiration.PollingInterval.Value <= TimeSpan.Zero)
         {
             errors.Add("ClaimExpiration.PollingInterval must be greater than zero.");
-        }
-    }
-
-    private static void ValidateInitializationConfiguration(
-        InitializationConfiguration initialization,
-        List<string> errors)
-    {
-        if (initialization.Enabled.HasValue && !initialization.Enabled.Value)
-        {
-            return;
-        }
-
-        if (initialization.PollingInterval.HasValue && initialization.PollingInterval.Value <= TimeSpan.Zero)
-        {
-            errors.Add("Initialization.PollingInterval must be greater than zero.");
         }
     }
 }

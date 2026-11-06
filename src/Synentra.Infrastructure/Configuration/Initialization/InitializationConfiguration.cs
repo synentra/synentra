@@ -1,13 +1,10 @@
-﻿namespace Synentra.Infrastructure.Configuration.BackgroundJobs;
+﻿namespace Synentra.Infrastructure.Configuration.Initialization;
 
-public class InitializationConfiguration
+public class InitializationConfiguration : ISynentraConfiguration
 {
+    public static string SectionName => "Initialization";
+
     public bool? Enabled { get; set; } = true;
     public TimeSpan? PollingInterval { get; set; } = TimeSpan.FromSeconds(30);
     public ManifestBootstrapConfiguration ManifestBootstrap { get; set; } = new();
-}
-
-public class ManifestBootstrapConfiguration
-{
-    public bool? Enabled { get; set; } = true;
 }

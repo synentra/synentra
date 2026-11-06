@@ -6,5 +6,4 @@ public class BackgroundJobsConfiguration: ISynentraConfiguration
 
     public OutboxConfiguration Outbox { get; set; } = new();
     public ClaimExpirationConfiguration ClaimExpiration { get; set; } = new();
-    public InitializationConfiguration Initialization { get; set; } = new();
 }
