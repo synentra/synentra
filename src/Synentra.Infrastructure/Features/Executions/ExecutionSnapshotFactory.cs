@@ -8,7 +8,8 @@ using Synentra.Domain.Resources.ValueObjects;
 namespace Synentra.Infrastructure.Features.Executions;
 public sealed class ExecutionSnapshotFactory(
     IManifestProvider manifests, 
-    CredentialBindingStore credentials) : IExecutionSnapshotFactory
+    CredentialBindingStore credentials,
+    IRevisionProvider revisions) : IExecutionSnapshotFactory
 {
     public async Task<AdmittedSnapshot> CreateAsync(
         ToolInvocation invocation, 
@@ -65,6 +66,19 @@ public sealed class ExecutionSnapshotFactory(
             headers = new Dictionary<string, string>();
         }
 
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri) ||
+            (!string.Equals(endpointUri.Scheme, "http", StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(endpointUri.Scheme, "https", StringComparison.OrdinalIgnoreCase)) ||
+            string.IsNullOrWhiteSpace(endpointUri.Host) ||
+            !string.IsNullOrEmpty(endpointUri.UserInfo) ||
+            !string.IsNullOrEmpty(endpointUri.Fragment))
+            throw new InvalidOperationException("Target endpoint must be a valid HTTP(S) URI without user information.");
+
+        if (!Uri.TryCreate(path, UriKind.Absolute, out var requestUri) ||
+            !string.IsNullOrEmpty(requestUri.UserInfo) ||
+            !string.IsNullOrEmpty(requestUri.Fragment))
+            throw new InvalidOperationException("Target request must be a valid absolute URI without user information or fragments.");
+
         var credential = target.CredentialBindingRef is { } id
             ? await credentials.GetAsync(id, ct) ?? throw new InvalidOperationException("Credential binding missing.")
             : null;
@@ -73,11 +87,19 @@ public sealed class ExecutionSnapshotFactory(
             !credential.AllowedOperations.Contains(invocation.OperationId.Value)))
             throw new UnauthorizedAccessException("Credential binding does not authorize admission.");
 
+        var authorizedTarget = new AuthorizedHttpTarget(
+            target.Id,
+            endpointUri,
+            requestUri,
+            revisions.ActiveRevision,
+            credential is not null);
+
         return new AdmittedSnapshot(
             invocation.Id,
             invocation.OperationId,
             invocation.BindingId,
             invocation.TargetId,
+            authorizedTarget,
             method,
             path,
             ArgumentMapper.Map(invocation.Arguments, binding.CanonicalToTarget, resources),
