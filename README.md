@@ -20,8 +20,6 @@
 
 </div>
 
----
-
 ## Overview
 
 Synentra governs AI-agent tool calls through registered operations. Each invocation carries an operation ID, arguments, and an optional binding or task grant. Synentra resolves the authenticated caller, evaluates governance rules, and returns an `allow`, `review`, or `deny` decision.
@@ -63,40 +61,16 @@ Two integration points are still incomplete in this checkout:
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    Agent["Agent / REST or MCP client"] --> API["Synentra API"]
-    API --> Identity["Resolve identity and security scope"]
-    Identity --> Decision["Evaluate intent, trust, risk and policy"]
-    Decision -->|Allow| Admission["Admission"]
-    Decision -->|Review| Approval["Human approval"]
-    Decision -->|Deny| Stop["Stop"]
-    Approval -->|Approved, then resume| Admission
-    Approval -->|Rejected| Stop
+![Synentra Architecture](docs/assets/architecture.jpg)
 
-    Admission --> Snapshot["Execution snapshot and durable outbox"]
-    Snapshot --> Worker["Execution worker"]
-    Worker --> Revalidate["Revalidate dispatch authority"]
-    Revalidate --> HTTP["HTTP adapter"]
-    Revalidate --> MCP["MCP adapter"]
-    HTTP --> Network["Outbound destination and transport checks"]
-    MCP --> Network
-    Network --> Target["Registered target"]
+1. **Receive and authenticate.** REST and MCP clients submit requests through the API ingress. Identity resolution validates the caller and determines the agent identity and security scope.
+2. **Evaluate governance.** Evaluate intent, trust, risk, and policy to produce an allow, review, or deny decision. Allowed requests proceed to admission. Denied requests stop.
+3. **Obtain human approval when required.** Requests requiring review pause for a reviewer’s decision. Approved invocations resume admission, while rejected requests stop.
+4. **Persist admitted work.** The admission service captures the authorized operation and target, then persists an immutable execution snapshot and an outbox record.
+5. **Dispatch queued work.** The execution worker claims queued work and dispatches it through the HTTP or MCP adapter. Credential resolution supplies credentials through the target’s configured binding.
+6. **Enforce outbound security.** Before contacting a registered HTTP API or MCP server, verify the authorized target and operation, enforce DNS/IP and redirect restrictions, and require HTTPS for credential-bearing calls.
 
-    Bundle["Active GovernanceBundle"] -.-> Decision
-    Bundle -.-> Admission
-    Credentials["Runtime credential resolution"] -.-> HTTP
-    Credentials -.-> MCP
-```
-
-1. **Authenticate and normalize.** Resolve agent identity and security scope, select the registered operation and binding, and normalize the arguments.
-2. **Evaluate governance.** Apply restrictions and the operation's configured intent, trust, risk, and policy controls.
-3. **Review when required.** Persist a pending approval. A reviewer approves or rejects it, and the caller resumes an approved invocation.
-4. **Admit durably.** Capture the authorized execution snapshot and create the execution claim and outbox work.
-5. **Revalidate before dispatch.** Check the active manifest revision, credential-binding authority, grant validity, quarantine state, and execution claim.
-6. **Execute and record.** Dispatch through the selected adapter and persist the transport result or uncertainty.
-
-SQLite and PostgreSQL persistence implementations store governance and execution records. The outbox worker checks authority again before external I/O. Changes to the active manifest or credential authority can cause queued work to fail before dispatch.
+SQLite or PostgreSQL stores active governance bundles, targets, credential bindings, task grants, approvals, execution state, and audit records. The observability layer provides the integration points for logs, metrics, and traces.
 
 ### Decisions and execution results
 
