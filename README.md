@@ -4,7 +4,7 @@
   <h2>Intent-Aware Runtime Governance for AI Agents</h2>
 
   <p>
-  Synentra™ sits between autonomous AI agents and the APIs and tools they interact with, providing runtime governance and enforcement for every request. It evaluates request context, classifies likely intent, applies policy and risk controls, and allows, denies, or pauses high-risk actions for human approval.
+  Synentra™ governs AI-agent actions against registered HTTP APIs and MCP tools. It evaluates identity and request context against governance policies, routes sensitive actions through human approval, and executes admitted calls through a durable outbox with controlled credential access.
   </p>
 
 [![Build Status][actions-badge]][actions-url]
@@ -22,368 +22,278 @@
 
 ---
 
-## See Synentra in Action
+## Overview
 
-<p align="center">
-  <img src="docs/assets/demo.gif" alt="Synentra intent-aware governance demo" width="800" />
-</p>
+Synentra governs AI-agent tool calls through registered operations. Each invocation carries an operation ID, arguments, and an optional binding or task grant. Synentra resolves the authenticated caller, evaluates governance rules, and returns an `allow`, `review`, or `deny` decision.
 
-An AI agent sends a request:
+Allowed invocations enter durable execution with an immutable snapshot of the authorized operation and target. HTTP and MCP adapters use that snapshot to dispatch the call, while outbound controls enforce destination and credential requirements. Review decisions pause the invocation for human approval before admission can continue.
 
-```http
-DELETE http://localhost:7080/proxy/https://localhost:8080/v1/customers?status=inactive
-Synentra-Authorization: Bearer <agent-token>
-Content-Type: application/json
+This README describes the current v2 implementation.
 
-{
-  "instruction": "Clean up old customer accounts"
-}
+| Contract | Current value |
+| --- | --- |
+| REST API prefix | `/v2` |
+| Invocation schema | `synentra.invocation.v2` |
+| Invocation result schema | `synentra.invocation-result.v2` |
+| Manifest | `apiVersion: synentra.io/v2alpha2`, `kind: GovernanceBundle` |
+| MCP gateway route | `/mcp/{serverId}` |
+
+### Implementation status
+
+The current code includes manifest validation and activation, identity resolution, declarative and OPA policy engines, trust and risk evaluation, approvals, task grants, durable execution, HTTP and MCP adapters, credential providers, and audit APIs.
+
+Two integration points are still incomplete in this checkout:
+
+* The registered `default-semantic` intent provider currently returns an unavailable/error result. Governance profiles control how required intent failures affect the decision. A working intent-provider implementation is needed for semantic classification.
+* OpenTelemetry configuration and integration code exist, but the call that enables observability in application startup is commented out. Structured application logging and persisted audit records are available.
+
+## Core concepts
+
+| Concept | Responsibility |
+| --- | --- |
+| **GovernanceBundle** | Versions profiles, targets, operations, bindings, restrictions, and policies as JSON or YAML. |
+| **Operation** | Defines an action, its input schema, mutability, execution model, resource resolution, and governance profile. |
+| **Target** | Registers the upstream endpoint and adapter, with an optional credential binding and response-retention policy. |
+| **Binding** | Maps a canonical operation to an HTTP request or MCP tool and translates arguments. |
+| **Invocation** | Records the authenticated agent, security scope, normalized request, and governance decision. |
+| **Approval** | Records a review decision for a specific invocation. Approval is checked again when the invocation resumes. |
+| **Task grant** | Provides scoped, time-bounded authority for operations that require a grant. |
+| **Execution snapshot** | Captures the admitted request, target authorization, manifest revision, and credential-binding authority. |
+| **Durable outbox** | Persists dispatch work for an execution worker. |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Agent["Agent / REST or MCP client"] --> API["Synentra API"]
+    API --> Identity["Resolve identity and security scope"]
+    Identity --> Decision["Evaluate intent, trust, risk and policy"]
+    Decision -->|Allow| Admission["Admission"]
+    Decision -->|Review| Approval["Human approval"]
+    Decision -->|Deny| Stop["Stop"]
+    Approval -->|Approved, then resume| Admission
+    Approval -->|Rejected| Stop
+
+    Admission --> Snapshot["Execution snapshot and durable outbox"]
+    Snapshot --> Worker["Execution worker"]
+    Worker --> Revalidate["Revalidate dispatch authority"]
+    Revalidate --> HTTP["HTTP adapter"]
+    Revalidate --> MCP["MCP adapter"]
+    HTTP --> Network["Outbound destination and transport checks"]
+    MCP --> Network
+    Network --> Target["Registered target"]
+
+    Bundle["Active GovernanceBundle"] -.-> Decision
+    Bundle -.-> Admission
+    Credentials["Runtime credential resolution"] -.-> HTTP
+    Credentials -.-> MCP
 ```
 
-Synentra evaluates the request:
+1. **Authenticate and normalize.** Resolve agent identity and security scope, select the registered operation and binding, and normalize the arguments.
+2. **Evaluate governance.** Apply restrictions and the operation's configured intent, trust, risk, and policy controls.
+3. **Review when required.** Persist a pending approval. A reviewer approves or rejects it, and the caller resumes an approved invocation.
+4. **Admit durably.** Capture the authorized execution snapshot and create the execution claim and outbox work.
+5. **Revalidate before dispatch.** Check the active manifest revision, credential-binding authority, grant validity, quarantine state, and execution claim.
+6. **Execute and record.** Dispatch through the selected adapter and persist the transport result or uncertainty.
 
-```text
-Agent       : customer-maintenance-agent
-Intent      : destructive_delete
-Risk Score  : 0.91
-Decision    : Human approval required
-```
+SQLite and PostgreSQL persistence implementations store governance and execution records. The outbox worker checks authority again before external I/O. Changes to the active manifest or credential authority can cause queued work to fail before dispatch.
 
-A traditional API gateway can authenticate the caller and match the HTTP method and path.
+### Decisions and execution results
 
-Synentra additionally evaluates the request context and likely intent before deciding whether the action should proceed.
+| Decision | Behavior |
+| --- | --- |
+| `allow` | Proceed through admission and queue authorized execution. |
+| `review` | Create or retain an approval requirement and pause execution. |
+| `deny` | Reject the invocation before dispatch. |
 
-## Quick Start
+The invocation result separates the governance decision, approval, execution status, and outcome. A successful admission can return `202 Accepted` while dispatch is pending. Poll the invocation resource to follow progress.
 
-### Run with Docker
+If an upstream call may have occurred but its result is uncertain, execution can become `unknown`. The worker records uncertainty and avoids automatic redelivery after it has committed dispatch ownership. Use the execution reconciliation API to resolve uncertain outcomes.
 
-For start Synentra:
+## Quick start
 
-```bash
-docker run --name synentra -p 7080:7080 ghcr.io/synentra/synentra:latest
-```
+### Build the current source
 
-Synentra will be available at:
-
-```text
-http://localhost:7080
-```
-
-> Production deployments require an appropriate security configuration, including token issuance and secret management. See the [Security configuration documentation](https://synentra.io/docs/configuration/security) before deploying Synentra in production.
-
-To provide your own configuration file:
-
-```bash
-docker run \
-  --name synentra \
-  -p 7080:7080 \
-  -v "$(pwd)/appsettings.json:/app/appsettings.json:ro" \
-  ghcr.io/synentra/synentra:latest
-```
-
-For a complete Docker setup, see the
-[Synentra Docker Deployment](https://synentra.io/docs/operations/deployment/docker)
-documentation.
-
-### Use a Pre-Built Binary
-
-Pre-built binaries for supported platforms are available on the
-[Releases](https://github.com/synentra/synentra/releases) page.
-
-Download and extract the appropriate archive for your platform.
-
-On Linux:
-
-```bash
-tar -xzf synentra-linux-x64.tar.gz
-chmod +x synentra
-./synentra
-```
-
-On Windows:
-
-```powershell
-.\synentra.exe
-```
-
-### Build from Source
-
-**Prerequisite:** [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+Install the .NET 10 SDK, then run these commands from the repository root:
 
 ```bash
 git clone https://github.com/synentra/synentra.git
 cd synentra
 
-dotnet restore
-dotnet build --configuration Release
-dotnet test --configuration Release
-
-dotnet run --project src/Synentra --configuration Release
+dotnet restore Synentra.slnx
+dotnet build Synentra.slnx --configuration Release
+dotnet test Synentra.slnx --configuration Release
 ```
 
-## Why Synentra?
+### Configure a development instance
 
-AI agents can make authenticated and technically valid API requests while still taking actions that are unintended, excessive, or dangerous.
+Review [the development configuration](src/Synentra/appsettings.Development.json) before starting. Configure:
 
-Traditional gateways primarily answer questions such as:
+* An identity provider and its issuer, audience, and claim mappings.
+* SQLite or PostgreSQL persistence.
+* The data-protection key-ring location and secret-provider settings.
+* Outbound network restrictions suitable for your target services.
 
-* Is the caller authenticated?
-* Is the caller authorized to access this route?
-* Is the request within its rate limit?
+For OIDC, the default claim mapping uses `sub` for the agent ID, `security_scope` for the security scope, and `roles` for role membership. Administrative requests require an `admin` role. Review workflows use a `reviewer` or administrative principal.
 
-Synentra adds another governance layer:
+The checked-in development settings use a local OIDC authority. Start and configure that identity provider, or replace its settings with those of your own provider. The development configuration also permits private outbound addresses and disables the encrypted-key-ring requirement.
 
-* What is the agent likely trying to accomplish?
-* How risky is this action in the current context?
-* Does the request comply with behavioral and semantic policies?
-* Should this action require human approval?
-* Has the agent's previous behavior reduced its trust level?
+Start the application with the Development environment:
 
-| Without Synentra                                              | With Synentra                                                                                     |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Decisions are primarily based on identity, route, and method. | Decisions can also consider likely intent, risk, trust, and historical behavior.                  |
-| An authorized destructive request may execute immediately.    | High-risk actions can be blocked or suspended for human approval.                                 |
-| Agent behavior must be correlated across separate systems.    | Agent identity, classifications, policy decisions, and review outcomes are recorded together.     |
-| Semantic controls often require custom integrations.          | Semantic analysis, risk scoring, policy enforcement, and HITL are coordinated inside the gateway. |
-
-## Core Capabilities
-
-### Semantic Intent Classification
-
-Synentra evaluates request context such as the HTTP method, path, payload, agent identity, and configured policy state. 
-Local inference keeps request data inside your environment and avoids requiring an external classification API.
-
-### Policy Enforcement
-
-Synentra combines deterministic policy rules with semantic conditions.
-
-Policies can evaluate:
-
-* Agent identity and attributes
-* HTTP method and path
-* Request headers and payload
-* Classified intent
-* Confidence level
-* Risk score
-* Historical behavior
-
-Policies can return one of three primary outcomes:
-
-```text
-Allow
-Deny
-HITL (Require human approval)
+```bash
+# Bash
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/Synentra --configuration Release --no-launch-profile
 ```
 
-### Risk and Trust Scoring
+```powershell
+# PowerShell
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+dotnet run --project src/Synentra --configuration Release --no-launch-profile
+```
 
-Synentra evaluates contextual risk signals for each request.
+The checked-in Kestrel configuration listens on `http://localhost:7080`.
 
-These signals can include:
+* OpenAPI UI — `http://localhost:7080/open-api`
+* OpenAPI document — `http://localhost:7080/open-api/synentra/specifications.json`
+* Health — `http://localhost:7080/health`
 
-* HTTP method
-* Target path
-* Request body characteristics
-* Time-based conditions
-* Agent history
-* Anomaly signals
-* Previous policy violations
-* Previous HITL decisions
+Health checks include database and active-manifest readiness. Startup also gates requests on required startup secrets.
 
-Agent trust can evolve over time based on observed behavior. Agents that fall below a configured trust threshold can be quarantined until manually reviewed.
+### Register governance
 
-### Human-in-the-Loop
+Start with the [v2 GovernanceBundle example](samples/v2/filesystem-standard/filesystem-standard.yml). Adapt its endpoints, agent IDs, profiles, resolver references, and credential bindings to your deployment. Every referenced plugin and credential binding must be available before the bundle can be used.
 
-High-risk or ambiguous requests can be suspended before they reach the upstream API.
+Save your adapted file as `governance.yml`. The Bash commands below assume `SYNENTRA_ADMIN_TOKEN` contains a valid administrative access token, and the bundle retains the example name `filesystem-governance` and version `1.0.0`.
 
-A reviewer can:
+```bash
+curl --fail-with-body -X POST http://localhost:7080/v2/manifests/validate \
+  -H "Authorization: Bearer $SYNENTRA_ADMIN_TOKEN" \
+  -H "Content-Type: application/yaml" \
+  --data-binary @governance.yml
 
-* Inspect the request and decision context
-* Approve the action
-* Deny the action
-* Record the reason for the decision
+curl --fail-with-body -X PUT http://localhost:7080/v2/manifests/filesystem-governance \
+  -H "Authorization: Bearer $SYNENTRA_ADMIN_TOKEN" \
+  -H "Content-Type: application/yaml" \
+  --data-binary @governance.yml
 
-Synentra can notify reviewers through:
+curl --fail-with-body -X POST http://localhost:7080/v2/manifests/filesystem-governance/activate \
+  -H "Authorization: Bearer $SYNENTRA_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"version":"1.0.0","expectedActiveRevision":null}'
+```
 
-* Slack
-* Microsoft Teams
-* PagerDuty
-* Generic webhooks
+The storage route ID must match `metadata.name`. Inspect validation and activation results before submitting invocations. When updating an active deployment, use its current revision as `expectedActiveRevision` to detect concurrent changes.
 
-### Agent Identity and Auditability
+### Invoke an operation
 
-Synentra associates requests and decisions with registered agent identities.
+After activating the adapted filesystem bundle, call a registered operation using a token for an agent permitted by its policies:
 
-Audit records can include:
+```http
+POST /v2/invocations
+Authorization: Bearer <agent-access-token>
+Content-Type: application/json
+Idempotency-Key: filesystem-read-example-001
 
-* Agent identity
-* Request metadata
-* Classified intent
-* Classification confidence
-* Risk score
-* Policy result
-* HITL status
-* Reviewer decision
-* Final routing outcome
+{
+  "schemaVersion": "synentra.invocation.v2",
+  "operationId": "filesystem.read_file",
+  "bindingId": "filesystem-read-mcp",
+  "arguments": {
+    "path": "README.md"
+  },
+  "context": {
+    "workflowId": "documentation-review",
+    "declaredPurpose": "Read the project documentation"
+  }
+}
+```
 
-### Observability
+The authenticated principal determines agent identity and security scope. `declaredPurpose` and `workflowId` are caller-provided context used as evidence.
 
-Synentra supports structured logging and distributed observability for governance decisions and request processing.
+Use `Idempotency-Key` for mutation invocations. Reuse the same key when retrying the same request. The server checks the input digest when a key is reused.
 
-Supported capabilities include:
+The response includes `invocationId` and a `Location` header. Query:
 
-* Structured application logs
-* File and console logging
-* OpenTelemetry export
-* Audit records
-* Health endpoints
-* Decision and latency telemetry
+```http
+GET /v2/invocations/<invocation-id>
+Authorization: Bearer <agent-access-token>
+```
 
-## Architecture
+### Approve and resume
 
-![Synentra Architecture](docs/assets/architecture.png)
+For a `review` decision, an authorized reviewer inspects the approval and submits:
 
-Each inbound request passes through the Synentra governance pipeline.
+```http
+POST /v2/approvals/<approval-id>/approve
+Authorization: Bearer <reviewer-access-token>
+```
 
-### 1. Request Validation
+Then the caller resumes the original invocation:
 
-Synentra first validates the request and its caller.
+```http
+POST /v2/invocations/<invocation-id>/resume
+Authorization: Bearer <agent-access-token>
+```
 
-This stage can include:
+Resume revalidates admission authority. The default approval configuration disables self-approval and cross-scope approval.
 
-* API version validation
-* Agent authentication
-* JWT validation
-* Rate limiting
-* Request-size limits
+## HTTP and MCP integration
 
-Requests that fail validation are blocked and recorded.
+**HTTP adapter.** Register the target endpoint and the binding's method and path. The adapter constructs the request from the admitted snapshot, applies the configured safe headers and runtime credentials, and bounds the response size.
 
-### 2. Decision Engine
+**MCP gateway.** Clients connect to `/mcp/{serverId}`, where `serverId` identifies a registered MCP target. The current gateway supports initialization, tool listing and calls, ping, cancellation notifications, and session deletion. It requires protocol version `2025-11-25` and binds sessions to the caller and security scope.
 
-Valid requests are evaluated through the governance pipeline.
+For MCP mutations, provide `io.synentra/idempotencyKey` in tool-call `_meta`. The gateway also accepts `io.synentra/taskGrantId` and `io.synentra/approvalId` for the associated authorization workflows.
 
-#### Policy Evaluation
-
-Configured policies evaluate the agent, request, environment, and available semantic context.
-
-A policy can immediately allow, deny, or require human approval.
-
-#### Risk Scoring
-
-Risk calculators evaluate contextual signals such as the HTTP method, target path, payload characteristics, request timing, agent history, and anomaly indicators.
-
-#### Semantic Analysis
-
-The semantic provider classifies the likely intent of the request and returns a confidence score.
-
-The resulting intent can be used by policies and the final decision process.
-
-### 3. Routing Outcome
-
-The request receives one of the following outcomes:
-
-* ✅ **Allow** — the request is forwarded to the upstream service.
-* ⏳ **Pending review** — the request is suspended until a reviewer approves or denies it.
-* 🚫 **Block** — the request is rejected before reaching the upstream service.
-
-Each outcome is recorded for auditing and observability.
-
-## Key Features
-
-* **Intent-aware request evaluation** using local semantic classification
-* **Deterministic and semantic policies** for context-aware enforcement
-* **Risk scoring** using configurable request and behavioral signals
-* **Dynamic agent trust** based on historical behavior
-* **Human-in-the-loop workflows** for sensitive actions
-* **Multi-channel HITL notifications**
-* **Agent quarantine** for identities that fall below a trust threshold
-* **Per-agent audit trails**
-* **Structured logging and OpenTelemetry support**
-* **Memory and Redis caching**
-* **SQLite and PostgreSQL storage options**
-* **External identity provider integration**
-* **Local operation without a required cloud classification service**
-
-## What Synentra Is Not
-
-Synentra is not intended to replace every component in an AI or API platform.
-
-It is not:
-
-* A general-purpose LLM proxy
-* A token accounting or prompt-caching platform
-* An OpenAI API cost-management service
-* A load balancer
-* A canary deployment system
-* A replacement for your identity provider
-* Limited to MCP servers or a specific agent framework
-
-Synentra governs AI-agent actions against HTTP APIs and can be used with LangChain, Semantic Kernel, custom agents, MCP-based systems, and other frameworks.
-
-## Who Is Synentra For?
-
-### Platform Engineers
-
-Add a centralized governance layer between AI agents and internal APIs without implementing separate controls in every service.
-
-### Security Architects
-
-Apply policies using agent identity, request context, likely intent, risk, and historical behavior.
-
-### AI Agent Developers
-
-Integrate agents with one governance gateway instead of building policy enforcement, risk evaluation, audit logging, and approval workflows independently.
-
-### Governance and Compliance Teams
-
-Use policy decisions, human approvals, and audit records as technical controls that can support broader organizational governance and compliance programs.
-
-> Synentra provides technical governance controls. Using Synentra alone does not establish compliance with standards or regulations such as SOC 2 or HIPAA.
-
-## Performance
-
-Synentra is designed for low-latency, local request evaluation.
-
-Performance depends on factors including:
-
-* Hardware
-* Model configuration
-* Payload size
-* Enabled policies
-* Storage provider
-* Cache provider
-* Logging configuration
-* Semantic provider
-
-Published performance results should be interpreted together with their test environment and benchmark methodology.
-
-See the documentation for current performance measurements and configuration guidance:
-
-**[Performance documentation](https://synentra.io/docs)**
-
-## Roadmap
-
-The project roadmap describes planned capabilities, upcoming releases, and longer-term direction.
-
-👉 [View the Synentra roadmap](ROADMAP.md)
-
-## Documentation
-
-Full documentation is available at:
-
-**https://synentra.io/docs**
-
-Useful starting points:
-
-* [Getting Started](https://synentra.io/docs/getting-started)
-* [System Configuration](https://synentra.io/docs/configuration/system)
-* [Security Configuration](https://synentra.io/docs/configuration/security)
-* [Semantic Configuration](https://synentra.io/docs/configuration/semantic)
-* [Policy Configuration](https://synentra.io/docs/configuration/policy)
-* [HITL Configuration](https://synentra.io/docs/configuration/hitl)
-* [Observability](https://synentra.io/docs/configuration/observability)
-* [OWASP ASI Control Coverage Matrix](./docs/compliance/OWASP-ASI-CONTROL-COVERAGE-MATRIX.md)
+## Configuration and credentials
+
+Governance configuration and deployment settings have separate responsibilities:
+
+| Location | Contents |
+| --- | --- |
+| Active `GovernanceBundle` in the database | Operations, bindings, target endpoints, profiles, restrictions, policies, and target response-retention rules. |
+| Deployment configuration | Identity provider, persistence, outbound network limits, data protection, secret providers, logging, and worker settings. |
+| Credential-binding store and secret providers | Versioned credential authority and resolved secret material. |
+
+The secret-management model distinguishes **T0 bootstrap**, **T1 startup**, and **T2 runtime** resolution. Provider implementations include LocalVault, HashiCorp Vault, Azure Key Vault, and AWS Secrets Manager. Configure and enable the providers needed by your deployment.
+
+Runtime credentials are resolved through the target's credential binding. Credential administration supports storing local secrets, managing bindings, rotating bindings, and changing secret state.
+
+Outbound checks use trusted target authorization from the execution snapshot. They check the actual request URI, disable automatic redirects, validate resolved addresses before connecting, and enforce HTTPS for credential-bearing calls.
+
+Target `responseRetention` supports explicit retention rules, including JSON property allowlists. Configure these alongside the target's endpoint and credential binding.
+
+## API reference
+
+Use the running instance's OpenAPI document for request and response schemas.
+
+| Area | Routes |
+| --- | --- |
+| Discovery | `GET /v2/capabilities`, `GET /v2/operations` |
+| Manifests | `POST /v2/manifests/validate`, `PUT /v2/manifests/{id}`, `POST /v2/manifests/{id}/activate` |
+| Invocations | `POST /v2/invocations`, `GET /v2/invocations/{id}`, `POST /v2/invocations/{id}/resume` |
+| Approvals | `GET /v2/approvals`, `GET /v2/approvals/{id}`, `POST /v2/approvals/{id}/approve`, `/reject`, `/revoke` |
+| Executions | `GET /v2/executions/{id}`, `POST /v2/executions/{id}/reconcile`, `POST /v2/executions/{id}/cancel` |
+| Task grants | `POST /v2/task-grants`, `GET /v2/task-grants/{id}`, `POST /v2/task-grants/{id}/revoke` |
+| Simulation | `POST /v2/simulate` |
+| Audit | `GET /v2/audits` |
+| Credentials | Administrative routes under `/v2/admin/credentials` |
+| MCP | `POST /mcp/{serverId}`, `DELETE /mcp/{serverId}` |
+
+## Repository guide
+
+| Path | Contents |
+| --- | --- |
+| `src/Synentra` | Application host, REST endpoints, MCP gateway, middleware, and startup. |
+| `src/Synentra.Application` | Invocation normalization, governance evaluation, admission, and application contracts. |
+| `src/Synentra.Domain` | Governance, approval, identity, grant, and execution models. |
+| `src/Synentra.Infrastructure` | Adapters, identity and credential providers, networking, policy integrations, and background execution. |
+| `src/Synentra.Persistence` | Persistence models and stores. |
+| `src/Synentra.Persistence.Sqlite` | SQLite persistence provider. |
+| `src/Synentra.Persistence.PostgreSql` | PostgreSQL persistence provider. |
+| `samples/v2` | Examples for the current manifest and invocation model. |
+| `samples/v1` | Earlier integration examples using the previous contracts. |
+| `tests` | Automated test projects and load-test materials. |
 
 ## Security
 
