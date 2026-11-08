@@ -1,0 +1,171 @@
+apiVersion: synentra.io/v2alpha2
+kind: GovernanceBundle
+
+metadata:
+  name: filesystem-governance
+  version: "1.0.0"
+
+spec:
+  profiles:
+    - id: filesystem-standard
+      intent:
+        providerRef: default-semantic
+        required: false
+        minimumConfidence: 0.8
+        onUnavailable: review
+        onLowConfidence: review
+      trust:
+        profileRef: default-trust
+        onUnavailable: deny
+      risk:
+        profileRef: default-risk
+        onUnavailable: review
+      policy:
+        combiningAlgorithm: deny_overrides
+        defaultOutcome: deny
+
+  targets:
+    - id: filesystem-mcp
+      adapterRef: mcp
+      configuration:
+        endpoint: https://filesystem-mcp.internal.example/mcp
+      credentialBindingRef: filesystem-mcp-credential
+
+    - id: inventory-api
+      adapterRef: http
+      configuration:
+        endpoint: http://localhost:8200
+      responseRetention:
+        mode: json-allowlist
+        allowedProperties: [product_id, name, quantity]
+
+  operations:
+    - id: filesystem.read_file
+      version: "1"
+      family: filesystem
+      action: read
+      mutability: read_only
+      execution:
+        model: request_response
+      profileRef: filesystem-standard
+      policyRefs: [filesystem-read-policy]
+      taskGrantRequired: false
+      inputSchema:
+        type: object
+        additionalProperties: false
+        required: [path]
+        properties:
+          path: {type: string, minLength: 1}
+      resources:
+        - role: subject
+          resolverRef: workspace-file-resolver-v1
+          configuration:
+            workspaceId: project-alpha
+            pathPointer: /path
+
+    - id: filesystem.write_file
+      version: "1"
+      family: filesystem
+      action: write
+      mutability: mutation
+      execution:
+        model: request_response
+      profileRef: filesystem-standard
+      policyRefs: [filesystem-write-policy]
+      taskGrantRequired: false
+      inputSchema:
+        type: object
+        additionalProperties: false
+        required: [path, content]
+        properties:
+          path: {type: string, minLength: 1}
+          content: {type: string, maxLength: 65536}
+      resources:
+        - role: subject
+          resolverRef: workspace-file-resolver-v1
+          configuration:
+            workspaceId: project-alpha
+            pathPointer: /path
+
+    - id: filesystem.delete_file
+      version: "1"
+      family: filesystem
+      action: delete
+      mutability: mutation
+      execution:
+        model: request_response
+      profileRef: filesystem-standard
+      policyRefs: [filesystem-delete-policy]
+      taskGrantRequired: false
+      inputSchema:
+        type: object
+        additionalProperties: false
+        required: [path]
+        properties:
+          path: {type: string, minLength: 1}
+      resources:
+        - role: subject
+          resolverRef: workspace-file-resolver-v1
+          configuration:
+            workspaceId: project-alpha
+            pathPointer: /path
+
+  bindings:
+    - id: filesystem-read-mcp
+      version: "1"
+      operationId: filesystem.read_file
+      targetRef: filesystem-mcp
+      configuration:
+        tool: read_file
+      canonicalToTarget:
+        /path: {inputPointer: /path}
+      targetToCanonical:
+        /path: {targetPointer: /path}
+
+    - id: filesystem-write-mcp
+      version: "1"
+      operationId: filesystem.write_file
+      targetRef: filesystem-mcp
+      configuration:
+        tool: write_file
+      canonicalToTarget:
+        /path: {inputPointer: /path}
+        /content: {inputPointer: /content}
+      targetToCanonical:
+        /path: {targetPointer: /path}
+        /content: {targetPointer: /content}
+
+    - id: filesystem-delete-mcp
+      version: "1"
+      operationId: filesystem.delete_file
+      targetRef: filesystem-mcp
+      configuration:
+        tool: delete_file
+      canonicalToTarget:
+        /path: {inputPointer: /path}
+      targetToCanonical:
+        /path: {targetPointer: /path}
+
+  restrictions: []
+
+  policies:
+    - id: filesystem-read-policy
+      rules:
+        - match:
+            agentIds: [coding-agent]
+            operationIds: [filesystem.read_file]
+          effect: allow
+
+    - id: filesystem-write-policy
+      rules:
+        - match:
+            agentIds: [coding-agent]
+            operationIds: [filesystem.write_file]
+          effect: allow
+
+    - id: filesystem-delete-policy
+      rules:
+        - match:
+            agentIds: [coding-agent]
+            operationIds: [filesystem.delete_file]
+          effect: review
