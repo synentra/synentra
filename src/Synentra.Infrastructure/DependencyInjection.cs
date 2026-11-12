@@ -15,6 +15,7 @@ using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Effects.Contracts;
 using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Application.Features.Intent.Contracts;
+using Synentra.Application.Features.Intent;
 using Synentra.Application.Features.Invocations.Normalization;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Application.Features.Obligations.Contracts;
@@ -57,6 +58,9 @@ using Synentra.Infrastructure.Networking;
 using Synentra.Infrastructure.Plugins;
 using Synentra.Persistence.Features.Security;
 using System.Security.Cryptography.X509Certificates;
+using Synentra.Infrastructure.Features.Intent.AzureAi;
+using Synentra.Infrastructure.Features.Intent.OpenAi;
+using Synentra.Infrastructure.Semantic.Providers.InternalBert;
 
 namespace Synentra.Infrastructure;
 
@@ -252,7 +256,17 @@ public static class DependencyInjection
         services.AddScoped<TrustAdministrationService>();
         services.AddScoped<IRiskEngine, DefaultRiskEngine>();
         services.AddScoped<IRiskFactorPlugin, TrustRiskFactor>();
-        services.AddScoped<IIntentProvider, HttpIntentProvider>();
+
+        services.AddSingleton<IGitHubReleaseClient, GitHubReleaseClient>();
+        services.AddSingleton<IModelDownloader, ModelDownloader>();
+        services.AddSingleton<IModelPackageLoader, ModelPackageLoader>();
+        services.AddScoped<OpenAiIntentProvider>();
+        services.AddScoped<AzureAiIntentProvider>();
+        services.AddScoped<GeminiIntentProvider>();
+        services.AddScoped<OllamaIntentProvider>();
+        services.AddSingleton<InternalOnnxIntentProvider>();
+        services.AddHostedService<InternalOnnxInitializer>();
+
         services.AddScoped<IResourceResolver, HttpResourceResolver>();
         services.AddScoped<IEffectResolver, ConfiguredEffectResolver>();
         services.AddScoped<IOutcomeVerifier, HttpOutcomeVerifier>();

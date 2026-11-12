@@ -11,6 +11,7 @@
 	</PropertyGroup>
 	
 	<ItemGroup>
+		<PackageReference Include="Octokit" Version="14.0.0" />
 		<PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
 		<PackageReference Include="Serilog.Enrichers.Span" Version="3.1.0" />
 		<PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
@@ -26,6 +27,8 @@
 		<PackageReference Include="Azure.Identity" Version="1.21.0" />
 		<PackageReference Include="AWSSDK.SecretsManager" Version="4.0.100.19" />
 		<PackageReference Include="ModelContextProtocol" Version="1.0.0" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.27.1" />
+		<PackageReference Include="Microsoft.ML.OnnxRuntime.Extensions" Version="0.14.0" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\Synentra.Application\Synentra.Application.csproj" />
