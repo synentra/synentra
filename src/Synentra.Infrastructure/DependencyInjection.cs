@@ -61,6 +61,7 @@ using System.Security.Cryptography.X509Certificates;
 using Synentra.Infrastructure.Features.Intent.AzureAi;
 using Synentra.Infrastructure.Features.Intent.OpenAi;
 using Synentra.Infrastructure.Semantic.Providers.InternalBert;
+using Synentra.Infrastructure.Features.Risk.Factors;
 
 namespace Synentra.Infrastructure;
 
@@ -255,6 +256,9 @@ public static class DependencyInjection
         services.AddScoped<QuarantineService>();
         services.AddScoped<TrustAdministrationService>();
         services.AddScoped<IRiskEngine, DefaultRiskEngine>();
+        services.AddScoped<IRiskFactorPlugin, BodySizeRiskFactor>();
+        services.AddScoped<IRiskFactorPlugin, IntentRiskFactor>();
+        services.AddScoped<IRiskFactorPlugin, TimeBasedRiskFactor>();
         services.AddScoped<IRiskFactorPlugin, TrustRiskFactor>();
 
         services.AddSingleton<IGitHubReleaseClient, GitHubReleaseClient>();

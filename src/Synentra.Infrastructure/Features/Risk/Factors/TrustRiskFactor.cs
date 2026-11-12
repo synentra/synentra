@@ -3,7 +3,7 @@ using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Governance.Risk;
 using Synentra.Domain.Governance.Risk.ValueObjects;
 
-namespace Synentra.Infrastructure.Features.Risk;
+namespace Synentra.Infrastructure.Features.Risk.Factors;
 
 public sealed class TrustRiskFactor : IRiskFactorPlugin
 {
