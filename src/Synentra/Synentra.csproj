@@ -7,7 +7,7 @@
 		<AssemblyName>synentra</AssemblyName>
 		<IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
 		<Title>Synentra</Title>
-		<Description>Intent-Aware Governance Gateway</Description>
+		<Description>Intent-aware runtime governance and enforcement for autonomous AI agents interacting with APIs, tools, and MCP servers.</Description>
 		<Company>Synentra</Company>
 		<Copyright>© Synentra. All rights reserved.</Copyright>
 		<Authors>Synentra</Authors>
