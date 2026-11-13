@@ -28,7 +28,7 @@ public sealed class HttpToolDispatcher(
 
     public string AdapterId => "adapter/http";
     public string AdapterVersion => "1.0.0";
-    public IReadOnlyList<string> SupportedExecutionModels => new[] { "request_response" };
+    public IReadOnlyList<string> SupportedExecutionModels => new[] { "requestResponse" };
 
     public async Task<TransportReceipt> DispatchAsync(AdmittedSnapshot snapshot, ExecutionIdentity identity, CancellationToken ct)
     {

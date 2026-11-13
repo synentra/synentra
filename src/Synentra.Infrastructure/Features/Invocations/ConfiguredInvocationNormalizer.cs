@@ -18,10 +18,10 @@ public sealed class ConfiguredInvocationNormalizer(IManifestProvider manifests, 
     {
         await revisions.ReloadAsync(ct);
         var bundle = manifests.ActiveBundle ?? throw new InvalidOperationException("NO_ACTIVE_BUNDLE");
-        var binding = bundle.Spec.Bindings.Single(x => x.Id == input.BindingId && x.OperationId == input.OperationId);
+        var binding = bundle.Spec.OperationBindings.Single(x => x.Id == input.BindingId && x.OperationId == input.OperationId);
         var operation = bundle.Spec.Operations.Single(x => x.Id == input.OperationId);
 
-        if (operation.Execution.Model != "request_response")
+        if (operation.Execution.Mode != "requestResponse")
             throw new InvalidOperationException("Unsupported execution model.");
 
         var arguments = modality switch
@@ -56,8 +56,8 @@ public sealed class ConfiguredInvocationNormalizer(IManifestProvider manifests, 
             input.DeclaredPurpose, 
             input.TaskGrantId,
             input.IdempotencyKey, 
-            operation.TaskGrantRequired, 
-            operation.Mutability != "read_only", 
+            operation.RequiresTaskGrant, 
+            operation.Mutability != "readOnly", 
             DateTimeOffset.UtcNow);
     }
 }

@@ -20,7 +20,7 @@ public static class ArgumentMapper
             mappings.OrderBy(x => x.Key, StringComparer.Ordinal))
         {
             var sourceCount = 
-                (mapping.InputPointer is null ? 0 : 1) + 
+                (mapping.SourcePointer is null ? 0 : 1) + 
                 (mapping.TargetPointer is null ? 0 : 1) + 
                 (mapping.ResourceField is null ? 0 : 1) + 
                 (mapping.Constant is null ? 0 : 1);
@@ -33,7 +33,7 @@ public static class ArgumentMapper
 
             JsonElement value;
 
-            if ((mapping.InputPointer ?? mapping.TargetPointer) is { } pointer)
+            if ((mapping.SourcePointer ?? mapping.TargetPointer) is { } pointer)
             {
                 if (!JsonPointer.TryRead(input, pointer, out value))
                 {

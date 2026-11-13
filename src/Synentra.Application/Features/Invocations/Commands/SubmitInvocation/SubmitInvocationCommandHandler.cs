@@ -94,7 +94,7 @@ public sealed class SubmitInvocationCommandHandler(
     private string ResolveBinding(string operationId, string? requested)
     {
         if (!string.IsNullOrWhiteSpace(requested)) return requested;
-        var candidates = manifests.ActiveBundle?.Spec.Bindings.Where(x => x.OperationId == operationId).Select(x => x.Id).Distinct(StringComparer.Ordinal).ToArray() ?? Array.Empty<string>();
+        var candidates = manifests.ActiveBundle?.Spec.OperationBindings.Where(x => x.OperationId == operationId).Select(x => x.Id).Distinct(StringComparer.Ordinal).ToArray() ?? Array.Empty<string>();
         return candidates.Length == 1 ? candidates[0] : throw new InvalidOperationException("AMBIGUOUS_OR_MISSING_BINDING");
     }
 

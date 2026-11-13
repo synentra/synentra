@@ -229,8 +229,8 @@ public static class DependencyInjection
 
         void Plugin(string id, PluginFamily family, Type input, Type output, params string[] capabilities) => services.AddSingleton<IPluginRegistration>(new PluginRegistration(id, family, new[] { input }, new[] { output }, capabilities.ToHashSet()));
 
-        Plugin("http", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response", "idempotency", "conditional-headers", "bounded-response", "ssrf-guard");
-        Plugin("mcp", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response", "streamable-http", "tools", "pagination", "cancellation", "review-resume");
+        Plugin("http", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "requestResponse", "idempotency", "conditional-headers", "bounded-response", "ssrf-guard");
+        Plugin("mcp", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "requestResponse", "streamable-http", "tools", "pagination", "cancellation", "review-resume");
         Plugin("http-resource", PluginFamily.ResourceResolver, typeof(Domain.Invocations.ToolInvocation), typeof(ResourceResolutionResult), "resource-resolution");
         Plugin("http-readback", PluginFamily.OutcomeVerifier, typeof(Domain.Execution.ExecutionRecord), typeof(Domain.Execution.Evidence.OutcomeEvidence), "readback");
         Plugin("declarative", PluginFamily.PolicyEngine, typeof(PolicyInput), typeof(PolicyResult), "deny-overrides");
@@ -247,10 +247,10 @@ public static class DependencyInjection
             _ => throw new InvalidOperationException("Unknown policy provider.")
         });
 
-        services.AddScoped<ITrustEngine, DbTrustEngine>();
+        services.AddScoped<ITrustEngine, PersistedTrustEngine>();
         services.AddScoped<QuarantineService>();
         services.AddScoped<TrustAdministrationService>();
-        services.AddScoped<IRiskEngine, DefaultRiskEngine>();
+        services.AddScoped<IRiskEngine, CompositeRiskEngine>();
         services.AddScoped<IRiskFactorPlugin, BodySizeRiskFactor>();
         services.AddScoped<IRiskFactorPlugin, IntentRiskFactor>();
         services.AddScoped<IRiskFactorPlugin, TimeBasedRiskFactor>();

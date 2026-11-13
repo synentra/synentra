@@ -30,10 +30,10 @@ public sealed class ListOperationsQueryHandler(
                 x.Family, 
                 x.Action, 
                 x.Mutability, 
-                x.Execution.Model, 
-                x.TaskGrantRequired, 
+                x.Execution.Mode, 
+                x.RequiresTaskGrant, 
                 x.PolicyRefs, 
-                bundle.Spec.Bindings.Where(b => b.OperationId == x.Id).Select(b => b.Id).Order().ToArray()))
+                bundle.Spec.OperationBindings.Where(b => b.OperationId == x.Id).Select(b => b.Id).Order().ToArray()))
             .ToArray();
 
         return await PaginatedResult<OperationDto>.SuccessAsync(items, request.PageRequest, totalCount);

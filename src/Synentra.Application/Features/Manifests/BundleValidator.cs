@@ -12,14 +12,14 @@ public sealed class BundleValidator
     };
     private static readonly HashSet<string> AllowedExecutionModels = new()
     {
-        "request_response",
+        "requestResponse",
         "asynchronous",
         "stream",
         "batch"
     };
     private static readonly HashSet<string> AllowedMutability = new()
     {
-        "read_only",
+        "readOnly",
         "mutation",
         "mixed"
     };
@@ -51,7 +51,7 @@ public sealed class BundleValidator
         ValidateUniqueIds(issues, bundle.Spec.Profiles.Select(p => p.Id), "profile");
         ValidateUniqueIds(issues, bundle.Spec.Targets.Select(t => t.Id), "target");
         ValidateUniqueIds(issues, bundle.Spec.Operations.Select(o => o.Id), "operation");
-        ValidateUniqueIds(issues, bundle.Spec.Bindings.Select(b => b.Id), "binding");
+        ValidateUniqueIds(issues, bundle.Spec.OperationBindings.Select(b => b.Id), "binding");
         ValidateUniqueIds(issues, bundle.Spec.Restrictions.Select(r => r.Id), "restriction");
         ValidateUniqueIds(issues, bundle.Spec.Policies.Select(p => p.Id), "policy");
 
@@ -63,8 +63,8 @@ public sealed class BundleValidator
 
         foreach (var op in bundle.Spec.Operations)
         {
-            if (op.ExecutionProfileRef is not null && !profileIds.Contains(op.ExecutionProfileRef))
-                issues.Add(new("error", "UNRESOLVED_PROFILE_REF", $"Operation '{op.Id}' references unknown profile '{op.ExecutionProfileRef}'."));
+            if (op.GovernanceProfileRef is not null && !profileIds.Contains(op.GovernanceProfileRef))
+                issues.Add(new("error", "UNRESOLVED_PROFILE_REF", $"Operation '{op.Id}' references unknown profile '{op.GovernanceProfileRef}'."));
 
             foreach (var pr in op.PolicyRefs)
                 if (!policyIds.Contains(pr))
@@ -73,8 +73,8 @@ public sealed class BundleValidator
             if (!AllowedMutability.Contains(op.Mutability))
                 issues.Add(new("error", "INVALID_MUTABILITY", $"Operation '{op.Id}' has invalid mutability '{op.Mutability}'."));
 
-            if (!AllowedExecutionModels.Contains(op.Execution.Model))
-                issues.Add(new("error", "INVALID_EXECUTION_MODEL", $"Operation '{op.Id}' has invalid execution model '{op.Execution.Model}'."));
+            if (!AllowedExecutionModels.Contains(op.Execution.Mode))
+                issues.Add(new("error", "INVALID_EXECUTION_MODEL", $"Operation '{op.Id}' has invalid execution model '{op.Execution.Mode}'."));
 
             foreach (var r in op.Resources)
                 if (!_plugins.HasRegistration(r.ResolverRef))
@@ -89,7 +89,7 @@ public sealed class BundleValidator
                 issues.Add(new("error", "DUPLICATE_RESOURCE_ROLE", $"Operation '{op.Id}' has duplicate resource roles."));
         }
 
-        foreach (var b in bundle.Spec.Bindings)
+        foreach (var b in bundle.Spec.OperationBindings)
         {
             if (!opIds.Contains(b.OperationId))
                 issues.Add(new("error", "UNRESOLVED_OPERATION_REF", $"Binding '{b.Id}' references unknown operation '{b.OperationId}'."));
@@ -144,7 +144,7 @@ public sealed class BundleValidator
         foreach (var(dest, entry)in mapping)
         {
             var sourceCount = 0;
-            if (entry.InputPointer is not null)
+            if (entry.SourcePointer is not null)
                 sourceCount++;
 
             if (entry.TargetPointer is not null)

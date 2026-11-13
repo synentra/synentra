@@ -20,7 +20,7 @@ public sealed class SimulateInvocationCommandHandler(
 
         if (string.IsNullOrWhiteSpace(bindingId))
         {
-            var candidates = manifests.ActiveBundle?.Spec.Bindings
+            var candidates = manifests.ActiveBundle?.Spec.OperationBindings
                 .Where(x => x.OperationId == request.Request.OperationId)
                 .Select(x => x.Id)
                 .Distinct(StringComparer.Ordinal)
