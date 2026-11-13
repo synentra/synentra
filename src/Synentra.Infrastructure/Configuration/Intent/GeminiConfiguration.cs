@@ -1,11 +1,10 @@
-namespace Synentra.Infrastructure.Configuration.Semantic;
+namespace Synentra.Infrastructure.Configuration.Intent;
 
-public class AzureAiConfiguration
+public class GeminiConfiguration
 {
     public bool Enabled { get; set; } = true;
-    public string Endpoint { get; set; } = string.Empty;
     public string ApiKey { get; set; } = string.Empty;
-    public string Model { get; set; } = "gpt-4o-mini";
+    public string Model { get; set; } = "gemini-2.0-flash";
     public double? Temperature { get; set; } = 0.0;
     public int? MaxTokens { get; set; } = 256;
 }

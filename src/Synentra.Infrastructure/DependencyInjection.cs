@@ -120,9 +120,9 @@ public static class DependencyInjection
         services.AddSingleton<IValidateOptions<SecretsConfiguration>, SecretsConfigurationValidator>();
         services.AddConfiguration<SecretsConfiguration>(configuration);
 
-        // Register semantic configuration sections and validators
-        //services.AddSingleton<IValidateOptions<SemanticConfiguration>, SemanticConfigurationValidator>();
-        services.AddConfiguration<SemanticConfiguration>(configuration);
+        // Register intent configuration sections and validators
+        services.AddSingleton<IValidateOptions<IntentConfiguration>, IntentConfigurationValidator>();
+        services.AddConfiguration<IntentConfiguration>(configuration);
 
         // Register trust configuration sections and validators
         services.AddSingleton<IValidateOptions<TrustConfiguration>, TrustConfigurationValidator>();

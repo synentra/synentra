@@ -1,4 +1,4 @@
-﻿namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+﻿namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 public static class ModelPathResolver
 {
@@ -46,6 +46,6 @@ public static class ModelPathResolver
         // 3. Neither typical safe location is available – throw with guidance
         throw new InvalidOperationException(
             "Unable to determine a secure, user‑specific folder for the community model. " +
-            "Please set 'PackagePath' manually in the Semantic configuration.");
+            "Please set 'PackagePath' manually in the Intent configuration.");
     }
 }

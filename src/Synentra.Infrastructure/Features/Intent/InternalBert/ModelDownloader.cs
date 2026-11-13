@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using Octokit;
-using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Intent;
 using System.Security.Cryptography;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 public class ModelDownloader : IModelDownloader
 {

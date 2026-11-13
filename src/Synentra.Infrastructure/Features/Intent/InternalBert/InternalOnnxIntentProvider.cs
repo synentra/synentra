@@ -4,25 +4,25 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Governance.Intent.ValueObjects;
-using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Intent;
 using Synentra.Infrastructure.Features.Intent;
 using System.Text.Json;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 /// <summary>
-/// ONNX-based semantic provider.
+/// ONNX-based intent provider.
 ///
 /// Reads the Community or Pro model package from the local file system and
 /// loads all required assets into memory. No temporary files or network
 /// access are used during inference.
 /// </summary>
 public sealed class InternalOnnxIntentProvider(
-    IOptions<SemanticConfiguration> options, 
+    IOptions<IntentConfiguration> options, 
     IModelPackageLoader loader, 
     ILogger<InternalOnnxIntentProvider> logger) : IntentProviderBase, IDisposable
 {
-    public override string ProviderId => "internal";
+    public override string ProviderId => "intent-provider/default";
     public override IntentModality SupportedModalities => IntentModality.Http | IntentModality.Mcp | IntentModality.FunctionCall | IntentModality.Batch | IntentModality.Stream;
 
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
@@ -111,7 +111,7 @@ public sealed class InternalOnnxIntentProvider(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to initialize the Internal ONNX semantic provider.");
+            logger.LogError(ex, "Failed to initialize the Internal ONNX intent provider.");
 
             _initializationTcs.TrySetException(ex);
 
@@ -158,7 +158,7 @@ public sealed class InternalOnnxIntentProvider(
         }
 
         logger.LogDebug(
-            "Tokenized semantic input. Input IDs: {InputIdCount}; " +
+            "Tokenized intent input. Input IDs: {InputIdCount}; " +
             "attention mask: {AttentionMaskCount}.",
             rawIds.Length,
             rawMask.Length);
@@ -260,7 +260,7 @@ public sealed class InternalOnnxIntentProvider(
         {
             logger.LogError(
                 ex,
-                "ONNX Runtime failed during semantic inference. " +
+                "ONNX Runtime failed during intent inference. " +
                 "Model inputs: {ModelInputs}; supplied inputs: {SuppliedInputs}.",
                 FormatInputMetadata(session.InputMetadata),
                 string.Join(", ", inputs.Select(input => input.Name)));

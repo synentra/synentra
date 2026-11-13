@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using System.Text.Json;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 /// <summary>
 /// Shared helpers for extracting a model package in memory.

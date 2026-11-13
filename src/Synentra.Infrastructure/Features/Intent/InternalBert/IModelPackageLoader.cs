@@ -1,6 +1,6 @@
-﻿using Synentra.Infrastructure.Configuration.Semantic;
+﻿using Synentra.Infrastructure.Configuration.Intent;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 public interface IModelPackageLoader
 {

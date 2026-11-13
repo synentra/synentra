@@ -1,6 +1,6 @@
-﻿namespace Synentra.Infrastructure.Configuration.Semantic;
+﻿namespace Synentra.Infrastructure.Configuration.Intent;
 
-public class SemanticProviders
+public class IntentProviders
 {
     public InternalOnnxConfiguration Internal { get; set; } = new();
     public AzureAiConfiguration AzureAi { get; set; } = new();

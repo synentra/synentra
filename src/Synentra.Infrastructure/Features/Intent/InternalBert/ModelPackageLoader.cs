@@ -1,8 +1,8 @@
-using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Intent;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 /// <summary>
 /// Reads a model package from the local file system and returns all assets in memory.

@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Options;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Governance.Intent.ValueObjects;
-using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Intent;
 using Synentra.Infrastructure.Features.Intent.OpenAi;
 using System.Text.Json;
 
@@ -10,10 +10,10 @@ namespace Synentra.Infrastructure.Features.Intent;
 
 public sealed class GeminiIntentProvider(
     IHttpClientFactory clients, 
-    IOptions<SemanticConfiguration> options, 
+    IOptions<IntentConfiguration> options, 
     ILogger<GeminiIntentProvider> logger) : IntentProviderBase
 {
-    public override string ProviderId => "gemini";
+    public override string ProviderId => "intent-provider/gemini";
     public override IntentModality SupportedModalities => 
         IntentModality.Http
         | IntentModality.Mcp
