@@ -4,12 +4,11 @@ public enum PluginFamily
 {
     TransportAdapter,
     IdentityProvider,
-    SemanticProvider,
+    IntentProvider,
     RiskCalculator,
     TrustProvider,
     PolicyEngine,
     ResourceResolver,
-    EffectResolver,
     CredentialProvider,
     ObligationHandler,
     OutcomeVerifier,

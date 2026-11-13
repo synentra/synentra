@@ -11,7 +11,6 @@ namespace Synentra.Infrastructure.Features.Identity;
 public sealed class LdapPrincipalResolver(IOptions<IdentityConfiguration> options) : IPrincipalResolver
 {
     public string ResolverId => "ldap";
-    public string ProviderKind => "ldap";
 
     public Task<CanonicalPrincipal> ResolveAsync(string credential, CancellationToken ct) => Task.Run(() =>
     {

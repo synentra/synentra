@@ -63,8 +63,8 @@ public sealed class BundleValidator
 
         foreach (var op in bundle.Spec.Operations)
         {
-            if (op.ProfileRef is not null && !profileIds.Contains(op.ProfileRef))
-                issues.Add(new("error", "UNRESOLVED_PROFILE_REF", $"Operation '{op.Id}' references unknown profile '{op.ProfileRef}'."));
+            if (op.ExecutionProfileRef is not null && !profileIds.Contains(op.ExecutionProfileRef))
+                issues.Add(new("error", "UNRESOLVED_PROFILE_REF", $"Operation '{op.Id}' references unknown profile '{op.ExecutionProfileRef}'."));
 
             foreach (var pr in op.PolicyRefs)
                 if (!policyIds.Contains(pr))
