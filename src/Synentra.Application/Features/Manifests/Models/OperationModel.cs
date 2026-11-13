@@ -15,6 +15,5 @@ public sealed class OperationModel
     public bool TaskGrantRequired { get; set; }
     public JsonElement InputSchema { get; set; }
     public List<ResolverModel> Resources { get; set; } = new();
-    public EffectResolverModel? Effect { get; set; }
     public VerificationModel? Verification { get; set; }
 }

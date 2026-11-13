@@ -35,19 +35,28 @@ public sealed class ToolInvocation
     public bool HasEffectRegistration { get; }
 
     public ToolInvocation(
-        InvocationId id, int schemaVersion, 
-        string authenticatedAgentId, string securityScope, 
-        OperationId operationId, string operationVersion, 
-        string operationFamily, string action, 
-        string bindingId, string bindingVersion, 
-        string targetId, IReadOnlyList<ResourceDescriptor> resources, 
+        InvocationId id,
+        int schemaVersion, 
+        string authenticatedAgentId,
+        string securityScope, 
+        OperationId operationId,
+        string operationVersion, 
+        string operationFamily,
+        string action, 
+        string bindingId,
+        string bindingVersion, 
+        string targetId,
+        IReadOnlyList<ResourceDescriptor> resources, 
         IReadOnlyDictionary<string, object> arguments, 
         IReadOnlyDictionary<string, string> context, 
         IReadOnlyDictionary<string, string> transportDetails, 
-        BindingDigest digest, IntentModality modality, 
-        string? declaredPurpose, string? taskGrantId, 
-        string? idempotencyKey, bool requiresGrant, 
-        bool isMutation, bool hasEffectRegistration, 
+        BindingDigest digest,
+        IntentModality modality, 
+        string? declaredPurpose,
+        string? taskGrantId, 
+        string? idempotencyKey,
+        bool requiresGrant, 
+        bool isMutation,
         DateTimeOffset receiptTime)
     {
         if (string.IsNullOrWhiteSpace(authenticatedAgentId))
@@ -75,7 +84,6 @@ public sealed class ToolInvocation
         IdempotencyKey = idempotencyKey;
         RequiresGrant = requiresGrant;
         IsMutation = isMutation;
-        HasEffectRegistration = hasEffectRegistration;
         ReceiptTime = receiptTime;
     }
 

@@ -1,4 +1,3 @@
-using Synentra.Domain.Effects.ValueObjects;
 using Synentra.Domain.Governance.Intent.ValueObjects;
 using Synentra.Domain.Governance.Risk.ValueObjects;
 using Synentra.Domain.Governance.Trust.ValueObjects;
@@ -13,7 +12,6 @@ public sealed record GovernanceEvidence
     public RiskAssessment? Risk { get; init; }
     public TrustSnapshot? Trust { get; init; }
     public IReadOnlyList<ResourceDescriptor> Resources { get; init; }
-    public EffectPlan? Effect { get; init; }
     public DateTimeOffset CollectedAt { get; init; }
 
     public GovernanceEvidence()

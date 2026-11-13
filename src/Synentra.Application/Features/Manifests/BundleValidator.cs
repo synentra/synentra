@@ -76,9 +76,6 @@ public sealed class BundleValidator
             if (!AllowedExecutionModels.Contains(op.Execution.Model))
                 issues.Add(new("error", "INVALID_EXECUTION_MODEL", $"Operation '{op.Id}' has invalid execution model '{op.Execution.Model}'."));
 
-            if (op.Effect is not null && !_plugins.HasRegistration(op.Effect.ResolverRef))
-                issues.Add(new("error", "UNRESOLVED_EFFECT_RESOLVER", $"Operation '{op.Id}' references unregistered effect resolver."));
-
             foreach (var r in op.Resources)
                 if (!_plugins.HasRegistration(r.ResolverRef))
                     issues.Add(new("error", "UNRESOLVED_RESOURCE_RESOLVER", $"Operation '{op.Id}' references unregistered resource resolver '{r.ResolverRef}'."));

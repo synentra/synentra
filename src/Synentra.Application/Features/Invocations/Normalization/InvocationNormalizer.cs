@@ -54,7 +54,6 @@ public sealed class InvocationNormalizer
             invocation.IdempotencyKey, 
             invocation.RequiresGrant,
             invocation.IsMutation, 
-            invocation.HasEffectRegistration, 
             invocation.ReceiptTime);
     }
 }

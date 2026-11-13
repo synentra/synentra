@@ -8,6 +8,5 @@ public sealed class IssueTaskGrantCommandValidator : AbstractValidator<IssueTask
     {
         RuleFor(x => x.Issuer).NotNull();
         RuleFor(x => x.Requested).NotNull();
-        RuleFor(x => x.IssuerCeilings).NotNull();
     }
 }

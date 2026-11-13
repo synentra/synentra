@@ -1,5 +1,4 @@
 using Synentra.Application.Common.Dispatching;
-using Synentra.Application.Features.Budgets.Contracts;
 using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Application.Features.Invocations.Admission;
 using Synentra.Application.Features.Invocations.Contracts;
@@ -11,8 +10,7 @@ namespace Synentra.Application.Features.Executions.Commands.CancelExecution;
 public sealed class CancelExecutionCommandHandler(
     IExecutionRecordStore executions,
     IInvocationStore invocations,
-    IExecutionClaimStore claims, 
-    IBudgetStore budgets) : IActionHandler<CancelExecutionCommand, bool>
+    IExecutionClaimStore claims) : IActionHandler<CancelExecutionCommand, bool>
 {
     public async Task<bool> Handle(CancelExecutionCommand request, CancellationToken cancellationToken = default)
     {
@@ -33,7 +31,6 @@ public sealed class CancelExecutionCommandHandler(
         if (!await claims.CancelBeforeDispatchAsync(invocation.Id.ToString(), cancellationToken)) 
             return false;
 
-        await budgets.ReleaseAllForExecutionAsync(record.Id, "cancelled-before-dispatch", cancellationToken);
         record.MarkCancelledBeforeDispatch();
         await executions.SaveAsync(record, cancellationToken);
 

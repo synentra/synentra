@@ -12,10 +12,7 @@ using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Messaging;
 using Synentra.Application.Common.Plugins;
 using Synentra.Application.Common.Security;
-using Synentra.Application.Features.Effects.Contracts;
 using Synentra.Application.Features.Executions.Contracts;
-using Synentra.Application.Features.Intent.Contracts;
-using Synentra.Application.Features.Intent;
 using Synentra.Application.Features.Invocations.Normalization;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Application.Features.Obligations.Contracts;
@@ -37,11 +34,10 @@ using Synentra.Infrastructure.Configuration.OutboundHttp;
 using Synentra.Infrastructure.Configuration.Persistence;
 using Synentra.Infrastructure.Configuration.Policy;
 using Synentra.Infrastructure.Configuration.Secrets;
-using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Intent;
 using Synentra.Infrastructure.Configuration.Trust;
 using Synentra.Infrastructure.Dispatchers;
 using Synentra.Infrastructure.Features.Adapters;
-using Synentra.Infrastructure.Features.Effects;
 using Synentra.Infrastructure.Features.Executions;
 using Synentra.Infrastructure.Features.Identity;
 using Synentra.Infrastructure.Features.Intent;
@@ -60,7 +56,7 @@ using Synentra.Persistence.Features.Security;
 using System.Security.Cryptography.X509Certificates;
 using Synentra.Infrastructure.Features.Intent.AzureAi;
 using Synentra.Infrastructure.Features.Intent.OpenAi;
-using Synentra.Infrastructure.Semantic.Providers.InternalBert;
+using Synentra.Infrastructure.Intent.Providers.InternalBert;
 using Synentra.Infrastructure.Features.Risk.Factors;
 
 namespace Synentra.Infrastructure;
@@ -236,7 +232,6 @@ public static class DependencyInjection
         Plugin("http", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response", "idempotency", "conditional-headers", "bounded-response", "ssrf-guard");
         Plugin("mcp", PluginFamily.TransportAdapter, typeof(AdmittedSnapshot), typeof(TransportReceipt), "request_response", "streamable-http", "tools", "pagination", "cancellation", "review-resume");
         Plugin("http-resource", PluginFamily.ResourceResolver, typeof(Domain.Invocations.ToolInvocation), typeof(ResourceResolutionResult), "resource-resolution");
-        Plugin("configured-effect", PluginFamily.EffectResolver, typeof(Domain.Invocations.ToolInvocation), typeof(Domain.Effects.ValueObjects.EffectPlan), "bounded-effects");
         Plugin("http-readback", PluginFamily.OutcomeVerifier, typeof(Domain.Execution.ExecutionRecord), typeof(Domain.Execution.Evidence.OutcomeEvidence), "readback");
         Plugin("declarative", PluginFamily.PolicyEngine, typeof(PolicyInput), typeof(PolicyResult), "deny-overrides");
         Plugin("opa", PluginFamily.PolicyEngine, typeof(PolicyInput), typeof(PolicyResult), "rest-decision");
@@ -272,7 +267,6 @@ public static class DependencyInjection
         services.AddHostedService<InternalOnnxInitializer>();
 
         services.AddScoped<IResourceResolver, HttpResourceResolver>();
-        services.AddScoped<IEffectResolver, ConfiguredEffectResolver>();
         services.AddScoped<IOutcomeVerifier, HttpOutcomeVerifier>();
         services.AddScoped<IOperationRegistry, ManifestOperationRegistry>();
         // Register one normalizer per enum modality; combined flag values are not separate transports.

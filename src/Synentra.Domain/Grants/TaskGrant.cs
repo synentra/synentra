@@ -12,7 +12,6 @@ public sealed class TaskGrant
     public string SecurityScope { get; }
     public IReadOnlyList<string> OperationIds { get; }
     public IReadOnlyList<ResourceScope> ResourceScopes { get; }
-    public IReadOnlyList<GrantLimit> Limits { get; }
     public DateTimeOffset ExpiresAt { get; }
     public string? ExternalReference { get; }
     public GrantState State { get; private set; }
@@ -25,7 +24,6 @@ public sealed class TaskGrant
         string securityScope,
         IReadOnlyList<string> operationIds,
         IReadOnlyList<ResourceScope> resourceScopes, 
-        IReadOnlyList<GrantLimit> limits, 
         DateTimeOffset expiresAt, 
         string? externalReference)
     {
@@ -35,7 +33,6 @@ public sealed class TaskGrant
         SecurityScope = securityScope;
         OperationIds = operationIds;
         ResourceScopes = resourceScopes;
-        Limits = limits;
         ExpiresAt = expiresAt;
         ExternalReference = externalReference;
         State = GrantState.Active;
@@ -52,18 +49,17 @@ public sealed class TaskGrant
     public bool IsValidAt(DateTimeOffset t) => State == GrantState.Active && t < ExpiresAt;
 
     public static TaskGrant Restore(
-        string id, 
-        string issuerId, 
-        string agentId, 
-        string scope, 
-        IReadOnlyList<string> operations, 
-        IReadOnlyList<ResourceScope> resources, 
-        IReadOnlyList<GrantLimit> limits,
-        DateTimeOffset expiresAt, 
-        string? reference, 
-        GrantState state, 
+        string id,
+        string issuerId,
+        string agentId,
+        string scope,
+        IReadOnlyList<string> operations,
+        IReadOnlyList<ResourceScope> resources,
+        DateTimeOffset expiresAt,
+        string? reference,
+        GrantState state,
         DateTimeOffset createdAt) 
-        => new(id, issuerId, agentId, scope, operations, resources, limits, expiresAt, reference)
+        => new(id, issuerId, agentId, scope, operations, resources, expiresAt, reference)
         {
             State = state,
             CreatedAt = createdAt
