@@ -7,7 +7,7 @@ namespace Synentra.Infrastructure.Features.Risk.Factors;
 
 public sealed class TimeBasedRiskFactor : IRiskFactorPlugin
 {
-    public string Name => "time";
+    public string Name => "risk-factor/time";
     public IntentModality SupportedModalities => (IntentModality)(-1);
 
     public Task<RiskFactorResult> EvaluateAsync(RiskInput input, CancellationToken ct)

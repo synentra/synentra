@@ -8,7 +8,7 @@ namespace Synentra.Infrastructure.Features.Secrets;
 
 public sealed class AwsSecretsManagerCredentialProvider(IAmazonSecretsManager client) : ICredentialProvider
 {
-    public string ProviderId => "awssecrets";
+    public string ProviderId => "credential-provider/aws-secrets";
 
     public async Task<ResolvedCredential> ResolveAsync(CredentialBinding binding, CancellationToken ct)
     {

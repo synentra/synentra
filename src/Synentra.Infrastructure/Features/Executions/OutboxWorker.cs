@@ -17,7 +17,7 @@ public sealed class OutboxWorker(IServiceScopeFactory scopes, ILogger<OutboxWork
                 await scope.ServiceProvider.GetRequiredService<IOutboxProcessor>().ProcessPendingAsync(stoppingToken);
                 await scope.ServiceProvider.GetRequiredService<ClaimRecoveryService>().SweepAsync(stoppingToken);
             }
-            catch (OperationCanceledException)when (stoppingToken.IsCancellationRequested)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
                 break;
             }

@@ -22,7 +22,7 @@ public sealed class OidcPrincipalResolver : IPrincipalResolver, IDisposable
     private readonly JsonWebTokenHandler tokenHandler;
     private readonly TokenValidationParameters validationParameters;
 
-    public string ResolverId => "oidc";
+    public string ResolverId => "identity-provider/oidc";
 
     public OidcPrincipalResolver(
         IOptions<IdentityConfiguration> options,

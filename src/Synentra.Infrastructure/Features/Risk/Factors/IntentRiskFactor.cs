@@ -7,7 +7,7 @@ namespace Synentra.Infrastructure.Features.Risk.Factors;
 
 public sealed class IntentRiskFactor : IRiskFactorPlugin
 {
-    public string Name => "intent";
+    public string Name => "risk-factor/intent";
     public IntentModality SupportedModalities => (IntentModality)(-1);
 
     public Task<RiskFactorResult> EvaluateAsync(RiskInput input, CancellationToken ct)

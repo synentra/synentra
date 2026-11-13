@@ -32,7 +32,7 @@ public sealed class ManifestStore(
             return row.Revision;
         }
 
-        // Global revision token distinguishes manifests with identical semantic versions.
+        // Global revision token distinguishes manifests with identical intent versions.
         var revision = Keys.Of(manifestId, version, actual);
         db.Add(new ManifestEntity { Id = id, ManifestId = manifestId, Revision = revision, ContentHash = actual, Bundle = bundleJson, StoredAt = Keys.Now });
         await db.SaveChangesAsync(token);

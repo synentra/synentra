@@ -152,7 +152,7 @@ public class SecretsConfiguration : ISynentraConfiguration
     }
 
     /// <summary>
-    /// Structural + semantic validation: applies defaults, requires at least one
+    /// Structural + intent validation: applies defaults, requires at least one
     /// configured provider, calls <see cref="Validate"/>, then builds the secret
     /// dependency graph and rejects cycles.
     /// </summary>

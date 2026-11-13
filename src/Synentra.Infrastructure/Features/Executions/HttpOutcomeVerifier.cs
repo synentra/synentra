@@ -8,7 +8,7 @@ namespace Synentra.Infrastructure.Features.Executions;
 
 public sealed class HttpOutcomeVerifier(IHttpClientFactory clients) : IOutcomeVerifier
 {
-    public string VerifierId => "http-readback";
+    public string VerifierId => "outcome-verifier/http-readback";
     public string Version => "1.0.0";
 
     public async Task<OutcomeEvidence> VerifyAsync(ExecutionRecord record, VerifierRegistration registration, CancellationToken ct)

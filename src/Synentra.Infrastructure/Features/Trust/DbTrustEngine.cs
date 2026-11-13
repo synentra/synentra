@@ -18,7 +18,7 @@ public sealed class DbTrustEngine(
     PayloadCodec codec, 
     IOptions<TrustConfiguration> options) : ITrustEngine
 {
-    public string ProfileId => "default-trust";
+    public string ProfileId => "trust-profile/default";
 
     public async Task<TrustSnapshot> LoadSnapshotAsync(string agentId, string securityScope, CancellationToken ct)
     {

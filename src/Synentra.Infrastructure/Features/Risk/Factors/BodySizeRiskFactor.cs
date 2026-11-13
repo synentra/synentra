@@ -8,7 +8,7 @@ namespace Synentra.Infrastructure.Features.Risk.Factors;
 
 public sealed class BodySizeRiskFactor : IRiskFactorPlugin
 {
-    public string Name => "body-size";
+    public string Name => "risk-factor/body-size";
     public IntentModality SupportedModalities => (IntentModality)(-1);
 
     public Task<RiskFactorResult> EvaluateAsync(RiskInput input, CancellationToken ct)
