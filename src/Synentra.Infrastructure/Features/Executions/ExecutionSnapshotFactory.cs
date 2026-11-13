@@ -17,7 +17,7 @@ public sealed class ExecutionSnapshotFactory(
         CancellationToken ct)
     {
         var bundle = manifests.ActiveBundle ?? throw new InvalidOperationException("No active manifest.");
-        var binding = bundle.Spec.Bindings.Single(x => x.Id == invocation.BindingId && x.OperationId == invocation.OperationId.Value);
+        var binding = bundle.Spec.OperationBindings.Single(x => x.Id == invocation.BindingId && x.OperationId == invocation.OperationId.Value);
 
         if (binding.Version != invocation.BindingVersion || binding.TargetRef != invocation.TargetId)
             throw new InvalidOperationException("Binding changed.");
@@ -25,7 +25,7 @@ public sealed class ExecutionSnapshotFactory(
         var target = bundle.Spec.Targets.Single(x => x.Id == binding.TargetRef);
         var operation = bundle.Spec.Operations.Single(x => x.Id == binding.OperationId);
 
-        if (operation.Execution.Model != "request_response")
+        if (operation.Execution.Mode != "requestResponse")
             throw new InvalidOperationException("Execution model not supported by installed adapters.");
 
         if (target.AdapterRef is not ("adapter/http" or "adapter/mcp"))

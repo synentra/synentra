@@ -5,7 +5,7 @@ public sealed class BundleSpec
     public List<ProfileModel> Profiles { get; set; } = new();
     public List<TargetModel> Targets { get; set; } = new();
     public List<OperationModel> Operations { get; set; } = new();
-    public List<BindingModel> Bindings { get; set; } = new();
+    public List<OperationBindingModel> OperationBindings { get; set; } = new();
     public List<RestrictionModel> Restrictions { get; set; } = new();
     public List<PolicyModel> Policies { get; set; } = new();
 }

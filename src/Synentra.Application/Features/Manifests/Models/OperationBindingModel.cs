@@ -1,6 +1,6 @@
 namespace Synentra.Application.Features.Manifests.Models;
 
-public sealed class BindingModel
+public sealed class OperationBindingModel
 {
     public string Id { get; set; } = "";
     public string Version { get; set; } = "1";

@@ -13,7 +13,7 @@ public sealed class GetCapabilitiesQueryHandler(PluginCatalog catalog) : IAction
             .Select(x => new GetCapabilityDto(
                 x.Id,
                 x.Version,
-                x.Capabilities.Where(c => c is "request_response" or "asynchronous" or "stream" or "batch").Order().ToArray(),
+                x.Capabilities.Where(c => c is "requestResponse" or "asynchronous" or "stream" or "batch").Order().ToArray(),
                 new[] { x.ContractVersion },
                 x.Capabilities.Order().ToArray(),
                 Array.Empty<string>()))

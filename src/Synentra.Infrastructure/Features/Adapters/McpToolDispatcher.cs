@@ -18,7 +18,7 @@ public sealed class McpToolDispatcher(
 {
     public string AdapterId => "adapter/mcp";
     public string AdapterVersion => "1.0.0";
-    public IReadOnlyList<string> SupportedExecutionModels => new[] { "request_response" };
+    public IReadOnlyList<string> SupportedExecutionModels => new[] { "requestResponse" };
 
     public async Task<TransportReceipt> DispatchAsync(AdmittedSnapshot snapshot, ExecutionIdentity identity, CancellationToken ct)
     {

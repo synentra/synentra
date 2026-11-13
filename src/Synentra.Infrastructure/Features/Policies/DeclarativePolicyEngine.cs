@@ -22,7 +22,7 @@ public sealed class DeclarativePolicyEngine(IManifestProvider manifests) : IPoli
         if (op is null)
             return Task.FromResult(PolicyResult.Deny(new[] { "OPERATION_NOT_REGISTERED" }, revision));
 
-        var profile = bundle!.Spec.Profiles.SingleOrDefault(x => x.Id == op.ExecutionProfileRef);
+        var profile = bundle!.Spec.Profiles.SingleOrDefault(x => x.Id == op.GovernanceProfileRef);
         var matches = new List<string>();
         bool allow = false, review = false;
         foreach (var id in op.PolicyRefs)

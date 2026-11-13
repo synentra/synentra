@@ -4,7 +4,7 @@ namespace Synentra.Application.Features.Risk.Contracts;
 
 public interface IRiskEngine
 {
-    string CalculatorId { get; }
+    string EngineId { get; }
     string Version { get; }
     Task<RiskAssessment> EvaluateAsync(RiskInput input, CancellationToken ct);
 }

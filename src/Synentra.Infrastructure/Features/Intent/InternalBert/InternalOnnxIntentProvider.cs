@@ -22,7 +22,7 @@ public sealed class InternalOnnxIntentProvider(
     IModelPackageLoader loader, 
     ILogger<InternalOnnxIntentProvider> logger) : IntentProviderBase, IDisposable
 {
-    public override string ProviderId => "intent-provider/default";
+    public override string ProviderId => "intent-provider/internal";
     public override IntentModality SupportedModalities => IntentModality.Http | IntentModality.Mcp | IntentModality.FunctionCall | IntentModality.Batch | IntentModality.Stream;
 
     private readonly SemaphoreSlim _initializationLock = new(1, 1);

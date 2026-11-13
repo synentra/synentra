@@ -112,7 +112,7 @@ public sealed class McpGateway : EndpointGroupBase
                 if (bundle is null)
                     return RpcError(id, AdmissionUnavailable, "No active governance bundle.");
 
-                var bindings = bundle.Spec.Bindings
+                var bindings = bundle.Spec.OperationBindings
                     .Where(b => b.TargetRef == serverId)
                     .Select(b => new { Binding = b, Operation = bundle.Spec.Operations.SingleOrDefault(o => o.Id == b.OperationId) })
                     .Where(x => x.Operation is not null)
@@ -167,7 +167,7 @@ public sealed class McpGateway : EndpointGroupBase
                     return RpcError(id, AdmissionUnavailable, "No active governance bundle.");
 
                 var toolName = nameElement.GetString()!;
-                var candidates = bundle.Spec.Bindings
+                var candidates = bundle.Spec.OperationBindings
                     .Where(b => b.TargetRef == serverId && string.Equals(ConfigString(b.Configuration, "tool"), toolName, StringComparison.Ordinal))
                     .ToArray();
                 if (candidates.Length != 1)

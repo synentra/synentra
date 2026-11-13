@@ -9,12 +9,12 @@ public sealed class ManifestOperationRegistry(IManifestProvider manifests) : IOp
     public OperationRegistration? Find(string operationId, string bindingId)
     {
         var bundle = manifests.ActiveBundle;
-        if (bundle?.Spec.Bindings.Any(b => b.Id == bindingId && b.OperationId == operationId) != true)
+        if (bundle?.Spec.OperationBindings.Any(b => b.Id == bindingId && b.OperationId == operationId) != true)
             return null;
 
         var op = bundle.Spec.Operations.SingleOrDefault(x => x.Id == operationId);
         return op is null 
             ? null 
-            : new(op.Id, op.Version, op.Family, op.Action, op.Mutability == "read_only" ? Mutability.ReadOnly : Mutability.Mutation, ExecutionModel.RequestResponse, op.TaskGrantRequired, op.PolicyRefs);
+            : new(op.Id, op.Version, op.Family, op.Action, op.Mutability == "readOnly" ? Mutability.ReadOnly : Mutability.Mutation, ExecutionModel.RequestResponse, op.RequiresTaskGrant, op.PolicyRefs);
     }
 }
