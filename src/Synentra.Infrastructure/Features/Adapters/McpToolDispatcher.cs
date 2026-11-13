@@ -16,7 +16,7 @@ public sealed class McpToolDispatcher(
     IOptions<OutboundHttpConfiguration> outboundHttpOptions,
     IManifestProvider manifests) : IToolDispatcher
 {
-    public string AdapterId => "mcp";
+    public string AdapterId => "adapter/mcp";
     public string AdapterVersion => "1.0.0";
     public IReadOnlyList<string> SupportedExecutionModels => new[] { "request_response" };
 

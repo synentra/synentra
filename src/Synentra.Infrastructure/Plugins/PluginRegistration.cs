@@ -3,8 +3,11 @@ using Synentra.Application.Common.Plugins;
 namespace Synentra.Infrastructure.Plugins;
 
 public sealed record PluginRegistration(
-    string Id, PluginFamily Family, IReadOnlyList<Type> SupportedInputShapes, 
-    IReadOnlyList<Type> SupportedOutputShapes, IReadOnlySet<string> Capabilities) : IPluginRegistration
+    string Id,
+    PluginFamily Family,
+    IReadOnlyList<Type> SupportedInputShapes, 
+    IReadOnlyList<Type> SupportedOutputShapes,
+    IReadOnlySet<string> Capabilities) : IPluginRegistration
 {
     public string Version => "1.0.0";
     public string ContractVersion => "1.0.0";

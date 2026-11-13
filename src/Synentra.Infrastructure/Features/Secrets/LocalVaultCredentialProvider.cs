@@ -20,7 +20,7 @@ public sealed class LocalVaultCredentialProvider(
     IDbContextScope dbScope,
     IOptions<SecretsConfiguration>? options = null) : ICredentialProvider
 {
-    public string ProviderId => "localvault";
+    public string ProviderId => "credential-provider/localvault";
 
     private void RequireEnabled() 
     { 

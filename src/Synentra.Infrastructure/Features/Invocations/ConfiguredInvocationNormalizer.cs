@@ -35,8 +35,8 @@ public sealed class ConfiguredInvocationNormalizer(IManifestProvider manifests, 
         };
 
         //var arguments = ArgumentMapper.Map(input.Arguments, binding.TargetToCanonical, Array.Empty<ResourceDescriptor>());
-        return new(new InvocationId(
-            Guid.NewGuid()), 
+        return new(
+            new InvocationId(Guid.NewGuid()), 
             1, 
             principal.AgentId, 
             principal.SecurityScope, 
@@ -58,7 +58,6 @@ public sealed class ConfiguredInvocationNormalizer(IManifestProvider manifests, 
             input.IdempotencyKey, 
             operation.TaskGrantRequired, 
             operation.Mutability != "read_only", 
-            operation.Effect is not null, 
             DateTimeOffset.UtcNow);
     }
 }

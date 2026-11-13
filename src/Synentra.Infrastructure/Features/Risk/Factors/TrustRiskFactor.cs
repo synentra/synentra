@@ -7,7 +7,7 @@ namespace Synentra.Infrastructure.Features.Risk.Factors;
 
 public sealed class TrustRiskFactor : IRiskFactorPlugin
 {
-    public string Name => "trust";
+    public string Name => "risk-factor/trust";
     public IntentModality SupportedModalities => (IntentModality)(-1);
 
     public Task<RiskFactorResult> EvaluateAsync(RiskInput input, CancellationToken ct) 

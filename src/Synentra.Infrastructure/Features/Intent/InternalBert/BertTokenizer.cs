@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 public class BertTokenizer
 {

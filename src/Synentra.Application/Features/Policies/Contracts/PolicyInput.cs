@@ -1,4 +1,3 @@
-using Synentra.Domain.Effects.ValueObjects;
 using Synentra.Domain.Governance.Intent.ValueObjects;
 using Synentra.Domain.Governance.Risk.ValueObjects;
 using Synentra.Domain.Governance.Trust.ValueObjects;
@@ -15,6 +14,5 @@ public sealed record PolicyInput(
     RiskAssessment? Risk, 
     TrustSnapshot? Trust, 
     IReadOnlyList<ResourceDescriptor> Resources, 
-    EffectPlan? EffectPlan, 
     string? TaskGrantId, 
     IReadOnlyDictionary<string, string> UntrustedContext);

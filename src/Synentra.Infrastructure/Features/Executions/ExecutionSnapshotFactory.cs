@@ -28,7 +28,7 @@ public sealed class ExecutionSnapshotFactory(
         if (operation.Execution.Model != "request_response")
             throw new InvalidOperationException("Execution model not supported by installed adapters.");
 
-        if (target.AdapterRef is not ("http" or "mcp"))
+        if (target.AdapterRef is not ("adapter/http" or "adapter/mcp"))
             throw new InvalidOperationException("Unsupported target adapter.");
 
         var endpoint = AdapterConfiguration.String(target.Configuration, "endpoint")
@@ -39,7 +39,7 @@ public sealed class ExecutionSnapshotFactory(
         IReadOnlyDictionary<string, string> headers;
         string? idempotencyHeader = null;
 
-        if (target.AdapterRef == "http")
+        if (target.AdapterRef == "adapter/http")
         {
             method = AdapterConfiguration.String(binding.Configuration, "method") ?? "POST";
             var bindingPath = AdapterConfiguration.String(binding.Configuration, "path");

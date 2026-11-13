@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Governance.Intent.ValueObjects;
-using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Intent;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -11,10 +11,10 @@ namespace Synentra.Infrastructure.Features.Intent.OpenAi;
 
 public class OpenAiIntentProvider(
     IHttpClientFactory clients,
-    IOptions<SemanticConfiguration> options,
+    IOptions<IntentConfiguration> options,
     ILogger<OpenAiIntentProvider> logger) : IntentProviderBase
 {
-    public override string ProviderId => "openai";
+    public override string ProviderId => "intent-provider/openai";
 
     public override IntentModality SupportedModalities =>
         IntentModality.Http

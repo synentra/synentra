@@ -5,7 +5,6 @@ using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Common.Serialization;
 using Synentra.Application.Features.Approvals;
-using Synentra.Application.Features.Budgets;
 using Synentra.Application.Features.Executions.Reconciliation;
 using Synentra.Application.Features.Invocations.Admission;
 using Synentra.Application.Features.Invocations.Evaluation;
@@ -33,7 +32,6 @@ public static class DependencyInjection
         services.TryAddScoped<ApprovalService>();
         services.TryAddScoped<TaskGrantService>();
         services.TryAddScoped<ManifestManager>();
-        services.TryAddScoped<BudgetSettlementService>();
         services.TryAddScoped<ResumeService>();
         services.TryAddScoped<ReconciliationService>();
         services.TryAddScoped<BundleValidator>();

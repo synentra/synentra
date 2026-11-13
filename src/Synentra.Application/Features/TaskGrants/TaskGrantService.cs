@@ -15,8 +15,7 @@ public sealed class TaskGrantService
     public Task<TaskGrant> IssueAsync(
         CanonicalPrincipal issuer, 
         TaskGrant requested, 
-        IReadOnlyDictionary<string, long> issuerCeilings, 
-        CancellationToken ct) => _dispatcher.Dispatch(new IssueTaskGrantCommand(issuer, requested, issuerCeilings), ct);
+        CancellationToken ct) => _dispatcher.Dispatch(new IssueTaskGrantCommand(issuer, requested), ct);
 
     public Task RevokeAsync(
         string grantId, 

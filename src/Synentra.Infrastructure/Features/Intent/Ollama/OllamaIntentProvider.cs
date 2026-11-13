@@ -2,18 +2,17 @@
 using Microsoft.Extensions.Options;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Governance.Intent.ValueObjects;
-using Synentra.Infrastructure.Configuration.Semantic;
-using Synentra.Infrastructure.Features.Intent.OpenAi;
+using Synentra.Infrastructure.Configuration.Intent;
 using System.Text.Json;
 
 namespace Synentra.Infrastructure.Features.Intent;
 
 public sealed class OllamaIntentProvider(
     IHttpClientFactory clients, 
-    IOptions<SemanticConfiguration> options, 
+    IOptions<IntentConfiguration> options, 
     ILogger<OllamaIntentProvider> logger) : IntentProviderBase
 {
-    public override string ProviderId => "ollama";
+    public override string ProviderId => "intent-provider/ollama";
     public override IntentModality SupportedModalities => 
         IntentModality.Http 
         | IntentModality.Mcp 

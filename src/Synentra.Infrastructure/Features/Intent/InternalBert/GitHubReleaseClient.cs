@@ -1,6 +1,6 @@
 ﻿using Octokit;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 public class GitHubReleaseClient : IGitHubReleaseClient
 {

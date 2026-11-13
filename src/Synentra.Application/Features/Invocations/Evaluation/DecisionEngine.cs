@@ -1,4 +1,3 @@
-using Synentra.Domain.Effects.ValueObjects;
 using Synentra.Domain.Governance.Decisions;
 using Synentra.Domain.Governance.Evidence;
 using Synentra.Domain.Governance.Intent.ValueObjects;
@@ -9,7 +8,6 @@ using Synentra.Domain.Resources.ValueObjects;
 using Synentra.Domain.Resources;
 using Microsoft.Extensions.Logging;
 using Synentra.Application.Features.Auditing.Contracts;
-using Synentra.Application.Features.Effects.Contracts;
 using Synentra.Application.Features.Intent.Contracts;
 using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Application.Features.Manifests.Contracts;
@@ -29,8 +27,6 @@ public sealed class DecisionEngine : IInvocationEvaluator
     private readonly ITrustEngine _trustEngine;
     private readonly IPolicyEngine _policyEngine;
     private readonly IEnumerable<IResourceResolver> _resourceResolvers;
-    private readonly IEnumerable<IEffectResolver> _effectResolvers;
-    private readonly IEnumerable<IObligationHandler> _obligationHandlers;
     private readonly IManifestProvider _manifests;
     private readonly IRevisionProvider _revisions;
     private readonly IAuditStore _audit;
@@ -42,7 +38,6 @@ public sealed class DecisionEngine : IInvocationEvaluator
         ITrustEngine trustEngine, 
         IPolicyEngine policyEngine, 
         IEnumerable<IResourceResolver> resourceResolvers, 
-        IEnumerable<IEffectResolver> effectResolvers, 
         IEnumerable<IObligationHandler> obligationHandlers, 
         IManifestProvider manifests, 
         IRevisionProvider revisions, 
@@ -54,8 +49,6 @@ public sealed class DecisionEngine : IInvocationEvaluator
         _trustEngine = trustEngine;
         _policyEngine = policyEngine;
         _resourceResolvers = resourceResolvers;
-        _effectResolvers = effectResolvers;
-        _obligationHandlers = obligationHandlers;
         _manifests = manifests;
         _revisions = revisions;
         _audit = audit;
@@ -129,23 +122,7 @@ public sealed class DecisionEngine : IInvocationEvaluator
             resourceResults.AddRange(result.Descriptors);
         }
 
-        // 6. Effect resolution (optional)
-        EffectPlan? effectPlan = null;
-        var effectReg = ResolveEffectRegistration(invocation, bundle);
-        if (effectReg is not null)
-        {
-            var eff = _effectResolvers.FirstOrDefault(r => r.ResolverId == effectReg.ResolverRef && r.Version == effectReg.Version);
-            if (eff is null)
-                return ExecutionDecision.Deny(new[] { "EFFECT_RESOLVER_NOT_FOUND" });
-            if (eff is not null)
-            {
-                effectPlan = await eff.ResolveAsync(invocation, resourceResults, effectReg, ct);
-                if (effectPlan.HasUnknownUpperBound)
-                    return ExecutionDecision.Deny(new[] { "UNKNOWN_EFFECT_BOUND" });
-            }
-        }
-
-        // 7. Policy evaluation with complete evidence
+        // 6. Policy evaluation with complete evidence
         var policyInput = new PolicyInput(
             new ToolInvocationData(
                 invocation.OperationId.Value, 
@@ -160,21 +137,19 @@ public sealed class DecisionEngine : IInvocationEvaluator
             risk, 
             trust, 
             resourceResults, 
-            effectPlan, 
             invocation.TaskGrantId, 
             invocation.Context);
 
         var policyResult = await _policyEngine.EvaluateAsync(policyInput, ct);
 
-        // 8. Precedence: Deny > Review > Allow
+        // 7. Precedence: Deny > Review > Allow
         var evidence = new GovernanceEvidence
         {
             ManifestRevision = _revisions.ActiveRevision,
             Intent = intent,
             Risk = risk,
             Trust = trust,
-            Resources = resourceResults,
-            Effect = effectPlan
+            Resources = resourceResults
         };
 
         await _audit.AppendAsync(
@@ -276,10 +251,10 @@ public sealed class DecisionEngine : IInvocationEvaluator
     private static ProfileModel? ResolveProfile(ToolInvocation invocation, GovernanceBundleModel bundle)
     {
         var op = bundle.Spec.Operations.FirstOrDefault(o => o.Id == invocation.OperationId.Value);
-        if (op?.ProfileRef is null)
+        if (op?.ExecutionProfileRef is null)
             return null;
 
-        return bundle.Spec.Profiles.FirstOrDefault(p => p.Id == op.ProfileRef);
+        return bundle.Spec.Profiles.FirstOrDefault(p => p.Id == op.ExecutionProfileRef);
     }
 
     private static IEnumerable<ResolverRegistration> ResolveResourceRegistrations(ToolInvocation invocation, GovernanceBundleModel bundle)
@@ -290,14 +265,5 @@ public sealed class DecisionEngine : IInvocationEvaluator
 
         foreach (var r in op.Resources)
             yield return new ResolverRegistration(r.Role, r.ResolverRef, r.Version, r.Configuration.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? ""));
-    }
-
-    private static EffectRegistration? ResolveEffectRegistration(ToolInvocation invocation, GovernanceBundleModel bundle)
-    {
-        var op = bundle.Spec.Operations.FirstOrDefault(o => o.Id == invocation.OperationId.Value);
-        if (op?.Effect is null)
-            return null;
-
-        return new EffectRegistration(op.Effect.ResolverRef, op.Effect.Version, op.Effect.Configuration.ToDictionary(kv => kv.Key, kv => kv.Value?.ToString() ?? ""));
     }
 }

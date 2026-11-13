@@ -9,7 +9,6 @@ public abstract class SynentraDbContext(DbContextOptions options) : DbContext(op
     public DbSet<ActiveManifestEntity> ActiveManifests { get; set; }
     public DbSet<ApprovalEntity> Approvals { get; set; }
     public DbSet<AuditEntity> Audits { get; set; }
-    public DbSet<BudgetAccountEntity> BudgetAccounts { get; set; }
     public DbSet<CredentialBindingEntity> CredentialBindings { get; set; }
     public DbSet<ExecutionClaimEntity> ExecutionClaims { get; set; }
     public DbSet<ExecutionEntity> Executions { get; set; }
@@ -20,7 +19,6 @@ public abstract class SynentraDbContext(DbContextOptions options) : DbContext(op
     public DbSet<OutboxEntity> Outboxes { get; set; }
     public DbSet<OutcomeEvidenceEntity> OutcomeEvidences { get; set; }
     public DbSet<QuarantineEntity> Quarantines { get; set; }
-    public DbSet<ReservationEntity> Reservations { get; set; }
     public DbSet<SecretEntity> Secrets { get; set; }
     public DbSet<SecretStateEntity> SecretStates { get; set; }
     public DbSet<TrustEntity> Trusts { get; set; }

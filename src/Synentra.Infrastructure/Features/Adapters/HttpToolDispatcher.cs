@@ -26,7 +26,7 @@ public sealed class HttpToolDispatcher(
         "User-Agent"
     };
 
-    public string AdapterId => "http";
+    public string AdapterId => "adapter/http";
     public string AdapterVersion => "1.0.0";
     public IReadOnlyList<string> SupportedExecutionModels => new[] { "request_response" };
 

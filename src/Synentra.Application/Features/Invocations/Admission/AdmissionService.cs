@@ -1,4 +1,3 @@
-using Synentra.Domain.Effects.ValueObjects;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Application.Common.Persistence;
 using Synentra.Domain.Execution;
@@ -9,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using Synentra.Application.Common.Messaging;
 using Synentra.Application.Features.Approvals.Contracts;
 using Synentra.Application.Features.Auditing.Contracts;
-using Synentra.Application.Features.Budgets.Contracts;
 using Synentra.Application.Features.Executions.Contracts;
 using Synentra.Application.Features.Executions.Messages;
 using Synentra.Application.Features.Invocations.Contracts;
@@ -26,7 +24,6 @@ public sealed class AdmissionService : IExecutionAdmission
     private static readonly TimeSpan DefaultClaimTtl = TimeSpan.FromSeconds(60);
     private readonly IGrantStore _grants;
     private readonly IApprovalStore _approvals;
-    private readonly IBudgetStore _budgets;
     private readonly IExecutionClaimStore _claims;
     private readonly IExecutionRecordStore _records;
     private readonly IInvocationStore _invocations;
@@ -36,18 +33,17 @@ public sealed class AdmissionService : IExecutionAdmission
     private readonly ILogger<AdmissionService> _log;
 
     public AdmissionService(
-        IGrantStore grants, 
-        IApprovalStore approvals, 
-        IBudgetStore budgets, 
-        IExecutionClaimStore claims, 
-        IExecutionRecordStore records, 
-        IInvocationStore invocations, 
-        IAuditStore audit, 
-        IOutbox outbox, 
-        ITrustEngine trust, 
-        ILogger<AdmissionService> log, 
-        IUnitOfWork work, 
-        IExecutionSnapshotFactory snapshots, 
+        IGrantStore grants,
+        IApprovalStore approvals,
+        IExecutionClaimStore claims,
+        IExecutionRecordStore records,
+        IInvocationStore invocations,
+        IAuditStore audit,
+        IOutbox outbox,
+        ITrustEngine trust,
+        ILogger<AdmissionService> log,
+        IUnitOfWork work,
+        IExecutionSnapshotFactory snapshots,
         IRevisionProvider revisions)
     {
         _work = work;
@@ -55,7 +51,6 @@ public sealed class AdmissionService : IExecutionAdmission
         _revisions = revisions;
         _grants = grants;
         _approvals = approvals;
-        _budgets = budgets;
         _claims = claims;
         _records = records;
         _invocations = invocations;
@@ -105,77 +100,14 @@ public sealed class AdmissionService : IExecutionAdmission
                 return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "TASK_GRANT_OPERATION_MISMATCH" }));
         }
 
-        if (grant is not null)
-        {
-            foreach (var resource in decision.Evidence.Resources)
-                if (!grant.ResourceScopes.Any(scope => scope.Type == resource.Type && scope.Ids.Contains(resource.Id) && resource.SecurityScope == invocation.SecurityScope && resource.TrustedAttributes.GetValueOrDefault("role") == scope.Role))
-                    return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "TASK_GRANT_RESOURCE_MISMATCH" }));
-
-            foreach (var quantities in (decision.Evidence.Effect?.Quantities ?? Array.Empty<EffectQuantity>()).GroupBy(q => (q.Measure, q.Unit, q.Scale)))
-            {
-                var q = quantities.First();
-                var total = quantities.Aggregate(0L, (sum, item) => checked(sum + item.UpperBound));
-                var limit = grant.Limits.SingleOrDefault(l => l.Measure == q.Measure && l.Unit == q.Unit && l.Scale == q.Scale);
-
-                if (limit is null || (limit.PerInvocation is { } max && total > max))
-                    return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "TASK_GRANT_LIMIT_EXCEEDED" }));
-            }
-        }
-
         var executionId = Guid.NewGuid().ToString("N");
-        EffectPlan? effectPlan = decision.Evidence.Effect;
-        var reservations = new List<IBudgetLease>();
 
         try
         {
-            if (effectPlan is not null)
-            {
-                if (effectPlan.HasUnknownUpperBound || effectPlan.Quantities.GroupBy(q => (q.Measure, q.Unit, q.Scale, q.BudgetIdentity)).Any(g => g.Count() > 1))
-                    return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "INVALID_EFFECT_BUDGET_PLAN" }));
-
-                foreach (var qty in effectPlan.Quantities)
-                {
-                    var key = new BudgetKey(qty.Measure, qty.Unit, qty.Scale, invocation.SecurityScope, qty.BudgetIdentity);
-                    var lease = await _budgets.LockAsync(key, ct);
-                    if (!lease.CanReserve(qty.UpperBound))
-                    {
-                        await lease.DisposeAsync();
-                        foreach (var r in reservations)
-                            await r.DisposeAsync();
-                        return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "BUDGET_EXCEEDED" }));
-                    }
-
-                    reservations.Add(lease);
-                }
-
-                if (grant is not null)
-                {
-                    foreach (var group in effectPlan.Quantities.GroupBy(q => (q.Measure, q.Unit, q.Scale)))
-                    {
-                        var limit = grant.Limits.Single(l => l.Measure == group.Key.Measure && l.Unit == group.Key.Unit && l.Scale == group.Key.Scale);
-                        if (limit.Aggregate is not { } aggregate)
-                            continue;
-
-                        var total = group.Aggregate(0L, (sum, q) => checked(sum + q.UpperBound));
-                        await using var grantLease = await _budgets.LockGrantAsync(grant.Id, group.Key.Measure, group.Key.Unit, group.Key.Scale, aggregate, ct);
-                        if (!grantLease.CanReserve(total))
-                            return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "TASK_GRANT_AGGREGATE_EXCEEDED" }));
-
-                        await grantLease.Reserve(total, executionId);
-                    }
-                }
-
-                // All reservations validated — commit
-                for (int i = 0; i < effectPlan.Quantities.Count; i++)
-                    await reservations[i].Reserve(effectPlan.Quantities[i].UpperBound, executionId);
-            }
-
             // Acquire durable claim (single-winner across replicas)
             var claimId = await _claims.TryAcquireAsync(invocation.Id.ToString(), invocation.AuthenticatedAgentId, DefaultClaimTtl, ct);
             if (claimId is null)
             {
-                foreach (var r in reservations)
-                    await r.DisposeAsync();
                 return AdmissionResult.NotAdmitted(ExecutionDecision.Deny(new[] { "CLAIM_CONFLICT" }));
             }
 
@@ -212,17 +144,11 @@ public sealed class AdmissionService : IExecutionAdmission
                     _revisions.ActiveRevision), 
                 ct);
 
-            // Commit reservations
-            foreach (var r in reservations)
-                await r.DisposeAsync();
-
-            return AdmissionResult.CreateAdmitted(claimId, effectPlan ?? EffectPlan.Empty("none"), decision);
+            return AdmissionResult.CreateAdmitted(claimId, decision);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Admission failed");
-            foreach (var r in reservations)
-                await r.DisposeAsync();
             throw;
         }
     }

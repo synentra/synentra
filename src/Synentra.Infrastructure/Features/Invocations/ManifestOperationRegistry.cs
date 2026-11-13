@@ -15,6 +15,6 @@ public sealed class ManifestOperationRegistry(IManifestProvider manifests) : IOp
         var op = bundle.Spec.Operations.SingleOrDefault(x => x.Id == operationId);
         return op is null 
             ? null 
-            : new(op.Id, op.Version, op.Family, op.Action, op.Mutability == "read_only" ? Mutability.ReadOnly : Mutability.Mutation, ExecutionModel.RequestResponse, op.TaskGrantRequired, op.Effect is not null, op.PolicyRefs);
+            : new(op.Id, op.Version, op.Family, op.Action, op.Mutability == "read_only" ? Mutability.ReadOnly : Mutability.Mutation, ExecutionModel.RequestResponse, op.TaskGrantRequired, op.PolicyRefs);
     }
 }

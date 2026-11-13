@@ -2,13 +2,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Synentra.Infrastructure.Configuration.Semantic;
+using Synentra.Infrastructure.Configuration.Intent;
 
-namespace Synentra.Infrastructure.Semantic.Providers.InternalBert;
+namespace Synentra.Infrastructure.Intent.Providers.InternalBert;
 
 internal sealed class InternalOnnxInitializer(
     IServiceProvider serviceProvider,
-    IOptions<SemanticConfiguration> options,
+    IOptions<IntentConfiguration> options,
     ILogger<InternalOnnxInitializer> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)

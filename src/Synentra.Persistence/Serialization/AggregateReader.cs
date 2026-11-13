@@ -37,7 +37,6 @@ internal static class AggregateReader
             Read<string>(e, "securityScope"), 
             Read<List<string>>(e, "operationIds"), 
             Read<List<ResourceScope>>(e, "resourceScopes"), 
-            Read<List<GrantLimit>>(e, "limits"), 
             Read<DateTimeOffset>(e, "expiresAt"), 
             Read<string?>(e, "externalReference"), 
             Read<GrantState>(e, "state"), 

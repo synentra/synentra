@@ -1,4 +1,4 @@
-namespace Synentra.Infrastructure.Configuration.Semantic;
+namespace Synentra.Infrastructure.Configuration.Intent;
 
 public class OpenAiConfiguration
 {

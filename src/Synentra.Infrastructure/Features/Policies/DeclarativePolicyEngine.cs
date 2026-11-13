@@ -7,7 +7,7 @@ namespace Synentra.Infrastructure.Features.Policies;
 
 public sealed class DeclarativePolicyEngine(IManifestProvider manifests) : IPolicyEngine
 {
-    public string EngineId => "declarative";
+    public string EngineId => "policy-engine/builtin-declarative";
     public string Version => "1.0.0";
 
     public Task<PolicyResult> EvaluateAsync(PolicyInput input, CancellationToken ct)
@@ -22,7 +22,7 @@ public sealed class DeclarativePolicyEngine(IManifestProvider manifests) : IPoli
         if (op is null)
             return Task.FromResult(PolicyResult.Deny(new[] { "OPERATION_NOT_REGISTERED" }, revision));
 
-        var profile = bundle!.Spec.Profiles.SingleOrDefault(x => x.Id == op.ProfileRef);
+        var profile = bundle!.Spec.Profiles.SingleOrDefault(x => x.Id == op.ExecutionProfileRef);
         var matches = new List<string>();
         bool allow = false, review = false;
         foreach (var id in op.PolicyRefs)

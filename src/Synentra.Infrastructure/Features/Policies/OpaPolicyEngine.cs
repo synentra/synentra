@@ -13,7 +13,7 @@ public sealed class OpaPolicyEngine(
     IOptions<PolicyConfiguration> policyOptions,
     IOptions<OutboundHttpConfiguration> outboundHttpOptions) : IPolicyEngine
 {
-    public string EngineId => "opa";
+    public string EngineId => "policy-engine/opa";
     public string Version => "1.0.0";
 
     public async Task<PolicyResult> EvaluateAsync(PolicyInput input, CancellationToken ct)

@@ -6,5 +6,4 @@ namespace Synentra.Application.Features.TaskGrants.Commands.IssueTaskGrant;
 
 public sealed record IssueTaskGrantCommand(
     CanonicalPrincipal Issuer, 
-    TaskGrant Requested, 
-    IReadOnlyDictionary<string, long> IssuerCeilings) : ICommand<TaskGrant>;
+    TaskGrant Requested) : ICommand<TaskGrant>;
