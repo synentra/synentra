@@ -10,7 +10,7 @@ public sealed class OperationModel
     public string Action { get; set; } = "";
     public string Mutability { get; set; } = "readOnly";
     public ExecutionMode Execution { get; set; } = new();
-    public string? GovernanceProfileRef { get; set; }
+    public string? ProfileRef { get; set; }
     public List<string> PolicyRefs { get; set; } = new();
     public bool RequiresTaskGrant { get; set; }
     public JsonElement InputSchema { get; set; }

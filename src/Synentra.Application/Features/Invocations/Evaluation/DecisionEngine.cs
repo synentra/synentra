@@ -251,10 +251,10 @@ public sealed class DecisionEngine : IInvocationEvaluator
     private static ProfileModel? ResolveProfile(ToolInvocation invocation, GovernanceBundleModel bundle)
     {
         var op = bundle.Spec.Operations.FirstOrDefault(o => o.Id == invocation.OperationId.Value);
-        if (op?.GovernanceProfileRef is null)
+        if (op?.ProfileRef is null)
             return null;
 
-        return bundle.Spec.Profiles.FirstOrDefault(p => p.Id == op.GovernanceProfileRef);
+        return bundle.Spec.Profiles.FirstOrDefault(p => p.Id == op.ProfileRef);
     }
 
     private static IEnumerable<ResolverRegistration> ResolveResourceRegistrations(ToolInvocation invocation, GovernanceBundleModel bundle)
