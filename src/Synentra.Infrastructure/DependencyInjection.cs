@@ -238,19 +238,19 @@ public static class DependencyInjection
 
         var policyConfig = scope.ServiceProvider.GetRequiredService<IOptions<PolicyConfiguration>>();
 
-        services.AddScoped<DeclarativePolicyEngine>();
+        services.AddScoped<DeclarativePolicyProvider>();
         services.AddScoped<OpaPolicyEngine>();
-        services.AddScoped<IPolicyEngine>(s => policyConfig.Value.Provider.ToLowerInvariant() switch
+        services.AddScoped<IPolicyProvider>(s => policyConfig.Value.Provider.ToLowerInvariant() switch
         {
-            "declarative" => s.GetRequiredService<DeclarativePolicyEngine>(),
+            "declarative" => s.GetRequiredService<DeclarativePolicyProvider>(),
             "opa" => s.GetRequiredService<OpaPolicyEngine>(),
             _ => throw new InvalidOperationException("Unknown policy provider.")
         });
 
-        services.AddScoped<ITrustEngine, PersistedTrustEngine>();
+        services.AddScoped<ITrustProvider, PersistedTrustProvider>();
         services.AddScoped<QuarantineService>();
         services.AddScoped<TrustAdministrationService>();
-        services.AddScoped<IRiskEngine, CompositeRiskEngine>();
+        services.AddScoped<IRiskProvider, CompositeRiskProvider>();
         services.AddScoped<IRiskFactorPlugin, BodySizeRiskFactor>();
         services.AddScoped<IRiskFactorPlugin, IntentRiskFactor>();
         services.AddScoped<IRiskFactorPlugin, TimeBasedRiskFactor>();

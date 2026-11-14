@@ -13,7 +13,7 @@ public sealed class GeminiIntentProvider(
     IOptions<IntentConfiguration> options, 
     ILogger<GeminiIntentProvider> logger) : IntentProviderBase
 {
-    public override string ProviderId => "intent-provider/gemini";
+    public override string ProviderId => "intent/gemini";
     public override IntentModality SupportedModalities => 
         IntentModality.Http
         | IntentModality.Mcp

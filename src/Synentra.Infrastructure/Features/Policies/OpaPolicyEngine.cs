@@ -11,9 +11,9 @@ namespace Synentra.Infrastructure.Features.Policies;
 public sealed class OpaPolicyEngine(
     IHttpClientFactory clients, 
     IOptions<PolicyConfiguration> policyOptions,
-    IOptions<OutboundHttpConfiguration> outboundHttpOptions) : IPolicyEngine
+    IOptions<OutboundHttpConfiguration> outboundHttpOptions) : IPolicyProvider
 {
-    public string EngineId => "policy-engine/opa";
+    public string ProviderId => "policy/opa";
     public string Version => "1.0.0";
 
     public async Task<PolicyResult> EvaluateAsync(PolicyInput input, CancellationToken ct)

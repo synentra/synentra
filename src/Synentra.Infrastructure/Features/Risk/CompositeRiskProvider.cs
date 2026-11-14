@@ -4,9 +4,9 @@ using Synentra.Domain.Governance.Risk.ValueObjects;
 
 namespace Synentra.Infrastructure.Features.Risk;
 
-public sealed class CompositeRiskEngine(IEnumerable<IRiskFactorPlugin> factors) : IRiskEngine
+public sealed class CompositeRiskProvider(IEnumerable<IRiskFactorPlugin> factors) : IRiskProvider
 {
-    public string EngineId => "risk-engine/composite";
+    public string ProviderId => "risk/composite";
     public string Version => "1.0.0";
 
     public async Task<RiskAssessment> EvaluateAsync(RiskInput input, CancellationToken ct)

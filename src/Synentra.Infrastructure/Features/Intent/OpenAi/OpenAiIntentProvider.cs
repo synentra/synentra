@@ -14,7 +14,7 @@ public class OpenAiIntentProvider(
     IOptions<IntentConfiguration> options,
     ILogger<OpenAiIntentProvider> logger) : IntentProviderBase
 {
-    public override string ProviderId => "intent-provider/openai";
+    public override string ProviderId => "intent/openai";
 
     public override IntentModality SupportedModalities =>
         IntentModality.Http

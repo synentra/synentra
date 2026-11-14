@@ -9,7 +9,7 @@ namespace Synentra.Infrastructure.Features.Resources;
 
 public sealed class HttpResourceResolver(IHttpClientFactory clients) : IResourceResolver
 {
-    public string ResolverId => "http-resource/default";
+    public string ResolverId => "resource/http";
     public string Version => "1.0.0";
 
     public async Task<ResourceResolutionResult> ResolveAsync(ToolInvocation invocation, ResolverRegistration registration, CancellationToken ct)
