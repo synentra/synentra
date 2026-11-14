@@ -14,7 +14,7 @@ public sealed class AzureAiIntentProvider(
     IOptions<IntentConfiguration> options, 
     ILogger<AzureAiIntentProvider> logger) : IntentProviderBase
 {
-    public override string ProviderId => "intent-provider/azure";
+    public override string ProviderId => "intent/azure";
 
     public override IntentModality SupportedModalities =>
         IntentModality.Http

@@ -12,7 +12,7 @@ public sealed class OllamaIntentProvider(
     IOptions<IntentConfiguration> options, 
     ILogger<OllamaIntentProvider> logger) : IntentProviderBase
 {
-    public override string ProviderId => "intent-provider/ollama";
+    public override string ProviderId => "intent/ollama";
     public override IntentModality SupportedModalities => 
         IntentModality.Http 
         | IntentModality.Mcp 

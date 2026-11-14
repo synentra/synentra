@@ -23,9 +23,9 @@ namespace Synentra.Application.Features.Invocations.Evaluation;
 public sealed class DecisionEngine : IInvocationEvaluator
 {
     private readonly IReadOnlyList<IIntentProvider> _intentProviders;
-    private readonly IRiskEngine _riskEngine;
-    private readonly ITrustEngine _trustEngine;
-    private readonly IPolicyEngine _policyEngine;
+    private readonly IRiskProvider _riskEngine;
+    private readonly ITrustProvider _trustEngine;
+    private readonly IPolicyProvider _policyEngine;
     private readonly IEnumerable<IResourceResolver> _resourceResolvers;
     private readonly IManifestProvider _manifests;
     private readonly IRevisionProvider _revisions;
@@ -34,9 +34,9 @@ public sealed class DecisionEngine : IInvocationEvaluator
 
     public DecisionEngine(
         IEnumerable<IIntentProvider> intentProviders, 
-        IRiskEngine riskEngine, 
-        ITrustEngine trustEngine, 
-        IPolicyEngine policyEngine, 
+        IRiskProvider riskEngine, 
+        ITrustProvider trustEngine, 
+        IPolicyProvider policyEngine, 
         IEnumerable<IResourceResolver> resourceResolvers, 
         IEnumerable<IObligationHandler> obligationHandlers, 
         IManifestProvider manifests, 

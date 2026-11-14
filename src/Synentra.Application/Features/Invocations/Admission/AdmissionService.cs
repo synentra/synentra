@@ -29,7 +29,7 @@ public sealed class AdmissionService : IExecutionAdmission
     private readonly IInvocationStore _invocations;
     private readonly IAuditStore _audit;
     private readonly IOutbox _outbox;
-    private readonly ITrustEngine _trust;
+    private readonly ITrustProvider _trust;
     private readonly ILogger<AdmissionService> _log;
 
     public AdmissionService(
@@ -40,7 +40,7 @@ public sealed class AdmissionService : IExecutionAdmission
         IInvocationStore invocations,
         IAuditStore audit,
         IOutbox outbox,
-        ITrustEngine trust,
+        ITrustProvider trust,
         ILogger<AdmissionService> log,
         IUnitOfWork work,
         IExecutionSnapshotFactory snapshots,

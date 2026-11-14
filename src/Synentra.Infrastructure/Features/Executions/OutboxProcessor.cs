@@ -28,7 +28,7 @@ public sealed class OutboxProcessor(
     IInvocationStore invocations, 
     IRevisionProvider revisions, 
     IManifestProvider manifests, 
-    ITrustEngine trust, 
+    ITrustProvider trust, 
     IGrantStore grants, 
     CredentialBindingStore credentials, 
     IEnumerable<IToolDispatcher> dispatchers,

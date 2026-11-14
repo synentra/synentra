@@ -12,13 +12,13 @@ using Synentra.Infrastructure.Configuration.Trust;
 
 namespace Synentra.Infrastructure.Features.Trust;
 
-public sealed class PersistedTrustEngine(
+public sealed class PersistedTrustProvider(
     IDbContextFactory<SynentraDbContext> dbFactory, 
     IUnitOfWork work,
     PayloadCodec codec, 
-    IOptions<TrustConfiguration> options) : ITrustEngine
+    IOptions<TrustConfiguration> options) : ITrustProvider
 {
-    public string EngineId => "trust-engine/persisted";
+    public string ProviderId => "trust/persisted";
 
     public async Task<TrustSnapshot> LoadSnapshotAsync(string agentId, string securityScope, CancellationToken ct)
     {

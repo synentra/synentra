@@ -15,7 +15,7 @@ public sealed class HashiCorpVaultCredentialProvider(
 {
     private const int MaximumResponseBytes = 65_536;
 
-    public string ProviderId => "credential-provider/hashicorp-vault";
+    public string ProviderId => "credential/hashicorp-vault";
 
     public async Task<ResolvedCredential> ResolveAsync(
         CredentialBinding binding,
