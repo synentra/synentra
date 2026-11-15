@@ -26,7 +26,7 @@ public sealed class McpToolDispatcher(
         if (!Uri.TryCreate(snapshot.Path, UriKind.Absolute, out var endpoint))
             return new(ReceiptStatus.ConnectionFailed, null, null, null, timestamp, "INVALID_MCP_ENDPOINT");
 
-        using var http = new HttpClient(new GovernedHttpHandler(outboundHttpOptions, snapshot.AuthorizedTarget))
+        using var http = new HttpClient(new GovernedHttpHandler(outboundHttpOptions, snapshot.AuthorizedTarget, snapshot.RequiresHttps))
         {
             Timeout = outboundHttpOptions.Value.Timeout ?? TimeSpan.FromSeconds(30)
         };

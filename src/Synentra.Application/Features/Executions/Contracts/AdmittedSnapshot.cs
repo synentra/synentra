@@ -11,6 +11,7 @@ public sealed record AdmittedSnapshot
     public string BindingId { get; }
     public string TargetId { get; }
     public AuthorizedHttpTarget AuthorizedTarget { get; }
+    public bool RequiresHttps { get; }
     public string Method { get; }
     public string Path { get; }
     public IReadOnlyDictionary<string, object> Arguments { get; }
@@ -29,6 +30,7 @@ public sealed record AdmittedSnapshot
         string bindingId, 
         string targetId, 
         AuthorizedHttpTarget authorizedTarget,
+        bool requiresHttps,
         string method, 
         string path, 
         IReadOnlyDictionary<string, object> arguments, 
@@ -46,6 +48,7 @@ public sealed record AdmittedSnapshot
         BindingId = bindingId;
         TargetId = targetId;
         AuthorizedTarget = authorizedTarget;
+        RequiresHttps = requiresHttps;
         Method = method;
         Path = path;
         Arguments = arguments;

@@ -10,7 +10,8 @@ namespace Synentra.Infrastructure.Networking;
 
 public sealed class GovernedHttpHandler(
     IOptions<OutboundHttpConfiguration> options,
-    AuthorizedHttpTarget? authorizedTarget = null) : DelegatingHandler(CreateSockets(options))
+    AuthorizedHttpTarget? authorizedTarget = null,
+    bool requiresHttps = true) : DelegatingHandler(CreateSockets(options))
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
@@ -31,7 +32,7 @@ public sealed class GovernedHttpHandler(
             if (!authorizedTarget.Matches(uri))
                 throw new SecurityException("Destination does not match the authorized GovernanceBundle operation URI.");
 
-            if (authorizedTarget.RequiresHttps && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            if (requiresHttps && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
                 throw new SecurityException("Credentials require HTTPS.");
         }
 
