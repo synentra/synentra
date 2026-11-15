@@ -114,7 +114,7 @@ public sealed class McpGateway : EndpointGroupBase
 
                 var bindings = bundle.Spec.OperationBindings
                     .Where(b => b.TargetRef == serverId)
-                    .Select(b => new { Binding = b, Operation = bundle.Spec.Operations.SingleOrDefault(o => o.Id == b.OperationId) })
+                    .Select(b => new { Binding = b, Operation = bundle.Spec.Operations.SingleOrDefault(o => o.Id == b.OperationRef) })
                     .Where(x => x.Operation is not null)
                     .Where(x => !IsHardRestricted(bundle, principal.AgentId, x.Operation!))
                     .Where(x => !string.IsNullOrWhiteSpace(ConfigString(x.Binding.Configuration, "tool")))
@@ -174,7 +174,7 @@ public sealed class McpGateway : EndpointGroupBase
                     return RpcError(id, -32602, candidates.Length == 0 ? "Unknown tool." : "Ambiguous tool binding.");
 
                 var binding = candidates[0];
-                var operation = bundle.Spec.Operations.Single(o => o.Id == binding.OperationId);
+                var operation = bundle.Spec.Operations.Single(o => o.Id == binding.OperationRef);
                 var arguments = parameters.TryGetProperty("arguments", out var a) && a.ValueKind == JsonValueKind.Object
                     ? a.Clone()
                     : JsonSerializer.SerializeToElement(new Dictionary<string, object>());

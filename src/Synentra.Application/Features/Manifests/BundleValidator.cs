@@ -91,8 +91,8 @@ public sealed class BundleValidator
 
         foreach (var b in bundle.Spec.OperationBindings)
         {
-            if (!opIds.Contains(b.OperationId))
-                issues.Add(new("error", "UNRESOLVED_OPERATION_REF", $"Binding '{b.Id}' references unknown operation '{b.OperationId}'."));
+            if (!opIds.Contains(b.OperationRef))
+                issues.Add(new("error", "UNRESOLVED_OPERATION_REF", $"Binding '{b.Id}' references unknown operation '{b.OperationRef}'."));
 
             if (!targetIds.Contains(b.TargetRef))
                 issues.Add(new("error", "UNRESOLVED_TARGET_REF", $"Binding '{b.Id}' references unknown target '{b.TargetRef}'."));
@@ -111,6 +111,7 @@ public sealed class BundleValidator
         // 4. Policy rules validate effects and matcher language
         foreach (var policy in bundle.Spec.Policies)
         {
+            ValidateUniqueIds(issues, policy.Rules.Select(x => x.Id), $"POLICY_{policy.Id}_RULE");
             foreach (var rule in policy.Rules)
             {
                 if (!AllowedEffects.Contains(rule.Effect))

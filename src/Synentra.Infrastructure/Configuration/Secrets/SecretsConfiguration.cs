@@ -13,6 +13,14 @@ public class SecretsConfiguration : ISynentraConfiguration
     public SecretCacheOptions Cache { get; set; } = new();
     public Dictionary<string, SecretDeclaration> Bindings { get; set; } = new(StringComparer.Ordinal);
 
+    public static readonly HashSet<string> CredentialProviders = new(StringComparer.Ordinal)
+    {
+        "credential/localvault",
+        "credential/hashicorp-vault",
+        "credential/azure-keyvault",
+        "credential/aws-secrets"
+    };
+
     public static readonly HashSet<string> RemoteProviders = new(StringComparer.Ordinal)
     {
         "localvault",

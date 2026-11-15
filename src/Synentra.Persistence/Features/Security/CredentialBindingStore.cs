@@ -32,7 +32,7 @@ public sealed class CredentialBindingStore(
         await work.ExecuteAsync(async token =>
         {
             var db = scope.Current;
-            var r = await db.Set<CredentialBindingEntity>().FindAsync(new object[] { value.Id }, token);
+            var r = await db.CredentialBindings.FindAsync(new object[] { value.Id }, token);
 
             if (string.IsNullOrWhiteSpace(value.Version) 
             || string.IsNullOrWhiteSpace(value.Id) 
@@ -43,7 +43,7 @@ public sealed class CredentialBindingStore(
             || value.AllowedOperations.Any(string.IsNullOrWhiteSpace) 
             || string.IsNullOrWhiteSpace(value.SecretRef.SecretPath) 
             || string.IsNullOrWhiteSpace(value.SecretRef.Version) 
-            || value.SecretRef.ProviderId.ToLowerInvariant() is not ("localvault" or "hashicorpvault" or "azurekeyvault" or "awssecrets"))
+            || value.SecretRef.ProviderId.ToLowerInvariant() is not ("credential/localvault" or "credential/hashicorp-vault" or "credential/azure-keyvault" or "credential/aws-secrets"))
                 throw new InvalidOperationException("INVALID_CREDENTIAL_BINDING");
 
             if (r is null && (materialOnly || value.AuthorityVersion != value.Version)) 

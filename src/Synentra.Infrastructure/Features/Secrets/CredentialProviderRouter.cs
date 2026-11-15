@@ -33,7 +33,7 @@ public sealed class CredentialProviderRouter(
             throw new UnauthorizedAccessException("Runtime binding differs from the deployment secret catalog.");
 
         binding = current; // An explicit material rotation may replace the reference without changing authority.
-        if (!SecretsConfiguration.RemoteProviders.Contains(binding.SecretRef.ProviderId)) 
+        if (!SecretsConfiguration.CredentialProviders.Contains(binding.SecretRef.ProviderId)) 
             throw new UnauthorizedAccessException("Runtime source is not permitted.");
 
         if (binding.AllowedPrincipal != identity.AgentId 

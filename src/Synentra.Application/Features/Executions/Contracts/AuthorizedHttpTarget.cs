@@ -4,8 +4,7 @@ public sealed record AuthorizedHttpTarget(
     string TargetId,
     Uri EndpointUri,
     Uri RequestUri,
-    string ManifestRevision,
-    bool RequiresHttps)
+    string ManifestRevision)
 {
     public bool IsValid => !string.IsNullOrWhiteSpace(TargetId)
         && !string.IsNullOrWhiteSpace(ManifestRevision)

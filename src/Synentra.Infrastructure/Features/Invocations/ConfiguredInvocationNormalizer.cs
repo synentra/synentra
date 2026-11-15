@@ -18,7 +18,7 @@ public sealed class ConfiguredInvocationNormalizer(IManifestProvider manifests, 
     {
         await revisions.ReloadAsync(ct);
         var bundle = manifests.ActiveBundle ?? throw new InvalidOperationException("NO_ACTIVE_BUNDLE");
-        var binding = bundle.Spec.OperationBindings.Single(x => x.Id == input.BindingId && x.OperationId == input.OperationId);
+        var binding = bundle.Spec.OperationBindings.Single(x => x.Id == input.BindingId && x.OperationRef == input.OperationId);
         var operation = bundle.Spec.Operations.Single(x => x.Id == input.OperationId);
 
         if (operation.Execution.Mode != "requestResponse")

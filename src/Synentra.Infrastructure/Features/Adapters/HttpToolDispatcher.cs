@@ -68,7 +68,7 @@ public sealed class HttpToolDispatcher(
 
         try
         {
-            using var client = new HttpClient(new GovernedHttpHandler(outboundHttpOptions, snapshot.AuthorizedTarget))
+            using var client = new HttpClient(new GovernedHttpHandler(outboundHttpOptions, snapshot.AuthorizedTarget, snapshot.RequiresHttps))
             {
                 Timeout = outboundHttpOptions.Value.Timeout ?? TimeSpan.FromSeconds(30)
             };
