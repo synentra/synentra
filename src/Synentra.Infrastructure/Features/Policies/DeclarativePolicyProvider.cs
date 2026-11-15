@@ -34,12 +34,11 @@ public sealed class DeclarativePolicyProvider(IManifestProvider manifests) : IPo
             if (policy.OperationFamily is not null && policy.OperationFamily != input.Invocation.OperationFamily)
                 continue;
 
-            for (int i = 0; i < policy.Rules.Count; i++)
+            foreach (var rule in policy.Rules)
             {
-                var rule = policy.Rules[i];
                 if (!Matches(rule.Match, input))
                     continue;
-                matches.Add($"{id}:{i}");
+                matches.Add($"{id}:{rule.Id}");
                 switch (rule.Effect)
                 {
                     case "deny":
