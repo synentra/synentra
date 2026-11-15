@@ -47,7 +47,9 @@ public sealed class Secrets : EndpointGroupBase
             IPrincipalResolver principals, CredentialBindingStore bindings, CancellationToken ct) =>
         {
             var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-            if (request.Binding is null || id != request.Binding.Id) return Results.BadRequest();
+            if (request.Binding is null || id != request.Binding.Id)
+                return Results.BadRequest();
+
             await bindings.SaveAsync(request.Binding.ToDomain(), request.ExpectedVersion, admin.AgentId, materialOnly: false, ct);
             return Results.NoContent();
         });
@@ -62,9 +64,13 @@ public sealed class Secrets : EndpointGroupBase
         group.MapPost("/rotate", async (RotateBinding request, HttpContext context, IPrincipalResolver principals, CredentialBindingStore bindings, CancellationToken ct) =>
         {
             var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-            if (request.SecretRef is null || string.IsNullOrWhiteSpace(request.BindingId)) return Results.BadRequest();
+            if (request.SecretRef is null || string.IsNullOrWhiteSpace(request.BindingId))
+                return Results.BadRequest();
+
             var prior = await bindings.GetAsync(request.BindingId, ct);
-            if (prior is null) return Results.NotFound();
+            if (prior is null)
+                return Results.NotFound();
+
             var rotated = new CredentialBinding(prior.Id, prior.TargetRef, prior.AllowedPrincipal, prior.DelegationScope, prior.AllowedOperations,
                 request.SecretRef, Guid.NewGuid().ToString("N"), false, prior.AuthorityVersion);
             await bindings.SaveAsync(rotated, request.ExpectedVersion, admin.AgentId, materialOnly: true, ct);
@@ -74,14 +80,23 @@ public sealed class Secrets : EndpointGroupBase
         group.MapGet("/state", async (string providerId, string path, string version, HttpContext context, IPrincipalResolver principals, SecretStateStore states, CancellationToken ct) =>
         {
             await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-            if (!SecretsConfiguration.RemoteProviders.Contains(providerId)) return Results.BadRequest();
+
+            if (!SecretsConfiguration.CredentialProviders.Contains(providerId))
+                return Results.BadRequest();
+
             return Results.Ok(await states.GetAsync(new(providerId, path, version), ct));
         });
 
         group.MapPost("/state", async (ChangeSecretState request, HttpContext context, IPrincipalResolver principals, SecretStateStore states, CancellationToken ct) =>
         {
             var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-            if (request.SecretRef is null || !SecretsConfiguration.RemoteProviders.Contains(request.SecretRef.ProviderId) || string.IsNullOrWhiteSpace(request.SecretRef.SecretPath) || string.IsNullOrWhiteSpace(request.SecretRef.Version)) return Results.BadRequest();
+
+            if (request.SecretRef is null
+                || !SecretsConfiguration.CredentialProviders.Contains(request.SecretRef.ProviderId)
+                || string.IsNullOrWhiteSpace(request.SecretRef.SecretPath)
+                || string.IsNullOrWhiteSpace(request.SecretRef.Version))
+                return Results.BadRequest();
+
             var generation = await states.ChangeAsync(request.SecretRef, request.ExpectedGeneration, request.Revoke, admin.AgentId, ct);
             return Results.Ok(new { generation, revoked = request.Revoke });
         });
