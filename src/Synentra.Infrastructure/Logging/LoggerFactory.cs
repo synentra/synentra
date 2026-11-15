@@ -21,14 +21,16 @@ public class LoggerFactory: ILoggerFactory
         var config = new LoggerConfiguration()
             .Enrich.FromLogContext()
             .Enrich.WithSpan()
-            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", Serilog.Events.LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
             .Enrich.WithMachineName()
             .Enrich.WithThreadId()
+            .Enrich.WithProcessId()
+            .Enrich.WithProcessName()
             .Enrich.WithEnvironmentUserName();
 
         // Console
-        config = config.WriteTo.Console(
-                restrictedToMinimumLevel: LogEventLevel.Information);
+        ConfigureConsoleSink(config);
+
         // File
         ConfigureFileSink(config, configuration.File);
 
@@ -38,7 +40,16 @@ public class LoggerFactory: ILoggerFactory
         return config.CreateLogger();
     }
 
-    private static void ConfigureFileSink(Serilog.LoggerConfiguration config, FileLoggingConfiguration? fileLoggingConfig)
+    private static void ConfigureConsoleSink(LoggerConfiguration config)
+    {
+        config.WriteTo.Console(
+            restrictedToMinimumLevel: LogEventLevel.Information,
+            outputTemplate:
+                "[{Timestamp:dd/MMM/yyyy HH:mm:ss.fff} {Level:u3}] [{MachineName}] [{ProcessName}:{ProcessId}] [{SourceContext}] {Message:lj}{NewLine}{Exception}"
+        );
+    }
+
+    private static void ConfigureFileSink(LoggerConfiguration config, FileLoggingConfiguration? fileLoggingConfig)
     {
         if (fileLoggingConfig == null 
             || !fileLoggingConfig.Enabled 
@@ -57,7 +68,7 @@ public class LoggerFactory: ILoggerFactory
         );
     }
 
-    private static void ConfigureSeqSink(Serilog.LoggerConfiguration config, SeqLoggingConfiguration? seqLoggingConfig)
+    private static void ConfigureSeqSink(LoggerConfiguration config, SeqLoggingConfiguration? seqLoggingConfig)
     {
         if (seqLoggingConfig == null
             || !seqLoggingConfig.Enabled
