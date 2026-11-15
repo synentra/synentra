@@ -91,7 +91,7 @@ public sealed class BundleValidator
 
         foreach (var b in bundle.Spec.OperationBindings)
         {
-            if (!opIds.Contains(b.OperationId))
+            if (!opIds.Contains(b.OperationRef))
                 issues.Add(new("error", "UNRESOLVED_OPERATION_REF", $"Binding '{b.Id}' references unknown operation '{b.OperationId}'."));
 
             if (!targetIds.Contains(b.TargetRef))

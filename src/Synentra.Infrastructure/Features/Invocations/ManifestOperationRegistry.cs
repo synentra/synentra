@@ -9,7 +9,7 @@ public sealed class ManifestOperationRegistry(IManifestProvider manifests) : IOp
     public OperationRegistration? Find(string operationId, string bindingId)
     {
         var bundle = manifests.ActiveBundle;
-        if (bundle?.Spec.OperationBindings.Any(b => b.Id == bindingId && b.OperationId == operationId) != true)
+        if (bundle?.Spec.OperationBindings.Any(b => b.Id == bindingId && b.OperationRef == operationId) != true)
             return null;
 
         var op = bundle.Spec.Operations.SingleOrDefault(x => x.Id == operationId);

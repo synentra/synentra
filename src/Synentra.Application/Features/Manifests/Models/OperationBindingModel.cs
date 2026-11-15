@@ -4,7 +4,7 @@ public sealed class OperationBindingModel
 {
     public string Id { get; set; } = "";
     public string Version { get; set; } = "1";
-    public string OperationId { get; set; } = "";
+    public string OperationRef { get; set; } = "";
     public string TargetRef { get; set; } = "";
     public Dictionary<string, object> Configuration { get; set; } = new();
     public Dictionary<string, MappingEntryModel>? CanonicalToTarget { get; set; }

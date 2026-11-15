@@ -17,13 +17,13 @@ public sealed class ExecutionSnapshotFactory(
         CancellationToken ct)
     {
         var bundle = manifests.ActiveBundle ?? throw new InvalidOperationException("No active manifest.");
-        var binding = bundle.Spec.OperationBindings.Single(x => x.Id == invocation.BindingId && x.OperationId == invocation.OperationId.Value);
+        var binding = bundle.Spec.OperationBindings.Single(x => x.Id == invocation.BindingId && x.OperationRef == invocation.OperationId.Value);
 
         if (binding.Version != invocation.BindingVersion || binding.TargetRef != invocation.TargetId)
             throw new InvalidOperationException("Binding changed.");
 
         var target = bundle.Spec.Targets.Single(x => x.Id == binding.TargetRef);
-        var operation = bundle.Spec.Operations.Single(x => x.Id == binding.OperationId);
+        var operation = bundle.Spec.Operations.Single(x => x.Id == binding.OperationRef);
 
         if (operation.Execution.Mode != "requestResponse")
             throw new InvalidOperationException("Execution model not supported by installed adapters.");
@@ -91,8 +91,7 @@ public sealed class ExecutionSnapshotFactory(
             target.Id,
             endpointUri,
             requestUri,
-            revisions.ActiveRevision,
-            credential is not null);
+            revisions.ActiveRevision);
 
         return new AdmittedSnapshot(
             invocation.Id,
@@ -100,6 +99,7 @@ public sealed class ExecutionSnapshotFactory(
             invocation.BindingId,
             invocation.TargetId,
             authorizedTarget,
+            bundle.Security.RequireHttps,
             method,
             path,
             ArgumentMapper.Map(invocation.Arguments, binding.CanonicalToTarget, resources),
