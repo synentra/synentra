@@ -22,10 +22,17 @@ public static class CredentialResponseRetention
 
         try
         {
-            if (JsonNode.Parse(payload) is not JsonObject source) return null;
+            if (JsonNode.Parse(payload) is not JsonObject source)
+                return null;
+
             var variants = Variants(credential);
             var result = new JsonObject();
-            foreach (var name in policy.AllowedProperties)
+
+            var propertyNames = policy.AllowedProperties.Length == 0
+                ? source.Select(property => property.Key)
+                : policy.AllowedProperties;
+
+            foreach (var name in propertyNames)
                 if (!SensitiveName(name) && !variants.Any(v => name.Contains(v, StringComparison.Ordinal)) && source.TryGetPropertyValue(name, out var value)) 
                     result[name] = Clean(value, variants);
 

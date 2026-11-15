@@ -6,9 +6,9 @@ using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.OutboundHttp;
 using Synentra.Infrastructure.Features.Secrets;
 using Synentra.Infrastructure.Networking;
-using System.Net.Http.Json;
 using System.Security;
 using System.Text;
+using System.Text.Json;
 
 namespace Synentra.Infrastructure.Features.Adapters;
 
@@ -64,7 +64,12 @@ public sealed class HttpToolDispatcher(
         }
 
         if (request.Method != HttpMethod.Get && request.Method != HttpMethod.Head)
-            request.Content = JsonContent.Create(snapshot.Arguments);
+        {
+            var json = JsonSerializer.SerializeToUtf8Bytes(snapshot.Arguments);
+
+            request.Content = new ByteArrayContent(json);
+            request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+        }
 
         try
         {
