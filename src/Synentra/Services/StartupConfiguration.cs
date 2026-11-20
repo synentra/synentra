@@ -49,6 +49,8 @@ internal sealed class StartupConfiguration : IStartupConfiguration
             await next(context);
         });
 
+        app.UseMiddleware<IdempotencyMiddleware>();
+
         app.UseSynentraCustomHeaders();
 
         app.UseRouting();

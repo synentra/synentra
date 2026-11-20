@@ -31,10 +31,10 @@ public sealed class Executions : EndpointGroupBase
     {
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var execution = await dispatcher.Dispatch(new GetExecutionQuery(id), ct);
-        if (execution is null) return Results.NotFound();
+        if (execution is null) return ApiEndpointSupport.NotFound(context);
 
         var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), ct);
-        if (invocation is null || (principal.Type != PrincipalType.Admin && (principal.AgentId != invocation.AuthenticatedAgentId || principal.SecurityScope != invocation.SecurityScope))) return Results.NotFound();
+        if (invocation is null || (principal.Type != PrincipalType.Admin && (principal.AgentId != invocation.AuthenticatedAgentId || principal.SecurityScope != invocation.SecurityScope))) return ApiEndpointSupport.NotFound(context);
 
         var outcomes = await evidence.GetAsync(id, ct);
         return Results.Ok(new
@@ -65,16 +65,16 @@ public sealed class Executions : EndpointGroupBase
         var principal = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
         var execution = await dispatcher.Dispatch(new GetExecutionQuery(id), ct);
         if (execution is null) 
-            return Results.NotFound();
+            return ApiEndpointSupport.NotFound(context);
 
         var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), ct);
         if (invocation is null || invocation.SecurityScope != principal.SecurityScope) 
-            return Results.NotFound();
+            return ApiEndpointSupport.NotFound(context);
         await revisions.ReloadAsync(ct);
 
         var verification = manifests.ActiveBundle?.Spec.Operations.SingleOrDefault(x => x.Id == invocation.OperationId.Value)?.Verification;
         if (verification is null) 
-            return Results.Conflict(new { errorCode = "VERIFICATION_NOT_CONFIGURED" });
+            return ApiEndpointSupport.Problem(context, 409, "VERIFICATION_NOT_CONFIGURED", "Execution verification is not configured.");
 
         var registration = new VerifierRegistration(
             verification.VerifierRef, 
@@ -97,6 +97,6 @@ public sealed class Executions : EndpointGroupBase
         var cancelled = await dispatcher.Dispatch(new CancelExecutionCommand(id, principal), ct);
         return cancelled 
             ? Results.Accepted($"/v2/executions/{id}", new { id, status = "cancelled_before_dispatch" }) 
-            : Results.Conflict(new { errorCode = "CANCELLATION_UNSUPPORTED_OR_ALREADY_DISPATCHED" });
+            : ApiEndpointSupport.Problem(context, 409, "CANCELLATION_UNSUPPORTED_OR_ALREADY_DISPATCHED", "Execution cannot be cancelled in its current state.");
     }
 }

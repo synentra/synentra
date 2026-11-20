@@ -25,6 +25,14 @@ public static class ResultExtensions
         return MapError(result.Diagnostic!);
     }
 
+    public static IResult ToHttpResult<T>(this PaginatedResult<T> result, HttpContext context)
+    {
+        context.Response.Headers["X-Page-Number"] = result.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        context.Response.Headers["X-Page-Size"] = result.PageSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        context.Response.Headers["X-Total-Count"] = result.TotalCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return result.ToHttpResult();
+    }
+
     public static IResult ToHttpResult<T>(this Result<T> result)
     {
         if (result.IsSuccess)

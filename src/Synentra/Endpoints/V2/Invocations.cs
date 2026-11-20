@@ -51,10 +51,10 @@ public sealed class Invocations : EndpointGroupBase
         if (invocation is null 
             || (principal.Type != PrincipalType.Admin && (invocation.AuthenticatedAgentId != principal.AgentId 
             || invocation.SecurityScope != principal.SecurityScope))) 
-            return Results.NotFound();
+            return ApiEndpointSupport.NotFound(context);
 
         var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
-        return result is null ? Results.NotFound() : Results.Ok(result);
+        return result is null ? ApiEndpointSupport.NotFound(context) : Results.Ok(result);
     }
 
     private static async Task<IResult> Resume(
@@ -77,7 +77,7 @@ public sealed class Invocations : EndpointGroupBase
         var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
 
         if (result is null) 
-            return Results.NotFound();
+            return ApiEndpointSupport.NotFound(context);
         context.Response.Headers.Location = $"/v2/invocations/{id}";
         if (!admission.Admitted) 
             return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);

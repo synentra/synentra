@@ -24,7 +24,10 @@ public sealed class RequestLoggingMiddleware
         var stopwatch = Stopwatch.StartNew();
 
         var requestId = context.TraceIdentifier;
-        context.Response.Headers["X-Request-Id"] = requestId;
+            context.Response.Headers["X-Request-Id"] = requestId;
+            var correlationId = context.Items.TryGetValue("CorrelationId", out var correlationValue)
+                ? correlationValue?.ToString()
+                : null;
 
         try
         {
@@ -59,6 +62,7 @@ public sealed class RequestLoggingMiddleware
                     user_agent = context.Request.Headers.UserAgent.ToString(),
                     client_ip = context.Connection.RemoteIpAddress?.ToString(),
                     trace_id = context.TraceIdentifier,
+                    correlation_id = correlationId,
                     version = _version.Version.ToString(),
                     decision_reason = decisionReason,
                     target_url = targetUrl,
