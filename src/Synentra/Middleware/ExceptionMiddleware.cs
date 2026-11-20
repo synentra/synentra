@@ -12,6 +12,9 @@ public sealed class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionM
 {
     public async Task Invoke(HttpContext context)
     {
+        var correlationId = GetCorrelationId(context);
+        context.Items["CorrelationId"] = correlationId;
+        context.Response.Headers["X-Correlation-Id"] = correlationId;
         try { await next(context); }
 
         catch (Exception ex)
@@ -25,10 +28,20 @@ public sealed class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionM
             var problem = new ProblemDetails { Title = title, Status = status, Type = $"https://httpstatuses.com/{status}" };
             problem.Extensions["errorCode"] = code;
             problem.Extensions["traceId"] = context.TraceIdentifier;
+            problem.Extensions["correlationId"] = correlationId;
             if (ex is ValidationException validation)
                 problem.Extensions["errors"] = validation.Errors.GroupBy(x => x.PropertyName).ToDictionary(g => g.Key, g => g.Select(x => x.ErrorMessage).ToArray());
             await context.Response.WriteAsJsonAsync(problem, context.RequestAborted);
         }
+    }
+
+    private static string GetCorrelationId(HttpContext context)
+    {
+        if (context.Request.Headers.TryGetValue("X-Correlation-Id", out var value)
+            && Guid.TryParse(value.ToString(), out var supplied))
+            return supplied.ToString("D");
+
+        return Guid.NewGuid().ToString("D");
     }
 
     private static (int Status, string Code, string Title) Map(Exception ex)
@@ -62,6 +75,9 @@ public sealed class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionM
 
         if (ex is ForbiddenApiException) 
             return (403, "FORBIDDEN", ex.Message);
+
+        if (ex is IdempotencyApiException)
+            return (400, "IDEMPOTENCY_KEY_REQUIRED", ex.Message);
 
         if (ex is UnauthorizedAccessException) 
             return (403, "FORBIDDEN", "The authenticated principal is not authorized for this operation.");

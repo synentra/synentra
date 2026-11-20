@@ -39,7 +39,7 @@ public sealed class AuditStore(IDbContextFactory<SynentraDbContext> dbFactory, I
 
     public async Task<Page<AuditEntry>> QueryAsync(AuditQuery query, PageRequest pageRequest, CancellationToken ct)
     {
-        if (pageRequest.PageNumber < 0 || pageRequest.PageSize is < 1 or > 200)
+        if (pageRequest.PageNumber < 1 || pageRequest.PageSize is < 1 or > 200)
             throw new ArgumentOutOfRangeException(nameof(pageRequest));
 
         await using var db = await dbFactory.CreateDbContextAsync(ct);
@@ -67,7 +67,7 @@ public sealed class AuditStore(IDbContextFactory<SynentraDbContext> dbFactory, I
         var result = (
             await q
             .OrderBy(x => x.Timestamp)
-            .ThenBy(x => x.Id).Skip(pageRequest.PageNumber)
+            .ThenBy(x => x.Id).Skip((pageRequest.PageNumber - 1) * pageRequest.PageSize)
             .Take(pageRequest.PageSize)
             .ToListAsync(ct))
             .Select(x => codec.Decode<AuditEntry>(x.Payload)).ToList();
