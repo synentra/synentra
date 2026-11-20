@@ -23,16 +23,14 @@ public sealed class ExecutionRecord
 
     public void MarkClaimed()
     {
-        if (Status != ExecutionStatus.NotStarted) 
-            throw new InvalidOperationException("Execution is not awaiting a claim.");
+        ExecutionTransitionPolicy.Ensure(Status, ExecutionStatus.Claimed, "Execution is not awaiting a claim.");
 
         Status = ExecutionStatus.Claimed;
     }
 
     public void MarkDispatching()
     {
-        if (Status is not (ExecutionStatus.NotStarted or ExecutionStatus.Claimed)) 
-            throw new InvalidOperationException("Execution is not dispatchable.");
+        ExecutionTransitionPolicy.Ensure(Status, ExecutionStatus.Dispatching, "Execution is not dispatchable.");
 
         Status = ExecutionStatus.Dispatching;
         DispatchedAt = DateTimeOffset.UtcNow;
@@ -42,6 +40,8 @@ public sealed class ExecutionRecord
         string? upstreamRef, string? responsePayload = null, 
         int? responseStatusCode = null, string? errorMessage = null)
     {
+        ExecutionTransitionPolicy.Ensure(Status, ExecutionStatus.Responded, "Execution is not awaiting a response.");
+
         Status = ExecutionStatus.Responded;
         UpstreamReference = upstreamRef;
         ResponsePayload = responsePayload;
@@ -52,6 +52,8 @@ public sealed class ExecutionRecord
 
     public void MarkFailedBeforeDispatch(string reason)
     {
+        ExecutionTransitionPolicy.Ensure(Status, ExecutionStatus.FailedBeforeDispatch, "Execution has already started.");
+
         Status = ExecutionStatus.FailedBeforeDispatch;
         ErrorMessage = reason;
         RespondedAt = DateTimeOffset.UtcNow;
@@ -59,14 +61,15 @@ public sealed class ExecutionRecord
 
     public void MarkUnknown(string reason)
     {
+        ExecutionTransitionPolicy.Ensure(Status, ExecutionStatus.Unknown, "Execution is not dispatching.");
+
         Status = ExecutionStatus.Unknown;
         ErrorMessage = reason;
     }
 
     public void MarkCancelledBeforeDispatch()
     {
-        if (Status is not (ExecutionStatus.NotStarted or ExecutionStatus.Claimed)) 
-            throw new InvalidOperationException("Execution already started.");
+        ExecutionTransitionPolicy.Ensure(Status, ExecutionStatus.CancelledBeforeDispatch, "Execution already started.");
 
         Status = ExecutionStatus.CancelledBeforeDispatch;
         RespondedAt = DateTimeOffset.UtcNow;
@@ -81,7 +84,12 @@ public sealed class ExecutionRecord
         DateTimeOffset? responded,
         string? error,
         string? responsePayload = null,
-        int? responseStatusCode = null) => new(id, invocationId)
+        int? responseStatusCode = null)
+    {
+        if (!Enum.IsDefined(status))
+            throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown execution status.");
+
+        return new(id, invocationId)
         {
             Status = status,
             UpstreamReference = upstream,
@@ -91,4 +99,5 @@ public sealed class ExecutionRecord
             ResponsePayload = responsePayload,
             ResponseStatusCode = responseStatusCode
         };
+    }
 }
