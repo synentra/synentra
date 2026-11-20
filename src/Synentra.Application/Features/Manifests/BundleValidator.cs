@@ -1,15 +1,12 @@
 using Synentra.Application.Common.Plugins;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Application.Features.Manifests.Models;
+using Synentra.Application.Common.Versioning;
 
 namespace Synentra.Application.Features.Manifests;
 
 public sealed class BundleValidator
 {
-    private static readonly HashSet<string> AllowedApiVersions = new()
-    {
-        "synentra.io/v2alpha2"
-    };
     private static readonly HashSet<string> AllowedExecutionModels = new()
     {
         "requestResponse",
@@ -41,8 +38,8 @@ public sealed class BundleValidator
     {
         var issues = new List<ValidationIssue>();
         // 1. API version and kind
-        if (!AllowedApiVersions.Contains(bundle.ApiVersion))
-            issues.Add(new("error", "UNSUPPORTED_API_VERSION", $"apiVersion must be one of: {string.Join(", ", AllowedApiVersions)}. Found: {bundle.ApiVersion}."));
+        if (!CompatibilityPolicy.IsSupportedManifestApiVersion(bundle.ApiVersion))
+            issues.Add(new("error", "UNSUPPORTED_API_VERSION", $"apiVersion must be '{CompatibilityPolicy.CurrentManifestApiVersion}'. Found: {bundle.ApiVersion}."));
 
         if (bundle.Kind != "GovernanceBundle")
             issues.Add(new("error", "INVALID_KIND", $"kind must be GovernanceBundle. Found: {bundle.Kind}."));
