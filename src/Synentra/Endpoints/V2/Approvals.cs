@@ -30,15 +30,15 @@ public sealed class Approvals : EndpointGroupBase
             throw new ForbiddenApiException("Reviewer permission required.");
 
         var result = await dispatcher.ListPendingApprovals(principal.SecurityScope, pageNumber, pageSize, ct);
-        return result.ToHttpResult();
+        return result.ToHttpResult(context);
     }
 
     private static async Task<IResult> Get(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
     {
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var approval = await dispatcher.Dispatch(new GetApprovalQuery(id), ct);
-        if (approval is null) return Results.NotFound();
-        if (principal.Type != PrincipalType.Admin && principal.SecurityScope != approval.SecurityScope && principal.AgentId != approval.RequestingAgentId) return Results.NotFound();
+        if (approval is null) return ApiEndpointSupport.NotFound(context);
+        if (principal.Type != PrincipalType.Admin && principal.SecurityScope != approval.SecurityScope && principal.AgentId != approval.RequestingAgentId) return ApiEndpointSupport.NotFound(context);
         return Results.Ok(approval);
     }
 
