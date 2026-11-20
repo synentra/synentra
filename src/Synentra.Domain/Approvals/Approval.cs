@@ -93,15 +93,23 @@ public sealed class Approval
         DateTimeOffset expiresAt, DateTimeOffset createdAt, 
         ApprovalStatus status, string? reviewerId, 
         DateTimeOffset? resolvedAt) 
-        => new(id, invocationId, digest, agentId, 
-            operationId, bindingId, 
-            grantId, policyRevision, 
-            reviewRevision, scope, 
-            expiresAt)
     {
-        CreatedAt = createdAt,
-        Status = status,
-        ReviewerId = reviewerId,
-        ResolvedAt = resolvedAt
-    };
+        if (!Enum.IsDefined(status))
+            throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown approval status.");
+
+        if (status == ApprovalStatus.Pending && (reviewerId is not null || resolvedAt is not null))
+            throw new InvalidOperationException("Pending approvals cannot have resolution metadata.");
+
+        return new(id, invocationId, digest, agentId,
+            operationId, bindingId,
+            grantId, policyRevision,
+            reviewRevision, scope,
+            expiresAt)
+        {
+            CreatedAt = createdAt,
+            Status = status,
+            ReviewerId = reviewerId,
+            ResolvedAt = resolvedAt
+        };
+    }
 }

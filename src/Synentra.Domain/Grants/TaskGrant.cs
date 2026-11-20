@@ -58,10 +58,15 @@ public sealed class TaskGrant
         DateTimeOffset expiresAt,
         string? reference,
         GrantState state,
-        DateTimeOffset createdAt) 
-        => new(id, issuerId, agentId, scope, operations, resources, expiresAt, reference)
+        DateTimeOffset createdAt)
+    {
+        if (!Enum.IsDefined(state))
+            throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown grant state.");
+
+        return new(id, issuerId, agentId, scope, operations, resources, expiresAt, reference)
         {
             State = state,
             CreatedAt = createdAt
         };
+    }
 }
