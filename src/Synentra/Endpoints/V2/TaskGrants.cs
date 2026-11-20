@@ -23,10 +23,10 @@ public sealed class TaskGrants : EndpointGroupBase
     {
         var issuer = await ApiEndpointSupport.RequireIssuerAsync(context, principals, ct);
         if (request.ExpiresAt <= DateTimeOffset.UtcNow)
-            return Results.BadRequest(new { errorCode = "GRANT_EXPIRY_MUST_BE_FUTURE" });
+            return ApiEndpointSupport.Problem(context, 400, "GRANT_EXPIRY_MUST_BE_FUTURE", "Grant expiry must be in the future.");
 
         if (request.OperationIds.Count == 0)
-            return Results.BadRequest(new { errorCode = "GRANT_OPERATION_SCOPE_REQUIRED" });
+            return ApiEndpointSupport.Problem(context, 400, "GRANT_OPERATION_SCOPE_REQUIRED", "At least one operation scope is required.");
 
         var grant = new TaskGrant(
             Guid.NewGuid().ToString("N"),
@@ -46,10 +46,10 @@ public sealed class TaskGrants : EndpointGroupBase
         var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
         var grant = await dispatcher.Dispatch(new GetTaskGrantQuery(id), ct);
         if (grant is null)
-            return Results.NotFound();
+            return ApiEndpointSupport.NotFound(context);
 
         if (principal.Type != PrincipalType.Admin && principal.AgentId != grant.AgentId && principal.AgentId != grant.IssuerId)
-            return Results.NotFound();
+            return ApiEndpointSupport.NotFound(context);
 
         return Results.Ok(ToResponse(grant));
     }

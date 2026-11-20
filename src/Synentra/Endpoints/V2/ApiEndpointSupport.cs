@@ -1,6 +1,7 @@
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Synentra.Endpoints.V2;
 
@@ -46,6 +47,25 @@ internal static class ApiEndpointSupport
             ? value.ToString()
             : null;
 
+    public static IResult Problem(HttpContext context, int status, string code, string title)
+    {
+        var problem = new ProblemDetails
+        {
+            Status = status,
+            Title = title,
+            Type = $"https://httpstatuses.com/{status}"
+        };
+        problem.Extensions["errorCode"] = code;
+        problem.Extensions["traceId"] = context.TraceIdentifier;
+        problem.Extensions["correlationId"] = context.Items.TryGetValue("CorrelationId", out var value)
+            ? value?.ToString()
+            : context.TraceIdentifier;
+        return Results.Problem(problem);
+    }
+
+    public static IResult NotFound(HttpContext context, string code = "NOT_FOUND")
+        => Problem(context, StatusCodes.Status404NotFound, code, "The requested resource was not found.");
+
     public static bool IsSupportedManifestMediaType(string? contentType)
     {
         if (string.IsNullOrWhiteSpace(contentType)) return true;
@@ -69,3 +89,4 @@ internal static class ApiEndpointSupport
 
 internal sealed class AuthenticationApiException(string message, Exception? inner = null) : Exception(message, inner);
 internal sealed class ForbiddenApiException(string message) : Exception(message);
+internal sealed class IdempotencyApiException(string message) : Exception(message);
