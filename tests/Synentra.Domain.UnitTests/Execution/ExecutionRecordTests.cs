@@ -72,6 +72,7 @@ public sealed class ExecutionRecordTests
     public void MarkResponded_ShouldCaptureUpstreamAndResponse()
     {
         var record = Create();
+        record.MarkDispatching();
         record.MarkResponded("upstream-1", "{\"ok\":true}", 200, "warning");
 
         record.Status.Should().Be(ExecutionStatus.Responded);
@@ -86,6 +87,7 @@ public sealed class ExecutionRecordTests
     public void MarkResponded_ShouldAllowNullOptionalDetails()
     {
         var record = Create();
+        record.MarkDispatching();
         record.MarkResponded(null);
         record.Status.Should().Be(ExecutionStatus.Responded);
         record.UpstreamReference.Should().BeNull();
@@ -108,6 +110,7 @@ public sealed class ExecutionRecordTests
     public void MarkUnknown_ShouldCaptureReasonWithoutResponseTimestamp()
     {
         var record = Create();
+        record.MarkDispatching();
         record.MarkUnknown("upstream outcome is uncertain");
         record.Status.Should().Be(ExecutionStatus.Unknown);
         record.ErrorMessage.Should().Be("upstream outcome is uncertain");

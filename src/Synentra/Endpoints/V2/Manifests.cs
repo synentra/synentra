@@ -60,7 +60,7 @@ public sealed class Manifests : EndpointGroupBase
         using var parseStream = new MemoryStream(Encoding.UTF8.GetBytes(body));
         var bundle = parser.Parse(parseStream);
         if (!string.Equals(bundle.Metadata.Name, id, StringComparison.Ordinal)) 
-            return Results.Conflict(new { errorCode = "MANIFEST_ID_MISMATCH" });
+            return ApiEndpointSupport.Problem(context, 409, "MANIFEST_ID_MISMATCH", "The manifest identifier does not match the request.");
 
         var revision = await dispatcher.Dispatch(new StoreManifestCommand(body), ct);
         return Results.Ok(new { id, version = bundle.Metadata.Version, revision });

@@ -30,6 +30,6 @@ public sealed class Audits : EndpointGroupBase
         var filter = new AuditQuery(principal.SecurityScope, effectiveActorId, invocationId, category, from, to);
 
         var results = await dispatcher.QueryAudits(filter, pageNumber, pageSize, ct);
-        return results.ToHttpResult();
+        return results.ToHttpResult(context);
     }
 }
