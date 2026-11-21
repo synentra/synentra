@@ -6,6 +6,7 @@ using Synentra.Application.Features.Approvals.Commands.RejectInvocation;
 using Synentra.Application.Features.Approvals.Commands.RevokeApproval;
 using Synentra.Application.Features.Approvals.Queries.GetApproval;
 using Synentra.Domain.Security;
+using Synentra.Endpoints.V2.Support;
 using Synentra.Extensions;
 
 namespace Synentra.Endpoints.V2;
@@ -22,43 +23,76 @@ public sealed class Approvals : EndpointGroupBase
         g.MapPost("/{id}/revoke", Revoke);
     }
 
-    private static async Task<IResult> List(int? pageNumber, int? pageSize, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
+    private static async Task<IResult> List(
+        int? pageNumber,
+        int? pageSize,
+        HttpContext context,
+        IDispatcher dispatcher,
+        IPrincipalResolver principals,
+        CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
 
-        if (principal.Type is not (PrincipalType.Admin or PrincipalType.Reviewer)) 
-            throw new ForbiddenApiException("Reviewer permission required.");
+        if (principal.Type is not (PrincipalType.Admin or PrincipalType.Reviewer))
+            return context.Forbidden("REVIEWER_PERMISSION_REQUIRED", "Reviewer permission required.");
 
         var result = await dispatcher.ListPendingApprovals(principal.SecurityScope, pageNumber, pageSize, ct);
         return result.ToHttpResult(context);
     }
 
-    private static async Task<IResult> Get(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
+    private static async Task<IResult> Get(
+        string id,
+        HttpContext context,
+        IDispatcher dispatcher,
+        IPrincipalResolver principals,
+        CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var approval = await dispatcher.Dispatch(new GetApprovalQuery(id), ct);
-        if (approval is null) return ApiEndpointSupport.NotFound(context);
-        if (principal.Type != PrincipalType.Admin && principal.SecurityScope != approval.SecurityScope && principal.AgentId != approval.RequestingAgentId) return ApiEndpointSupport.NotFound(context);
+
+        if (approval is null)
+            return context.NotFound("APPROVAL_NOT_FOUND", "The requested approval was not found.");
+
+        if (principal.Type != PrincipalType.Admin && principal.SecurityScope != approval.SecurityScope && principal.AgentId != approval.RequestingAgentId)
+            return context.NotFound("APPROVAL_NOT_FOUND", "The requested approval was not found.");
+
         return Results.Ok(approval);
     }
 
-    private static async Task<IResult> Approve(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, IAdminPolicy policy, CancellationToken ct)
+    private static async Task<IResult> Approve(
+        string id,
+        HttpContext context,
+        IDispatcher dispatcher,
+        IPrincipalResolver principals,
+        IAdminPolicy policy,
+        CancellationToken ct)
     {
-        var reviewer = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var reviewer = await context.RequirePrincipalAsync(principals, ct);
         await dispatcher.Dispatch(new ApproveInvocationCommand(id, reviewer, policy.AllowsSelfApproval), ct);
         return Results.NoContent();
     }
 
-    private static async Task<IResult> Reject(string id, RejectApprovalRequest? request, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
+    private static async Task<IResult> Reject(
+        string id,
+        RejectApprovalRequest? request,
+        HttpContext context,
+        IDispatcher dispatcher,
+        IPrincipalResolver principals,
+        CancellationToken ct)
     {
-        var reviewer = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var reviewer = await context.RequirePrincipalAsync(principals, ct);
         await dispatcher.Dispatch(new RejectInvocationCommand(id, reviewer, request?.Reason), ct);
         return Results.NoContent();
     }
 
-    private static async Task<IResult> Revoke(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
+    private static async Task<IResult> Revoke(
+        string id,
+        HttpContext context,
+        IDispatcher dispatcher,
+        IPrincipalResolver principals,
+        CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         await dispatcher.Dispatch(new RevokeApprovalCommand(id, principal), ct);
         return Results.NoContent();
     }

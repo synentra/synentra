@@ -7,6 +7,7 @@ using Synentra.Application.Features.TaskGrants.Queries.GetTaskGrant;
 using Synentra.Domain.Grants;
 using Synentra.Domain.Grants.ValueObjects;
 using Synentra.Domain.Security;
+using Synentra.Endpoints.V2.Support;
 
 namespace Synentra.Endpoints.V2;
 
@@ -21,12 +22,12 @@ public sealed class TaskGrants : EndpointGroupBase
     }
     private static async Task<IResult> Create(TaskGrantRequest request, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
     {
-        var issuer = await ApiEndpointSupport.RequireIssuerAsync(context, principals, ct);
+        var issuer = await context.RequireIssuerAsync(principals, ct);
         if (request.ExpiresAt <= DateTimeOffset.UtcNow)
-            return ApiEndpointSupport.Problem(context, 400, "GRANT_EXPIRY_MUST_BE_FUTURE", "Grant expiry must be in the future.");
+            return context.BadRequest("GRANT_EXPIRY_MUST_BE_FUTURE", "Grant expiry must be in the future.");
 
         if (request.OperationIds.Count == 0)
-            return ApiEndpointSupport.Problem(context, 400, "GRANT_OPERATION_SCOPE_REQUIRED", "At least one operation scope is required.");
+            return context.BadRequest("GRANT_OPERATION_SCOPE_REQUIRED", "At least one operation scope is required.");
 
         var grant = new TaskGrant(
             Guid.NewGuid().ToString("N"),
@@ -43,19 +44,19 @@ public sealed class TaskGrants : EndpointGroupBase
     }
     private static async Task<IResult> Get(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var grant = await dispatcher.Dispatch(new GetTaskGrantQuery(id), ct);
         if (grant is null)
-            return ApiEndpointSupport.NotFound(context);
+            return context.NotFound("GRANT_NOT_FOUND", "The requested grant was not found.");
 
         if (principal.Type != PrincipalType.Admin && principal.AgentId != grant.AgentId && principal.AgentId != grant.IssuerId)
-            return ApiEndpointSupport.NotFound(context);
+            return context.NotFound("GRANT_NOT_FOUND", "The requested grant was not found.");
 
         return Results.Ok(ToResponse(grant));
     }
     private static async Task<IResult> Revoke(string id, HttpContext context, IDispatcher dispatcher, IPrincipalResolver principals, CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         await dispatcher.Dispatch(new RevokeTaskGrantCommand(id, principal), ct);
         return Results.NoContent();
     }

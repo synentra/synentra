@@ -4,6 +4,7 @@ using Synentra.Application.Features.Auditing.Contracts;
 using Synentra.Domain.Security;
 using Synentra.Application.Features.Auditing;
 using Synentra.Extensions;
+using Synentra.Endpoints.V2.Support;
 
 namespace Synentra.Endpoints.V2;
 
@@ -24,7 +25,7 @@ public sealed class Audits : EndpointGroupBase
         IPrincipalResolver principals, 
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var effectiveActorId = principal.Type == PrincipalType.Admin ? actorId : principal.AgentId;
 
         var filter = new AuditQuery(principal.SecurityScope, effectiveActorId, invocationId, category, from, to);
