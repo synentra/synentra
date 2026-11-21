@@ -12,6 +12,7 @@ using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Domain.Approvals;
 using Synentra.Domain.Execution;
 using Synentra.Domain.Governance.Intent;
+using Synentra.Endpoints.V2.Support;
 using Synentra.Mcp;
 
 namespace Synentra.Endpoints.V2;
@@ -47,7 +48,7 @@ public sealed class McpGateway : EndpointGroupBase
         McpSessionRegistry sessions,
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
 
         JsonDocument document;
         try
@@ -181,7 +182,7 @@ public sealed class McpGateway : EndpointGroupBase
 
                 var meta = parameters.TryGetProperty("_meta", out var m) && m.ValueKind == JsonValueKind.Object ? m : default;
                 var grantId = MetaString(meta, "io.synentra/taskGrantId");
-                var idempotencyKey = MetaString(meta, "io.synentra/idempotencyKey") ?? ApiEndpointSupport.GetIdempotencyKey(context.Request);
+                var idempotencyKey = MetaString(meta, "io.synentra/idempotencyKey") ?? context.Request.GetIdempotencyKey();
                 var approvalId = MetaString(meta, "io.synentra/approvalId");
 
                 if (!string.IsNullOrWhiteSpace(approvalId))
@@ -270,7 +271,7 @@ public sealed class McpGateway : EndpointGroupBase
         McpSessionRegistry sessions,
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var sessionId = context.Request.Headers["Mcp-Session-Id"].ToString();
         if (string.IsNullOrWhiteSpace(sessionId) || !sessions.Remove(sessionId, serverId, principal.AgentId, principal.SecurityScope))
             return Results.NotFound();

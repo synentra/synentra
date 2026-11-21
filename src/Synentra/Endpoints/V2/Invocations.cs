@@ -6,6 +6,7 @@ using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Application.Features.Invocations.Queries.GetInvocation;
 using Synentra.Application.Features.Invocations.Queries.GetInvocationResult;
 using Synentra.Domain.Security;
+using Synentra.Endpoints.V2.Support;
 
 namespace Synentra.Endpoints.V2;
 
@@ -26,8 +27,8 @@ public sealed class Invocations : EndpointGroupBase
         IPrincipalResolver principals, 
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
-        var result = await dispatcher.Dispatch(new SubmitInvocationCommand(request, principal, ApiEndpointSupport.GetIdempotencyKey(context.Request)), ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
+        var result = await dispatcher.Dispatch(new SubmitInvocationCommand(request, principal, context.Request.GetIdempotencyKey()), ct);
         context.Response.Headers.Location = $"/v2/invocations/{result.InvocationId}";
 
         if (result.Decision.Outcome == "deny") 
@@ -46,15 +47,17 @@ public sealed class Invocations : EndpointGroupBase
         IPrincipalResolver principals, 
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var invocation = await dispatcher.Dispatch(new GetInvocationQuery(id), ct);
         if (invocation is null 
             || (principal.Type != PrincipalType.Admin && (invocation.AuthenticatedAgentId != principal.AgentId 
             || invocation.SecurityScope != principal.SecurityScope))) 
-            return ApiEndpointSupport.NotFound(context);
+            return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
 
         var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
-        return result is null ? ApiEndpointSupport.NotFound(context) : Results.Ok(result);
+        return result is null
+            ? context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.")
+            : Results.Ok(result);
     }
 
     private static async Task<IResult> Resume(
@@ -65,7 +68,7 @@ public sealed class Invocations : EndpointGroupBase
         IInvocationStore store, 
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var admission = await dispatcher.Dispatch(new ResumeInvocationCommand(id, principal), ct);
         await store.SaveDecisionAsync(
             id, 
@@ -77,8 +80,10 @@ public sealed class Invocations : EndpointGroupBase
         var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
 
         if (result is null) 
-            return ApiEndpointSupport.NotFound(context);
+            return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
+
         context.Response.Headers.Location = $"/v2/invocations/{id}";
+
         if (!admission.Admitted) 
             return Results.Json(result, statusCode: StatusCodes.Status403Forbidden);
 

@@ -7,6 +7,7 @@ using Synentra.Application.Features.Executions.Queries.GetExecution;
 using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Domain.Security;
+using Synentra.Endpoints.V2.Support;
 
 namespace Synentra.Endpoints.V2;
 
@@ -29,12 +30,17 @@ public sealed class Executions : EndpointGroupBase
         IOutcomeEvidenceStore evidence, 
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var execution = await dispatcher.Dispatch(new GetExecutionQuery(id), ct);
-        if (execution is null) return ApiEndpointSupport.NotFound(context);
+
+        if (execution is null)
+            return context.NotFound("EXECUTION_NOT_FOUND", "The requested execution was not found.");
 
         var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), ct);
-        if (invocation is null || (principal.Type != PrincipalType.Admin && (principal.AgentId != invocation.AuthenticatedAgentId || principal.SecurityScope != invocation.SecurityScope))) return ApiEndpointSupport.NotFound(context);
+        if (invocation is null 
+            || (principal.Type != PrincipalType.Admin 
+            && (principal.AgentId != invocation.AuthenticatedAgentId || principal.SecurityScope != invocation.SecurityScope)))
+            return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
 
         var outcomes = await evidence.GetAsync(id, ct);
         return Results.Ok(new
@@ -62,19 +68,20 @@ public sealed class Executions : EndpointGroupBase
         IRevisionProvider revisions, 
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+        var principal = await context.RequireAdminAsync(principals, ct);
         var execution = await dispatcher.Dispatch(new GetExecutionQuery(id), ct);
         if (execution is null) 
-            return ApiEndpointSupport.NotFound(context);
+            return context.NotFound("EXECUTION_NOT_FOUND", "The requested execution was not found.");
 
         var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), ct);
         if (invocation is null || invocation.SecurityScope != principal.SecurityScope) 
-            return ApiEndpointSupport.NotFound(context);
+            return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
+
         await revisions.ReloadAsync(ct);
 
         var verification = manifests.ActiveBundle?.Spec.Operations.SingleOrDefault(x => x.Id == invocation.OperationId.Value)?.Verification;
         if (verification is null) 
-            return ApiEndpointSupport.Problem(context, 409, "VERIFICATION_NOT_CONFIGURED", "Execution verification is not configured.");
+            return context.Conflict("VERIFICATION_NOT_CONFIGURED", "Execution verification is not configured.");
 
         var registration = new VerifierRegistration(
             verification.VerifierRef, 
@@ -93,10 +100,10 @@ public sealed class Executions : EndpointGroupBase
         IPrincipalResolver principals, 
         CancellationToken ct)
     {
-        var principal = await ApiEndpointSupport.RequirePrincipalAsync(context, principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, ct);
         var cancelled = await dispatcher.Dispatch(new CancelExecutionCommand(id, principal), ct);
         return cancelled 
             ? Results.Accepted($"/v2/executions/{id}", new { id, status = "cancelled_before_dispatch" }) 
-            : ApiEndpointSupport.Problem(context, 409, "CANCELLATION_UNSUPPORTED_OR_ALREADY_DISPATCHED", "Execution cannot be cancelled in its current state.");
+            : context.Conflict("CANCELLATION_UNSUPPORTED_OR_ALREADY_DISPATCHED", "Execution cannot be cancelled in its current state.");
     }
 }
