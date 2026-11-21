@@ -16,10 +16,10 @@ public sealed class Operations : EndpointGroupBase
         HttpContext context, 
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var result = await dispatcher.ListOperations(principal.AgentId, pageNumber ?? 1, pageSize ?? 50, ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var result = await dispatcher.ListOperations(principal.AgentId, pageNumber ?? 1, pageSize ?? 50, cancellationToken);
         return result.ToHttpResult(context);
     }
 }
