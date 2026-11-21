@@ -5,6 +5,7 @@ using Synentra.Application.Features.Manifests.Exceptions;
 using Synentra.Domain.Common.Diagnostics;
 using Synentra.Domain.Common.Exceptions;
 using Synentra.Endpoints.V2;
+using Synentra.Exceptions;
 
 namespace Synentra.Middleware;
 
@@ -75,9 +76,6 @@ public sealed class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionM
 
         if (ex is ForbiddenApiException) 
             return (403, "FORBIDDEN", ex.Message);
-
-        if (ex is IdempotencyApiException)
-            return (400, "IDEMPOTENCY_KEY_REQUIRED", ex.Message);
 
         if (ex is UnauthorizedAccessException) 
             return (403, "FORBIDDEN", "The authenticated principal is not authorized for this operation.");

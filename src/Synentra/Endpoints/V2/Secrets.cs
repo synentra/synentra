@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Endpoints.V2.Support;
 using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Features.Secrets;
 using Synentra.Persistence;
@@ -30,7 +31,7 @@ public sealed class Secrets : EndpointGroupBase
         group.MapPut("/secrets/{path}/{version}", async (string path, string version, StoreSecret request, HttpContext context,
             IPrincipalResolver principals, LocalVaultCredentialProvider secrets, CancellationToken ct) =>
         {
-            var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            var admin = await context.RequireAdminAsync(principals, ct);
             await secrets.StoreVersionAsync(path, version, request.Scheme, request.Value, request.ExpiresAt, ct, admin.AgentId);
             return Results.NoContent();
         }).WithMetadata(new RequestSizeLimitAttribute(70000));
@@ -38,7 +39,7 @@ public sealed class Secrets : EndpointGroupBase
         group.MapDelete("/secrets/{path}/{version}", async (string path, string version, HttpContext context,
             IPrincipalResolver principals, LocalVaultCredentialProvider secrets, CancellationToken ct) =>
         {
-            var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            var admin = await context.RequireAdminAsync(principals, ct);
             await secrets.RevokeVersionAsync(path, version, ct, admin.AgentId);
             return Results.NoContent();
         });
@@ -46,9 +47,9 @@ public sealed class Secrets : EndpointGroupBase
         group.MapPut("/bindings/{**id}", async (string id, PutBinding request, HttpContext context,
             IPrincipalResolver principals, CredentialBindingStore bindings, CancellationToken ct) =>
         {
-            var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            var admin = await context.RequireAdminAsync(principals, ct);
             if (request.Binding is null || id != request.Binding.Id)
-                return Results.BadRequest();
+                return context.BadRequest("INVALID_BINDING_ID", "The provided binding ID does not match the requested ID.");
 
             await bindings.SaveAsync(request.Binding.ToDomain(), request.ExpectedVersion, admin.AgentId, materialOnly: false, ct);
             return Results.NoContent();
@@ -56,46 +57,57 @@ public sealed class Secrets : EndpointGroupBase
 
         group.MapGet("/bindings/{**id}", async (string id, HttpContext context, IPrincipalResolver principals, CredentialBindingStore bindings, CancellationToken ct) =>
         {
-            await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            await context.RequireAdminAsync(principals, ct);
             var binding = await bindings.GetAsync(id, ct);
-            return binding is null ? Results.NotFound() : Results.Ok(binding);
+            return binding is null
+                ? context.NotFound("BINDING_NOT_FOUND", "The requested binding was not found.")
+                : Results.Ok(binding);
         });
 
         group.MapPost("/rotate", async (RotateBinding request, HttpContext context, IPrincipalResolver principals, CredentialBindingStore bindings, CancellationToken ct) =>
         {
-            var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            var admin = await context.RequireAdminAsync(principals, ct);
             if (request.SecretRef is null || string.IsNullOrWhiteSpace(request.BindingId))
-                return Results.BadRequest();
+                return context.BadRequest("INVALID_REQUEST", "The provided request is invalid.");
 
             var prior = await bindings.GetAsync(request.BindingId, ct);
             if (prior is null)
-                return Results.NotFound();
+                return context.NotFound("BINDING_NOT_FOUND", "The requested binding was not found.");
 
-            var rotated = new CredentialBinding(prior.Id, prior.TargetRef, prior.AllowedPrincipal, prior.DelegationScope, prior.AllowedOperations,
-                request.SecretRef, Guid.NewGuid().ToString("N"), false, prior.AuthorityVersion);
+            var rotated = new CredentialBinding(
+                prior.Id,
+                prior.TargetRef,
+                prior.AllowedPrincipal,
+                prior.DelegationScope,
+                prior.AllowedOperations,
+                request.SecretRef,
+                Guid.NewGuid().ToString("N"),
+                false,
+                prior.AuthorityVersion);
+
             await bindings.SaveAsync(rotated, request.ExpectedVersion, admin.AgentId, materialOnly: true, ct);
             return Results.Ok(new { version = rotated.Version, authorityVersion = rotated.AuthorityVersion });
         });
 
         group.MapGet("/state", async (string providerId, string path, string version, HttpContext context, IPrincipalResolver principals, SecretStateStore states, CancellationToken ct) =>
         {
-            await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            await context.RequireAdminAsync(principals, ct);
 
             if (!SecretsConfiguration.CredentialProviders.Contains(providerId))
-                return Results.BadRequest();
+                return context.BadRequest("INVALID_PROVIDER", "The specified credential provider is not valid.");
 
             return Results.Ok(await states.GetAsync(new(providerId, path, version), ct));
         });
 
         group.MapPost("/state", async (ChangeSecretState request, HttpContext context, IPrincipalResolver principals, SecretStateStore states, CancellationToken ct) =>
         {
-            var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            var admin = await context.RequireAdminAsync(principals, ct);
 
             if (request.SecretRef is null
                 || !SecretsConfiguration.CredentialProviders.Contains(request.SecretRef.ProviderId)
                 || string.IsNullOrWhiteSpace(request.SecretRef.SecretPath)
                 || string.IsNullOrWhiteSpace(request.SecretRef.Version))
-                return Results.BadRequest();
+                return context.BadRequest("INVALID_SECRET_REF", "The specified secret reference is not valid.");
 
             var generation = await states.ChangeAsync(request.SecretRef, request.ExpectedGeneration, request.Revoke, admin.AgentId, ct);
             return Results.Ok(new { generation, revoked = request.Revoke });
@@ -103,7 +115,7 @@ public sealed class Secrets : EndpointGroupBase
 
         group.MapGet("/secrets", async (int? page, HttpContext context, IPrincipalResolver principals, IDbContextFactory<SynentraDbContext> dbFactory, CancellationToken ct) =>
         {
-            await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            await context.RequireAdminAsync(principals, ct);
             var number = Math.Clamp(page ?? 1, 1, 10000);
             await using var db = await dbFactory.CreateDbContextAsync(ct);
             var rows = await EntityFrameworkQueryableExtensions.ToArrayAsync(
@@ -114,11 +126,14 @@ public sealed class Secrets : EndpointGroupBase
         group.MapDelete("/bindings/{**id}", async (string id, string expectedVersion, HttpContext context,
             IPrincipalResolver principals, CredentialBindingStore bindings, CancellationToken ct) =>
         {
-            var admin = await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+            var admin = await context.RequireAdminAsync(principals, ct);
             var previous = await bindings.GetAsync(id, ct);
-            if (previous is null) return Results.NotFound();
+            if (previous is null)
+                return context.NotFound("BINDING_NOT_FOUND", "The requested binding was not found.");
+
             var revoked = new CredentialBinding(previous.Id, previous.TargetRef, previous.AllowedPrincipal, previous.DelegationScope,
                 previous.AllowedOperations, previous.SecretRef, Guid.NewGuid().ToString("N"), true);
+
             await bindings.SaveAsync(revoked, expectedVersion, admin.AgentId, materialOnly: false, ct);
             return Results.NoContent();
         });

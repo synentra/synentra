@@ -6,6 +6,7 @@ using Synentra.Application.Features.Manifests.Commands.ActivateManifest;
 using Synentra.Application.Features.Manifests.Commands.StoreManifest;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Application.Features.Manifests.Queries.ValidateManifest;
+using Synentra.Endpoints.V2.Support;
 
 namespace Synentra.Endpoints.V2;
 
@@ -31,16 +32,18 @@ public sealed class Manifests : EndpointGroupBase
         IPrincipalResolver principals, 
         CancellationToken ct)
     {
-        await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-        if (!ApiEndpointSupport.IsSupportedManifestMediaType(context.Request.ContentType)) 
+        await context.RequireAdminAsync(principals, ct);
+        if (!context.Request.ContentType.IsSupportedManifestMediaType()) 
             return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
         
         using var ms = new MemoryStream();
         await context.Request.Body.CopyToAsync(ms, ct); ms.Position = 0;
         var result = await dispatcher.Dispatch(new ValidateManifestQuery(ms), ct);
-        return result.IsValid 
-            ? Results.Ok(result) 
-            : Results.BadRequest(result);
+
+        if (result.IsValid)
+            return Results.Ok(result);
+
+        return context.ValidationFailed(result.Issues, "MANIFEST_VALIDATION_FAILED", "Manifest validation failed.");
     }
 
     private static async Task<IResult> Store(
@@ -51,16 +54,16 @@ public sealed class Manifests : EndpointGroupBase
         IBundleParser parser, 
         CancellationToken ct)
     {
-        await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
-        if (!ApiEndpointSupport.IsSupportedManifestMediaType(context.Request.ContentType)) 
-            return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+        await context.RequireAdminAsync(principals, ct);
+        if (!context.Request.ContentType.IsSupportedManifestMediaType()) 
+            return context.UnsupportedMediaType("UNSUPPORTED_MEDIA_TYPE", "The request media type is not supported.");
 
         using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
         var body = await reader.ReadToEndAsync(ct);
         using var parseStream = new MemoryStream(Encoding.UTF8.GetBytes(body));
         var bundle = parser.Parse(parseStream);
         if (!string.Equals(bundle.Metadata.Name, id, StringComparison.Ordinal)) 
-            return ApiEndpointSupport.Problem(context, 409, "MANIFEST_ID_MISMATCH", "The manifest identifier does not match the request.");
+            return context.Conflict("MANIFEST_ID_MISMATCH", "The manifest identifier does not match the request.");
 
         var revision = await dispatcher.Dispatch(new StoreManifestCommand(body), ct);
         return Results.Ok(new { id, version = bundle.Metadata.Version, revision });
@@ -74,7 +77,7 @@ public sealed class Manifests : EndpointGroupBase
         IPrincipalResolver principals, 
         CancellationToken ct)
     {
-        await ApiEndpointSupport.RequireAdminAsync(context, principals, ct);
+        await context.RequireAdminAsync(principals, ct);
         var result = await dispatcher.Dispatch(new ActivateManifestCommand(id, request.Version, request.ExpectedActiveRevision), ct);
         return result.Activated 
             ? Results.Ok(result) 
