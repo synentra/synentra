@@ -1,4 +1,4 @@
-using Synentra.Endpoints.V2;
+using Synentra.Exceptions;
 
 namespace Synentra.Middleware;
 
@@ -8,7 +8,7 @@ public sealed class IdempotencyMiddleware(RequestDelegate next)
     {
         if (RequiresIdempotencyKey(context.Request))
         {
-            var key = ApiEndpointSupport.GetIdempotencyKey(context.Request);
+            var key = GetIdempotencyKey(context.Request);
             if (string.IsNullOrWhiteSpace(key))
                 throw new IdempotencyApiException("Idempotency-Key is required for mutating requests.");
 
@@ -32,4 +32,9 @@ public sealed class IdempotencyMiddleware(RequestDelegate next)
 
         return request.Method is "POST" or "PUT" or "DELETE";
     }
+
+    private static string? GetIdempotencyKey(HttpRequest request) 
+        => request.Headers.TryGetValue("Idempotency-Key", out var value) && !string.IsNullOrWhiteSpace(value)
+        ? value.ToString()
+        : null;
 }
