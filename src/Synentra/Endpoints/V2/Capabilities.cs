@@ -1,6 +1,6 @@
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
-using Synentra.Application.Features.Capabilities.Queries.GetCapabilities;
+using Synentra.Application.Features.Capabilities;
 using Synentra.Endpoints.V2.Support;
 
 namespace Synentra.Endpoints.V2;
@@ -13,9 +13,10 @@ public sealed class Capabilities : EndpointGroupBase
         HttpContext context,
         IDispatcher dispatcher,
         IPrincipalResolver principals,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        await context.RequirePrincipalAsync(principals, ct);
-        return Results.Ok(await dispatcher.Dispatch(new GetCapabilitiesQuery(), ct));
+        await context.RequirePrincipalAsync(principals, cancellationToken);
+        var result = await dispatcher.GetCapabilities(cancellationToken);
+        return Results.Ok(result);
     }
 }

@@ -1,13 +1,11 @@
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
-using Synentra.Application.Features.Executions.Commands.CancelExecution;
-using Synentra.Application.Features.Executions.Commands.ReconcileExecution;
 using Synentra.Application.Features.Executions.Contracts;
-using Synentra.Application.Features.Executions.Queries.GetExecution;
 using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Domain.Security;
 using Synentra.Endpoints.V2.Support;
+using Synentra.Application.Features.Executions;
 
 namespace Synentra.Endpoints.V2;
 
@@ -28,21 +26,21 @@ public sealed class Executions : EndpointGroupBase
         IPrincipalResolver principals, 
         IInvocationStore invocations, 
         IOutcomeEvidenceStore evidence, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var execution = await dispatcher.Dispatch(new GetExecutionQuery(id), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var execution = await dispatcher.GetExecutions(id, cancellationToken);
 
         if (execution is null)
             return context.NotFound("EXECUTION_NOT_FOUND", "The requested execution was not found.");
 
-        var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), ct);
+        var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), cancellationToken);
         if (invocation is null 
             || (principal.Type != PrincipalType.Admin 
             && (principal.AgentId != invocation.AuthenticatedAgentId || principal.SecurityScope != invocation.SecurityScope)))
             return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
 
-        var outcomes = await evidence.GetAsync(id, ct);
+        var outcomes = await evidence.GetAsync(id, cancellationToken);
         return Results.Ok(new
         {
             id = execution.Id,
@@ -66,18 +64,18 @@ public sealed class Executions : EndpointGroupBase
         IInvocationStore invocations, 
         IManifestProvider manifests, 
         IRevisionProvider revisions, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequireAdminAsync(principals, ct);
-        var execution = await dispatcher.Dispatch(new GetExecutionQuery(id), ct);
+        var principal = await context.RequireAdminAsync(principals, cancellationToken);
+        var execution = await dispatcher.GetExecutions(id, cancellationToken);
         if (execution is null) 
             return context.NotFound("EXECUTION_NOT_FOUND", "The requested execution was not found.");
 
-        var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), ct);
+        var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), cancellationToken);
         if (invocation is null || invocation.SecurityScope != principal.SecurityScope) 
             return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
 
-        await revisions.ReloadAsync(ct);
+        await revisions.ReloadAsync(cancellationToken);
 
         var verification = manifests.ActiveBundle?.Spec.Operations.SingleOrDefault(x => x.Id == invocation.OperationId.Value)?.Verification;
         if (verification is null) 
@@ -89,7 +87,7 @@ public sealed class Executions : EndpointGroupBase
             verification.Configuration.ToDictionary(x => x.Key, x => x.Value?.ToString() ?? string.Empty, 
             StringComparer.Ordinal));
 
-        var result = await dispatcher.Dispatch(new ReconcileExecutionCommand(id, registration, principal), ct);
+        var result = await dispatcher.Reconcile(id, registration, principal, cancellationToken);
         return Results.Ok(result);
     }
 
@@ -98,10 +96,10 @@ public sealed class Executions : EndpointGroupBase
         HttpContext context, 
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var cancelled = await dispatcher.Dispatch(new CancelExecutionCommand(id, principal), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var cancelled = await dispatcher.Cancel(id, principal, cancellationToken);
         return cancelled 
             ? Results.Accepted($"/v2/executions/{id}", new { id, status = "cancelled_before_dispatch" }) 
             : context.Conflict("CANCELLATION_UNSUPPORTED_OR_ALREADY_DISPATCHED", "Execution cannot be cancelled in its current state.");

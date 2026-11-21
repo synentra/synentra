@@ -1,12 +1,9 @@
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
-using Synentra.Application.Features.Invocations.Commands.ResumeInvocation;
-using Synentra.Application.Features.Invocations.Commands.SubmitInvocation;
 using Synentra.Application.Features.Invocations.Contracts;
-using Synentra.Application.Features.Invocations.Queries.GetInvocation;
-using Synentra.Application.Features.Invocations.Queries.GetInvocationResult;
 using Synentra.Domain.Security;
 using Synentra.Endpoints.V2.Support;
+using Synentra.Application.Features.Invocations;
 
 namespace Synentra.Endpoints.V2;
 
@@ -25,10 +22,10 @@ public sealed class Invocations : EndpointGroupBase
         HttpContext context, 
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var result = await dispatcher.Dispatch(new SubmitInvocationCommand(request, principal, context.Request.GetIdempotencyKey()), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var result = await dispatcher.Submit(request, principal, context.Request.GetIdempotencyKey(), cancellationToken);
         context.Response.Headers.Location = $"/v2/invocations/{result.InvocationId}";
 
         if (result.Decision.Outcome == "deny") 
@@ -45,16 +42,16 @@ public sealed class Invocations : EndpointGroupBase
         HttpContext context, 
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var invocation = await dispatcher.Dispatch(new GetInvocationQuery(id), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var invocation = await dispatcher.GetInvocations(id, cancellationToken);
         if (invocation is null 
             || (principal.Type != PrincipalType.Admin && (invocation.AuthenticatedAgentId != principal.AgentId 
             || invocation.SecurityScope != principal.SecurityScope))) 
             return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
 
-        var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
+        var result = await dispatcher.GetInvocationResult(id, cancellationToken);
         return result is null
             ? context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.")
             : Results.Ok(result);
@@ -66,18 +63,18 @@ public sealed class Invocations : EndpointGroupBase
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
         IInvocationStore store, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var admission = await dispatcher.Dispatch(new ResumeInvocationCommand(id, principal), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var admission = await dispatcher.Resume(id, principal, cancellationToken);
         await store.SaveDecisionAsync(
             id, 
             new RecordedDecision(admission.Decision.Outcome.ToString().ToLowerInvariant(), 
             admission.Decision.ReasonCodes, 
             admission.Decision.PolicyRevision, 
-            admission.Decision.ExpiresAt), ct);
+            admission.Decision.ExpiresAt), cancellationToken);
 
-        var result = await dispatcher.Dispatch(new GetInvocationResultQuery(id), ct);
+        var result = await dispatcher.GetInvocationResult(id, cancellationToken);
 
         if (result is null) 
             return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
