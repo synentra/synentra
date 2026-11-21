@@ -7,6 +7,7 @@ using Synentra.Application.Features.Manifests.Commands.StoreManifest;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Application.Features.Manifests.Queries.ValidateManifest;
 using Synentra.Endpoints.V2.Support;
+using Synentra.Application.Features.Manifests;
 
 namespace Synentra.Endpoints.V2;
 
@@ -30,15 +31,15 @@ public sealed class Manifests : EndpointGroupBase
         HttpContext context, 
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        await context.RequireAdminAsync(principals, ct);
+        await context.RequireAdminAsync(principals, cancellationToken);
         if (!context.Request.ContentType.IsSupportedManifestMediaType()) 
             return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
         
         using var ms = new MemoryStream();
-        await context.Request.Body.CopyToAsync(ms, ct); ms.Position = 0;
-        var result = await dispatcher.Dispatch(new ValidateManifestQuery(ms), ct);
+        await context.Request.Body.CopyToAsync(ms, cancellationToken); ms.Position = 0;
+        var result = await dispatcher.ValidateManifest(ms, cancellationToken);
 
         if (result.IsValid)
             return Results.Ok(result);
@@ -52,20 +53,20 @@ public sealed class Manifests : EndpointGroupBase
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
         IBundleParser parser, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        await context.RequireAdminAsync(principals, ct);
+        await context.RequireAdminAsync(principals, cancellationToken);
         if (!context.Request.ContentType.IsSupportedManifestMediaType()) 
             return context.UnsupportedMediaType("UNSUPPORTED_MEDIA_TYPE", "The request media type is not supported.");
 
         using var reader = new StreamReader(context.Request.Body, Encoding.UTF8);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await reader.ReadToEndAsync(cancellationToken);
         using var parseStream = new MemoryStream(Encoding.UTF8.GetBytes(body));
         var bundle = parser.Parse(parseStream);
         if (!string.Equals(bundle.Metadata.Name, id, StringComparison.Ordinal)) 
             return context.Conflict("MANIFEST_ID_MISMATCH", "The manifest identifier does not match the request.");
 
-        var revision = await dispatcher.Dispatch(new StoreManifestCommand(body), ct);
+        var revision = await dispatcher.StoreManifest(body, cancellationToken);
         return Results.Ok(new { id, version = bundle.Metadata.Version, revision });
     }
 
@@ -75,10 +76,10 @@ public sealed class Manifests : EndpointGroupBase
         HttpContext context, 
         IDispatcher dispatcher, 
         IPrincipalResolver principals, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        await context.RequireAdminAsync(principals, ct);
-        var result = await dispatcher.Dispatch(new ActivateManifestCommand(id, request.Version, request.ExpectedActiveRevision), ct);
+        await context.RequireAdminAsync(principals, cancellationToken);
+        var result = await dispatcher.Activate(id, request.Version, request.ExpectedActiveRevision, cancellationToken);
         return result.Activated 
             ? Results.Ok(result) 
             : Results.BadRequest(result);

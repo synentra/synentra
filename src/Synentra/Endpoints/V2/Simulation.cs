@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
-using Synentra.Application.Features.Invocations.Commands.SimulateInvocation;
+using Synentra.Application.Features.Invocations;
 using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Endpoints.V2.Support;
 
@@ -19,10 +19,10 @@ public sealed class Simulation : EndpointGroupBase
         HttpContext context,
         IDispatcher dispatcher,
         IPrincipalResolver principals,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var result = await dispatcher.Dispatch(new SimulateInvocationCommand(request, principal), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var result = await dispatcher.Simulate(request, principal, cancellationToken);
         return Results.Ok(new { authorizing = false, result });
     }
 }

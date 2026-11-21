@@ -1,9 +1,6 @@
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Approvals;
-using Synentra.Application.Features.Approvals.Commands.ApproveInvocation;
-using Synentra.Application.Features.Approvals.Commands.RejectInvocation;
-using Synentra.Application.Features.Approvals.Commands.RevokeApproval;
 using Synentra.Application.Features.Approvals.Queries.GetApproval;
 using Synentra.Domain.Security;
 using Synentra.Endpoints.V2.Support;
@@ -29,14 +26,14 @@ public sealed class Approvals : EndpointGroupBase
         HttpContext context,
         IDispatcher dispatcher,
         IPrincipalResolver principals,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
 
         if (principal.Type is not (PrincipalType.Admin or PrincipalType.Reviewer))
             return context.Forbidden("REVIEWER_PERMISSION_REQUIRED", "Reviewer permission required.");
 
-        var result = await dispatcher.ListPendingApprovals(principal.SecurityScope, pageNumber, pageSize, ct);
+        var result = await dispatcher.ListPendingApprovals(principal.SecurityScope, pageNumber, pageSize, cancellationToken);
         return result.ToHttpResult(context);
     }
 
@@ -45,10 +42,10 @@ public sealed class Approvals : EndpointGroupBase
         HttpContext context,
         IDispatcher dispatcher,
         IPrincipalResolver principals,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        var approval = await dispatcher.Dispatch(new GetApprovalQuery(id), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        var approval = await dispatcher.Dispatch(new GetApprovalQuery(id), cancellationToken);
 
         if (approval is null)
             return context.NotFound("APPROVAL_NOT_FOUND", "The requested approval was not found.");
@@ -65,10 +62,10 @@ public sealed class Approvals : EndpointGroupBase
         IDispatcher dispatcher,
         IPrincipalResolver principals,
         IAdminPolicy policy,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var reviewer = await context.RequirePrincipalAsync(principals, ct);
-        await dispatcher.Dispatch(new ApproveInvocationCommand(id, reviewer, policy.AllowsSelfApproval), ct);
+        var reviewer = await context.RequirePrincipalAsync(principals, cancellationToken);
+        await dispatcher.Approve(id, reviewer, policy.AllowsSelfApproval, cancellationToken);
         return Results.NoContent();
     }
 
@@ -78,10 +75,10 @@ public sealed class Approvals : EndpointGroupBase
         HttpContext context,
         IDispatcher dispatcher,
         IPrincipalResolver principals,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var reviewer = await context.RequirePrincipalAsync(principals, ct);
-        await dispatcher.Dispatch(new RejectInvocationCommand(id, reviewer, request?.Reason), ct);
+        var reviewer = await context.RequirePrincipalAsync(principals, cancellationToken);
+        await dispatcher.Reject(id, reviewer, request?.Reason, cancellationToken);
         return Results.NoContent();
     }
 
@@ -90,10 +87,10 @@ public sealed class Approvals : EndpointGroupBase
         HttpContext context,
         IDispatcher dispatcher,
         IPrincipalResolver principals,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var principal = await context.RequirePrincipalAsync(principals, ct);
-        await dispatcher.Dispatch(new RevokeApprovalCommand(id, principal), ct);
+        var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
+        await dispatcher.Revoke(id, principal, cancellationToken);
         return Results.NoContent();
     }
 
