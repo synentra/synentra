@@ -65,7 +65,7 @@ public sealed class ToolInvocationTests
             new BindingDigest(new string('a', 64)), IntentModality.None, null, null, null, false, false,
             DateTimeOffset.UtcNow))
             .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.ToolInvocation.InvalidAuthenticatedAgentId);
+            .Which.Diagnostic.Should().Be(DomainErrors.Invocation.InvalidAuthenticatedAgentId);
     }
 
     [Fact]

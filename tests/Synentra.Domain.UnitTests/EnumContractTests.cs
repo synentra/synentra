@@ -20,9 +20,8 @@ public sealed class EnumContractTests
     [Fact]
     public void DiagnosticContracts_ShouldExposeAllKindsAndModuleCodes()
     {
-        Enum.GetNames<DiagnosticKind>().Should().Equal(
-            "System", "Infrastructure", "Serialization", "Unauthorized", "Validation",
-            "NotFound", "Conflict", "Forbidden", "Authentication");
+        Enum.GetNames<DiagnosticCategory>().Should().Equal(
+            "Validation", "Authentication", "Forbidden", "NotFound", "Conflict", "Infrastructure");
 
         new[]
         {
@@ -34,7 +33,7 @@ public sealed class EnumContractTests
             DiagnosticModules.Operation, DiagnosticModules.Intent, DiagnosticModules.BindingDigest,
             DiagnosticModules.ResourceDescriptor, DiagnosticModules.EffectMeasure, DiagnosticModules.Quarantine,
             DiagnosticModules.Secrets
-        }.Should().OnlyContain(module => module.Length == DiagnosticCode.ModuleLength && DiagnosticCode.IsValidModule(module));
+        }.Should().OnlyContain(module => module.Length >= DiagnosticCode.MinModuleLength && module.Length <= DiagnosticCode.MaxModuleLength && DiagnosticCode.IsValidModule(module));
     }
 
     [Fact]

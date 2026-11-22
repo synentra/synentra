@@ -10,13 +10,13 @@ public sealed class DiagnosticTests
     [Fact]
     public void Define_ShouldCreateDiagnosticWithExpectedCodeAndProperties()
     {
-        var diagnostic = Diagnostic.Define("APR", 7, DiagnosticKind.Conflict, "Already resolved");
+        var diagnostic = Diagnostic.Define("APR", 7, "Already resolved", DiagnosticCategory.Conflict);
 
-        diagnostic.Code.Should().Be("SYN-APR-0007");
+        diagnostic.Code.Should().Be("SYNENTRA-APR-0007");
         diagnostic.Message.Should().Be("Already resolved");
-        diagnostic.Kind.Should().Be(DiagnosticKind.Conflict);
+        diagnostic.Category.Should().Be(DiagnosticCategory.Conflict);
         diagnostic.Sequence.Should().Be((ushort)7);
-        diagnostic.ToString().Should().Be("conflict SYN-APR-0007: Already resolved");
+        diagnostic.ToString().Should().Be("conflict SYNENTRA-APR-0007: Already resolved");
     }
 
     [Theory]
@@ -24,7 +24,7 @@ public sealed class DiagnosticTests
     [InlineData("")]
     [InlineData(" ")]
     public void Define_ShouldRejectBlankMessage(string? message)
-        => FluentActions.Invoking(() => Diagnostic.Define("APR", 1, DiagnosticKind.Validation, message!))
+        => FluentActions.Invoking(() => Diagnostic.Define("APR", 1, message!, DiagnosticCategory.Validation))
             .Should().Throw<ArgumentException>().WithParameterName("message");
 
     [Fact]
@@ -47,11 +47,11 @@ public sealed class DiagnosticTests
             }
         }
 
-        DomainErrors.Approval.CannotApprove("Approved").Code.Should().Be("SYN-APR-0002");
-        DomainErrors.Approval.CannotReject("Rejected").Code.Should().Be("SYN-APR-0003");
-        DomainErrors.Approval.CannotRevoke("Rejected").Code.Should().Be("SYN-APR-0004");
-        DomainErrors.Approval.CannotConsume("Pending").Code.Should().Be("SYN-APR-0005");
-        DomainErrors.ExecutionClaim.CannotTransitionToDispatching("Unknown").Code.Should().Be("SYN-EXE-0001");
-        DomainErrors.TaskGrant.CannotRevoke("Revoked").Code.Should().Be("SYN-TGR-0001");
+        DomainErrors.Approval.CannotApprove("Approved").Code.Should().Be("SYNENTRA-APR-0002");
+        DomainErrors.Approval.CannotReject("Rejected").Code.Should().Be("SYNENTRA-APR-0003");
+        DomainErrors.Approval.CannotRevoke("Rejected").Code.Should().Be("SYNENTRA-APR-0004");
+        DomainErrors.Approval.CannotConsume("Pending").Code.Should().Be("SYNENTRA-APR-0005");
+        DomainErrors.ExecutionClaim.CannotTransitionToDispatching("Unknown").Code.Should().Be("SYNENTRA-EXE-0001");
+        DomainErrors.TaskGrant.CannotRevoke("Revoked").Code.Should().Be("SYNENTRA-TGR-0001");
     }
 }

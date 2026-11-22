@@ -4,40 +4,33 @@ public sealed record Diagnostic
 {
     public string Code { get; }
     public string Message { get; }
-    public DiagnosticKind Kind { get; }
+    public DiagnosticCategory Category { get; }
     public ushort Sequence { get; }
 
     private Diagnostic(
         string code,
         string message,
-        DiagnosticKind kind,
+        DiagnosticCategory category,
         ushort sequence)
     {
         Code = code;
         Message = message;
-        Kind = kind;
+        Category = category;
         Sequence = sequence;
     }
 
     public static Diagnostic Define(
         string module,
         ushort sequence,
-        DiagnosticKind kind,
-        string message)
+        string message,
+        DiagnosticCategory category = DiagnosticCategory.Validation)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
-
-        var code = DiagnosticCode.Build(module, sequence);
-
-        return new Diagnostic(
-            code,
-            message,
-            kind,
-            sequence);
+        return new(DiagnosticCode.Build(module, sequence), message, category, sequence);
     }
 
     public override string ToString()
     {
-        return $"{Kind.ToString().ToLowerInvariant()} {Code}: {Message}";
+        return $"{Category.ToString().ToLowerInvariant()} {Code}: {Message}";
     }
 }

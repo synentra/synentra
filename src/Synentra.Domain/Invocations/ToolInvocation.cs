@@ -60,7 +60,7 @@ public sealed class ToolInvocation
         DateTimeOffset receiptTime)
     {
         if (string.IsNullOrWhiteSpace(authenticatedAgentId))
-            throw new DomainException(DomainErrors.ToolInvocation.InvalidAuthenticatedAgentId);
+            throw new DomainException(DomainErrors.Invocation.InvalidAuthenticatedAgentId);
 
         Id = id;
         SchemaVersion = schemaVersion;

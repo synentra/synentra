@@ -14,94 +14,60 @@ namespace Synentra.Domain.Common.Diagnostics;
 /// </summary>
 public static partial class DiagnosticCode
 {
-    public const string Prefix = "SYN";
-    public const int ModuleLength = 3;
-    public const int SequenceLength = 4;
+    public const string Issuer = "SYNENTRA";          // single source of truth
+    public const int MinModuleLength = 3;
+    public const int MaxModuleLength = 4;
+    public const int SequenceDigits = 4;
     public const int MinSequence = 1;
     public const int MaxSequence = 9999;
 
-    /// <summary>
-    /// Builds a diagnostic code from a module and sequence.
-    /// </summary>
-    public static string Build(
-        string module,
-        ushort sequence)
+    public static string Build(string module, ushort sequence)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(module);
 
         if (!IsValidModule(module))
-        {
             throw new ArgumentException(
-                $"Module must contain exactly {ModuleLength} uppercase ASCII letters.",
+                $"Module must be {MinModuleLength}-{MaxModuleLength} characters, " +
+                "start with an uppercase ASCII letter, and contain only uppercase ASCII letters or digits.",
                 nameof(module));
-        }
 
         if (sequence is < MinSequence or > MaxSequence)
-        {
             throw new ArgumentOutOfRangeException(
                 nameof(sequence),
                 $"Sequence must be between {MinSequence} and {MaxSequence}.");
-        }
 
-        return $"{Prefix}-{module}-{sequence:D4}";
+        return $"{Issuer}-{module}-{sequence:D4}";
     }
 
-    /// <summary>
-    /// Checks whether the diagnostic code follows
-    /// the standard Synentra format.
-    /// </summary>
-    public static bool IsValid(string? code)
-    {
-        return code is not null &&
-               DiagnosticCodeRegex().IsMatch(code);
-    }
+    public static bool IsValid(string? code) =>
+        code is not null && DiagnosticCodeRegex().IsMatch(code);
 
-    /// <summary>
-    /// Checks whether a module identifier is valid.
-    /// </summary>
-    public static bool IsValidModule(string? module)
-    {
-        return module is
-        {
-            Length: ModuleLength
-        } &&
-        module.All(c => c is >= 'A' and <= 'Z');
-    }
+    public static bool IsValidModule(string? module) =>
+        module is { Length: >= MinModuleLength and <= MaxModuleLength }
+        && char.IsAsciiLetterUpper(module[0])
+        && module.All(c => char.IsAsciiLetterUpper(c) || char.IsAsciiDigit(c));
 
-    /// <summary>
-    /// Extracts the module from a valid diagnostic code.
-    /// </summary>
-    public static string GetModule(string code)
-    {
-        EnsureValid(code);
+    public static string GetModule(string code) => Parse(code).Module;
+    public static ushort GetSequence(string code) => Parse(code).Sequence;
 
-        return code.Substring(Prefix.Length + 1, ModuleLength);
-    }
-
-    /// <summary>
-    /// Extracts the numeric sequence from a valid diagnostic code.
-    /// </summary>
-    public static ushort GetSequence(string code)
-    {
-        EnsureValid(code);
-
-        return ushort.Parse(
-            code.AsSpan(code.Length - SequenceLength),
-            CultureInfo.InvariantCulture);
-    }
-
-    private static void EnsureValid(string? code)
+    public static DiagnosticCodeParts Parse(string code)
     {
         if (!IsValid(code))
-        {
-            throw new ArgumentException(
-                $"Invalid Synentra diagnostic code: '{code}'.",
-                nameof(code));
-        }
+            throw new ArgumentException($"Invalid Synentra diagnostic code: '{code}'.", nameof(code));
+
+        var match = DiagnosticCodeRegex().Match(code);
+
+        return new DiagnosticCodeParts(
+            Issuer: match.Groups["issuer"].Value,
+            Module: match.Groups["module"].Value,
+            Sequence: ushort.Parse(match.Groups["sequence"].Value, CultureInfo.InvariantCulture));
     }
 
+    // issuer is hard-coded here; move to an instance-based regex if it must be configurable.
     [GeneratedRegex(
-        @"\ASYN-[A-Z]{3}-(?!0000)[0-9]{4}\z",
+        @"\A(?<issuer>SYNENTRA)-(?<module>[A-Z][A-Z0-9]{2,10})-(?!0000)(?<sequence>[0-9]{4})\z",
         RegexOptions.CultureInvariant)]
     private static partial Regex DiagnosticCodeRegex();
 }
+
+public readonly record struct DiagnosticCodeParts(string Issuer, string Module, ushort Sequence);

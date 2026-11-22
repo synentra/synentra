@@ -2,216 +2,220 @@ using Synentra.Domain.Common.Diagnostics;
 
 namespace Synentra.Domain.Common.Errors;
 
+/// <summary>
+/// Domain-layer diagnostics — invariants and state-machine violations.
+/// Owns the 0001–0999 range of each module.
+/// </summary>
 public static class DomainErrors
 {
     public static class Trust
     {
+        /// <summary>SYNENTRA-TRS-0001</summary>
         public static readonly Diagnostic TrustScoreOutOfRange = Diagnostic.Define(
             module: DiagnosticModules.Trust,
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Trust score must be 0-100");
+            category: DiagnosticCategory.Validation,
+            sequence: 1,
+            message: "Trust score must be 0-100.");
     }
 
     public static class Risk
     {
+        /// <summary>SYNENTRA-RSK-0001</summary>
         public static readonly Diagnostic RiskScoreOutOfRange = Diagnostic.Define(
-            module: DiagnosticModules.Risk, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Risk score must be 0-1");
+            module: DiagnosticModules.Risk,
+            category: DiagnosticCategory.Validation,
+            sequence: 1,
+            message: "Risk score must be 0-1.");
 
+        /// <summary>SYNENTRA-RSK-0002</summary>
         public static readonly Diagnostic CoverageOutOfRange = Diagnostic.Define(
-            module: DiagnosticModules.Risk, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 2, 
-            message: "Coverage must be 0-1");
-    }
-
-    public static class Quantity
-    {
-        public static readonly Diagnostic NegativeQuantity = Diagnostic.Define(
-            module: DiagnosticModules.Risk, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 4, 
-            message: "Quantity cannot be negative");
-
-        public static readonly Diagnostic IncompatibleUnits = Diagnostic.Define(
-            module: DiagnosticModules.Risk, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 5, 
-            message: "Cannot perform operation on quantities with incompatible units");
+            module: DiagnosticModules.Risk,
+            category: DiagnosticCategory.Validation,
+            sequence: 2,
+            message: "Coverage must be 0-1.");
     }
 
     public static class Operation
     {
+        /// <summary>SYNENTRA-OPR-0001</summary>
         public static readonly Diagnostic InvalidOperationId = Diagnostic.Define(
-            module: DiagnosticModules.Operation, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "OperationId cannot be empty");
+            module: DiagnosticModules.Operation,
+            category: DiagnosticCategory.Validation,
+            sequence: 1,
+            message: "OperationId cannot be empty.");
+
+        /// <summary>SYNENTRA-OPR-0002</summary>
         public static readonly Diagnostic OperationIdTooLong = Diagnostic.Define(
-            module: DiagnosticModules.Operation, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 2, 
-            message: "OperationId cannot exceed 256 characters");
+            module: DiagnosticModules.Operation,
+            category: DiagnosticCategory.Validation,
+            sequence: 2,
+            message: "OperationId cannot exceed 256 characters.");
     }
 
     public static class Intent
     {
+        /// <summary>SYNENTRA-INT-0001</summary>
         public static readonly Diagnostic ConfidenceOutOfRange = Diagnostic.Define(
-            module: DiagnosticModules.Intent, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Confidence must be 0-1");
+            module: DiagnosticModules.Intent,
+            category: DiagnosticCategory.Validation,
+            sequence: 1,
+            message: "Confidence must be 0-1.");
     }
 
     public static class BindingDigest
     {
+        /// <summary>SYNENTRA-BDG-0001</summary>
         public static readonly Diagnostic InvalidBindingDigest = Diagnostic.Define(
-            module: DiagnosticModules.BindingDigest, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Binding digest must be a 64-character hexadecimal string");
+            module: DiagnosticModules.BindingDigest,
+            category: DiagnosticCategory.Validation,
+            sequence: 1,
+            message: "Binding digest must be a 64-character hexadecimal string.");
     }
 
     public static class ResourceDescriptor
     {
-        public static readonly Diagnostic InvalidResourceId = Diagnostic.Define(
-            module: DiagnosticModules.ResourceDescriptor, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Resource type required");
+        /// <summary>SYNENTRA-RSD-0001</summary>
+        public static readonly Diagnostic MissingResourceType = Diagnostic.Define(
+            module: DiagnosticModules.ResourceDescriptor,
+            category: DiagnosticCategory.Validation,
+            sequence: 1,
+            message: "Resource type required.");
+
+        /// <summary>SYNENTRA-RSD-0002</summary>
         public static readonly Diagnostic InvalidResourceType = Diagnostic.Define(
-            module: DiagnosticModules.ResourceDescriptor, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 2, 
-            message: "Resource type is invalid");
+            module: DiagnosticModules.ResourceDescriptor,
+            category: DiagnosticCategory.Validation,
+            sequence: 2,
+            message: "Resource type is invalid.");
+
+        /// <summary>SYNENTRA-RSD-0003</summary>
+        public static readonly Diagnostic InvalidResourceId = Diagnostic.Define(
+            module: DiagnosticModules.ResourceDescriptor,
+            category: DiagnosticCategory.Validation,
+            sequence: 3,
+            message: "Resource id is invalid.");
+
+        /// <summary>SYNENTRA-RSD-0004</summary>
         public static readonly Diagnostic InvalidSecurityScope = Diagnostic.Define(
-            module: DiagnosticModules.ResourceDescriptor, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 3, 
-            message: "Security scope is invalid");
+            module: DiagnosticModules.ResourceDescriptor,
+            category: DiagnosticCategory.Validation,
+            sequence: 4,
+            message: "Security scope is invalid.");
+
+        /// <summary>SYNENTRA-RSD-0005</summary>
         public static readonly Diagnostic InvalidAuthorityDomain = Diagnostic.Define(
-            module: DiagnosticModules.ResourceDescriptor, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 4, 
-            message: "Authority domain is invalid");
+            module: DiagnosticModules.ResourceDescriptor,
+            category: DiagnosticCategory.Validation,
+            sequence: 5,
+            message: "Authority domain is invalid.");
     }
 
-    public static class ToolInvocation
+    public static class Invocation
     {
+        /// <summary>SYNENTRA-INV-0001</summary>
         public static readonly Diagnostic InvalidAuthenticatedAgentId = Diagnostic.Define(
-            module: DiagnosticModules.Invocations, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Authenticated agent id is required");
+            module: DiagnosticModules.Invocations,
+            category: DiagnosticCategory.Validation,
+            sequence: 1,
+            message: "Authenticated agent id is required.");
+
+        /// <summary>SYNENTRA-INV-0002</summary>
         public static readonly Diagnostic InvalidOperationId = Diagnostic.Define(
-            module: DiagnosticModules.Invocations, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 2, 
-            message: "OperationId cannot be empty");
+            module: DiagnosticModules.Invocations,
+            category: DiagnosticCategory.Validation,
+            sequence: 2,
+            message: "OperationId cannot be empty.");
+
+        /// <summary>SYNENTRA-INV-0003</summary>
         public static readonly Diagnostic InvalidBindingDigest = Diagnostic.Define(
-            module: DiagnosticModules.Invocations, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 3, 
-            message: "Binding digest must be a 64-character hexadecimal string");
+            module: DiagnosticModules.Invocations,
+            category: DiagnosticCategory.Validation,
+            sequence: 3,
+            message: "Binding digest must be a 64-character hexadecimal string.");
     }
 
     public static class Approval
     {
+        /// <summary>SYNENTRA-APR-0001</summary>
         public static readonly Diagnostic ApprovalHasExpired = Diagnostic.Define(
-            module: DiagnosticModules.Approvals, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Approval has expired");
+            module: DiagnosticModules.Approvals,
+            category: DiagnosticCategory.Conflict,
+            sequence: 1,
+            message: "Approval has expired.");
+
+        /// <summary>SYNENTRA-APR-0002</summary>
         public static Diagnostic CannotApprove(string status) => Diagnostic.Define(
-            module: DiagnosticModules.Approvals, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 2, 
+            module: DiagnosticModules.Approvals,
+            category: DiagnosticCategory.Conflict,
+            sequence: 2,
             message: $"Cannot approve in state {status}.");
+
+        /// <summary>SYNENTRA-APR-0003</summary>
         public static Diagnostic CannotReject(string status) => Diagnostic.Define(
-            module: DiagnosticModules.Approvals, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 3, 
+            module: DiagnosticModules.Approvals,
+            category: DiagnosticCategory.Conflict,
+            sequence: 3,
             message: $"Cannot reject in state {status}.");
+
+        /// <summary>SYNENTRA-APR-0004</summary>
         public static Diagnostic CannotRevoke(string status) => Diagnostic.Define(
-            module: DiagnosticModules.Approvals, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 4, 
+            module: DiagnosticModules.Approvals,
+            category: DiagnosticCategory.Conflict,
+            sequence: 4,
             message: $"Cannot revoke in state {status}.");
+
+        /// <summary>SYNENTRA-APR-0005</summary>
         public static Diagnostic CannotConsume(string status) => Diagnostic.Define(
-            module: DiagnosticModules.Approvals, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 5, 
+            module: DiagnosticModules.Approvals,
+            category: DiagnosticCategory.Conflict,
+            sequence: 5,
             message: $"Cannot consume in state {status}.");
     }
 
     public static class ExecutionClaim
     {
+        /// <summary>SYNENTRA-EXE-0001</summary>
         public static Diagnostic CannotTransitionToDispatching(string state) => Diagnostic.Define(
-            module: DiagnosticModules.Executions, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
+            module: DiagnosticModules.Executions,
+            category: DiagnosticCategory.Conflict,
+            sequence: 1,
             message: $"Cannot transition to Dispatching from state {state}.");
     }
 
     public static class TaskGrant
     {
+        /// <summary>SYNENTRA-TGR-0001</summary>
         public static Diagnostic CannotRevoke(string state) => Diagnostic.Define(
-            module: DiagnosticModules.TaskGrants, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
+            module: DiagnosticModules.TaskGrants,
+            category: DiagnosticCategory.Conflict,
+            sequence: 1,
             message: $"Cannot revoke in state {state}.");
-    }
-
-    public static class EffectMeasure
-    {
-        public static Diagnostic MeasureRequired = Diagnostic.Define(
-            module: DiagnosticModules.EffectMeasure, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
-            message: "Measure required.");
-        public static Diagnostic UnitRequired = Diagnostic.Define(
-            module: DiagnosticModules.EffectMeasure, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 2, 
-            message: "Unit required.");
-        public static Diagnostic ScaleMustBeNonNegative = Diagnostic.Define(
-            module: DiagnosticModules.EffectMeasure, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 3, 
-            message: "Scale must be non-negative.");
-        public static Diagnostic UpperBoundMustBeNonNegative = Diagnostic.Define(
-            module: DiagnosticModules.EffectMeasure,
-            kind: DiagnosticKind.Validation,
-            sequence: 4,
-            message: "Upper bound must be non-negative.");
     }
 
     public static class Quarantine
     {
-        public static Diagnostic AlreadyReleased = Diagnostic.Define(
-            module: DiagnosticModules.Quarantine, 
-            kind: DiagnosticKind.Validation, 
-            sequence: 1, 
+        /// <summary>SYNENTRA-QRT-0001</summary>
+        public static readonly Diagnostic AlreadyReleased = Diagnostic.Define(
+            module: DiagnosticModules.Quarantine,
+            category: DiagnosticCategory.Conflict,
+            sequence: 1,
             message: "Quarantine already released.");
     }
 
     public static class Secret
     {
-        public static Diagnostic SecretRefEmpty = Diagnostic.Define(
+        /// <summary>SYNENTRA-SEC-0001</summary>
+        public static readonly Diagnostic SecretRefEmpty = Diagnostic.Define(
             module: DiagnosticModules.Secrets,
-            kind: DiagnosticKind.Validation,
+            category: DiagnosticCategory.Validation,
             sequence: 1,
-            message: "Secret reference is empty."
-            );
+            message: "Secret reference is empty.");
 
-        public static Diagnostic SecretRefAmbiguous = Diagnostic.Define(
+        /// <summary>SYNENTRA-SEC-0002</summary>
+        public static readonly Diagnostic SecretRefAmbiguous = Diagnostic.Define(
             module: DiagnosticModules.Secrets,
-            kind: DiagnosticKind.Validation,
+            category: DiagnosticCategory.Validation,
             sequence: 2,
-            message: "Secret reference is ambiguous (looks like a Windows path)."
-            );
+            message: "Secret reference is ambiguous (looks like a Windows path).");
     }
 }
