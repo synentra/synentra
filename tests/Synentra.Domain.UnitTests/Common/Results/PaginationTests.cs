@@ -69,7 +69,7 @@ public sealed class PaginationTests
     [Fact]
     public void PaginatedResult_Failure_ShouldExposeDiagnosticAndEmptyItems()
     {
-        var diagnostic = Diagnostic.Define("TST", 2, DiagnosticKind.NotFound, "Not found");
+        var diagnostic = Diagnostic.Define("TST", 2, "Not found", DiagnosticCategory.NotFound);
         var result = PaginatedResult<int>.Failure(diagnostic);
         result.IsSuccess.Should().BeFalse();
         result.Diagnostic.Should().Be(diagnostic);
@@ -85,7 +85,7 @@ public sealed class PaginationTests
     {
         var request = new PageRequest(1, 5);
         var success = await PaginatedResult<int>.SuccessAsync([1, 2], request, 2);
-        var failureDiagnostic = Diagnostic.Define("TST", 3, DiagnosticKind.Conflict, "Conflict");
+        var failureDiagnostic = Diagnostic.Define("TST", 3, "Conflict", DiagnosticCategory.Conflict);
         var failure = await PaginatedResult<int>.FailureAsync(failureDiagnostic);
         var empty = await PaginatedResult<int>.EmptyAsync(request);
 

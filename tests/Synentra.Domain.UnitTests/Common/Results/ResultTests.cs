@@ -6,7 +6,7 @@ namespace Synentra.Domain.Tests;
 
 public sealed class ResultTests
 {
-    private static readonly Diagnostic Error = Diagnostic.Define("TST", 1, DiagnosticKind.Validation, "Test failure");
+    private static readonly Diagnostic Error = Diagnostic.Define("TST", 1, "Test failure", DiagnosticCategory.Validation);
 
     [Fact]
     public void NonGenericResult_ShouldRepresentSuccessAndFailure()

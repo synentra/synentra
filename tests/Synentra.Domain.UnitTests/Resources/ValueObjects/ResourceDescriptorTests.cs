@@ -36,14 +36,14 @@ public sealed class ResourceDescriptorTests
     }
 
     [Theory]
-    [InlineData(null, "id", "scope", "authority", "SYN-RSD-0002")]
-    [InlineData(" ", "id", "scope", "authority", "SYN-RSD-0002")]
-    [InlineData("type", null, "scope", "authority", "SYN-RSD-0001")]
-    [InlineData("type", " ", "scope", "authority", "SYN-RSD-0001")]
-    [InlineData("type", "id", null, "authority", "SYN-RSD-0003")]
-    [InlineData("type", "id", " ", "authority", "SYN-RSD-0003")]
-    [InlineData("type", "id", "scope", null, "SYN-RSD-0004")]
-    [InlineData("type", "id", "scope", " ", "SYN-RSD-0004")]
+    [InlineData(null, "id", "scope", "authority", "SYNENTRA-RSD-0002")]
+    [InlineData(" ", "id", "scope", "authority", "SYNENTRA-RSD-0002")]
+    [InlineData("type", null, "scope", "authority", "SYNENTRA-RSD-0003")]
+    [InlineData("type", " ", "scope", "authority", "SYNENTRA-RSD-0003")]
+    [InlineData("type", "id", null, "authority", "SYNENTRA-RSD-0004")]
+    [InlineData("type", "id", " ", "authority", "SYNENTRA-RSD-0004")]
+    [InlineData("type", "id", "scope", null, "SYNENTRA-RSD-0005")]
+    [InlineData("type", "id", "scope", " ", "SYNENTRA-RSD-0005")]
     public void Constructor_ShouldRejectRequiredValues(string? type, string? id, string? scope, string? authority, string code)
         => FluentActions.Invoking(() => new ResourceDescriptor(type!, id!, scope!, authority!))
             .Should().Throw<DomainException>().Which.Diagnostic.Code.Should().Be(code);

@@ -1,3 +1,4 @@
+using Synentra.Endpoints.V2.Diagnostics;
 using Synentra.Exceptions;
 
 namespace Synentra.Middleware;
@@ -10,10 +11,10 @@ public sealed class IdempotencyMiddleware(RequestDelegate next)
         {
             var key = GetIdempotencyKey(context.Request);
             if (string.IsNullOrWhiteSpace(key))
-                throw new IdempotencyApiException("Idempotency-Key is required for mutating requests.");
+                throw new IdempotencyApiException(EndpointsError.Idempotency.IdempotencyKeyRequired);
 
             if (key.Length > 200)
-                throw new IdempotencyApiException("Idempotency-Key must not exceed 200 characters.");
+                throw new IdempotencyApiException(EndpointsError.Idempotency.IdempotencyKeyTooLong);
 
             context.Items["IdempotencyKey"] = key;
             context.Response.Headers["Idempotency-Key"] = key;

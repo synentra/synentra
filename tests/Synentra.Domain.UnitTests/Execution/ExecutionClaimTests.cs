@@ -41,6 +41,6 @@ public sealed class ExecutionClaimTests
 
         FluentActions.Invoking(claim.TransitionToDispatching)
             .Should().Throw<DomainException>()
-            .Which.Diagnostic.Code.Should().Be("SYN-EXE-0001");
+            .Which.Diagnostic.Code.Should().Be("SYNENTRA-EXE-0001");
     }
 }
