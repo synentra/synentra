@@ -2,12 +2,10 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
-using Synentra.Application.Features.Manifests.Commands.ActivateManifest;
-using Synentra.Application.Features.Manifests.Commands.StoreManifest;
 using Synentra.Application.Features.Manifests.Contracts;
-using Synentra.Application.Features.Manifests.Queries.ValidateManifest;
 using Synentra.Endpoints.V2.Support;
 using Synentra.Application.Features.Manifests;
+using Synentra.Endpoints.V2.Diagnostics;
 
 namespace Synentra.Endpoints.V2;
 
@@ -64,7 +62,7 @@ public sealed class Manifests : EndpointGroupBase
         using var parseStream = new MemoryStream(Encoding.UTF8.GetBytes(body));
         var bundle = parser.Parse(parseStream);
         if (!string.Equals(bundle.Metadata.Name, id, StringComparison.Ordinal)) 
-            return context.Conflict("MANIFEST_ID_MISMATCH", "The manifest identifier does not match the request.");
+            return context.Conflict(EndpointsError.Manifest.ManifestIdMismatch);
 
         var revision = await dispatcher.StoreManifest(body, cancellationToken);
         return Results.Ok(new { id, version = bundle.Metadata.Version, revision });

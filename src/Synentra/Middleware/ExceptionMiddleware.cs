@@ -71,11 +71,11 @@ public sealed class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionM
         if (ex is BundleParseException bundleParse) 
             return (400, bundleParse.Issues.FirstOrDefault() ?? "INVALID_MANIFEST", bundleParse.Message);
 
-        if (ex is AuthenticationApiException) 
-            return (401, "UNAUTHENTICATED", ex.Message);
+        if (ex is AuthenticationApiException authenticationApiException) 
+            return (401, authenticationApiException.Diagnostic.Code.ToString(), authenticationApiException.Diagnostic.Message ?? "Request failed.");
 
-        if (ex is ForbiddenApiException) 
-            return (403, "FORBIDDEN", ex.Message);
+        if (ex is ForbiddenApiException forbiddenApiException) 
+            return (403, forbiddenApiException.Diagnostic.Code.ToString(), forbiddenApiException.Diagnostic.Message ?? "Request failed.");
 
         if (ex is UnauthorizedAccessException) 
             return (403, "FORBIDDEN", "The authenticated principal is not authorized for this operation.");
@@ -84,13 +84,13 @@ public sealed class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionM
             return (404, "NOT_FOUND", ex.Message);
 
         if (ex is SynentraException be) 
-            return (be.Diagnostic.Kind switch
+            return (be.Diagnostic.Category switch
             {
-                DiagnosticKind.Validation => 400,
-                DiagnosticKind.NotFound => 404,
-                DiagnosticKind.Conflict => 409,
-                DiagnosticKind.Unauthorized => 401,
-                DiagnosticKind.Forbidden => 403,
+                DiagnosticCategory.Validation => 400,
+                DiagnosticCategory.Authentication => 401,
+                DiagnosticCategory.Forbidden => 403,
+                DiagnosticCategory.NotFound => 404,
+                DiagnosticCategory.Conflict => 409,
                 _ => 500
             }, be.Diagnostic.Code.ToString(), be.Diagnostic.Message ?? "Request failed.");
 

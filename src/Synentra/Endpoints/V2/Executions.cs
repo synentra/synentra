@@ -6,6 +6,8 @@ using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Domain.Security;
 using Synentra.Endpoints.V2.Support;
 using Synentra.Application.Features.Executions;
+using Synentra.Endpoints.V2.Diagnostics;
+using Synentra.Application.Common.Diagnostics;
 
 namespace Synentra.Endpoints.V2;
 
@@ -32,13 +34,13 @@ public sealed class Executions : EndpointGroupBase
         var execution = await dispatcher.GetExecutions(id, cancellationToken);
 
         if (execution is null)
-            return context.NotFound("EXECUTION_NOT_FOUND", "The requested execution was not found.");
+            return context.NotFound(EndpointsError.Execution.ExecutionNotFound);
 
         var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), cancellationToken);
         if (invocation is null 
             || (principal.Type != PrincipalType.Admin 
             && (principal.AgentId != invocation.AuthenticatedAgentId || principal.SecurityScope != invocation.SecurityScope)))
-            return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
+            return context.NotFound(ApplicationError.Invocation.InvocationNotFound(execution.InvocationId.ToString()));
 
         var outcomes = await evidence.GetAsync(id, cancellationToken);
         return Results.Ok(new
@@ -69,17 +71,17 @@ public sealed class Executions : EndpointGroupBase
         var principal = await context.RequireAdminAsync(principals, cancellationToken);
         var execution = await dispatcher.GetExecutions(id, cancellationToken);
         if (execution is null) 
-            return context.NotFound("EXECUTION_NOT_FOUND", "The requested execution was not found.");
+            return context.NotFound(EndpointsError.Execution.ExecutionNotFound);
 
         var invocation = await invocations.GetAsync(execution.InvocationId.ToString(), cancellationToken);
         if (invocation is null || invocation.SecurityScope != principal.SecurityScope) 
-            return context.NotFound("INVOCATION_NOT_FOUND", "The requested invocation was not found.");
+            return context.NotFound(ApplicationError.Invocation.InvocationNotFound(execution.InvocationId.ToString()));
 
         await revisions.ReloadAsync(cancellationToken);
 
         var verification = manifests.ActiveBundle?.Spec.Operations.SingleOrDefault(x => x.Id == invocation.OperationId.Value)?.Verification;
         if (verification is null) 
-            return context.Conflict("VERIFICATION_NOT_CONFIGURED", "Execution verification is not configured.");
+            return context.Conflict(EndpointsError.Execution.VerificationNotConfigured);
 
         var registration = new VerifierRegistration(
             verification.VerifierRef, 

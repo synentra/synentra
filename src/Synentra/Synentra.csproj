@@ -66,6 +66,10 @@
 		<ProjectReference Include="..\Synentra.Persistence.Sqlite\Synentra.Persistence.Sqlite.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Diagnostics\" />
+	</ItemGroup>
+
 	<Target Name="RemoveDevAppSettingsFromPublish" AfterTargets="ComputeFilesToPublish">
 		<ItemGroup>
 			<ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition=" '%(ResolvedFileToPublish.RelativePath)' == 'appsettings.Development.json' " />

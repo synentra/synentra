@@ -5,6 +5,7 @@ using Synentra.Application.Features.TaskGrants.Contracts;
 using Synentra.Domain.Grants;
 using Synentra.Domain.Grants.ValueObjects;
 using Synentra.Domain.Security;
+using Synentra.Endpoints.V2.Diagnostics;
 using Synentra.Endpoints.V2.Support;
 
 namespace Synentra.Endpoints.V2;
@@ -27,10 +28,10 @@ public sealed class TaskGrants : EndpointGroupBase
     {
         var issuer = await context.RequireIssuerAsync(principals, cancellationToken);
         if (request.ExpiresAt <= DateTimeOffset.UtcNow)
-            return context.BadRequest("GRANT_EXPIRY_MUST_BE_FUTURE", "Grant expiry must be in the future.");
+            return context.BadRequest(EndpointsError.TaskGrant.GrantExpiryMustBeFuture);
 
         if (request.OperationIds.Count == 0)
-            return context.BadRequest("GRANT_OPERATION_SCOPE_REQUIRED", "At least one operation scope is required.");
+            return context.BadRequest(EndpointsError.TaskGrant.GrantOperationScopeRequired);
 
         var grant = new TaskGrant(
             Guid.NewGuid().ToString("N"),
@@ -56,10 +57,10 @@ public sealed class TaskGrants : EndpointGroupBase
         var principal = await context.RequirePrincipalAsync(principals, cancellationToken);
         var grant = await dispatcher.GetTaskGrant(id, cancellationToken);
         if (grant is null)
-            return context.NotFound("GRANT_NOT_FOUND", "The requested grant was not found.");
+            return context.NotFound(EndpointsError.TaskGrant.TaskGrantNotFound);
 
         if (principal.Type != PrincipalType.Admin && principal.AgentId != grant.AgentId && principal.AgentId != grant.IssuerId)
-            return context.NotFound("GRANT_NOT_FOUND", "The requested grant was not found.");
+            return context.NotFound(EndpointsError.TaskGrant.TaskGrantNotFound);
 
         return Results.Ok(ToResponse(grant));
     }

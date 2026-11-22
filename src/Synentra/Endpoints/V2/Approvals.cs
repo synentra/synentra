@@ -1,8 +1,10 @@
+using Synentra.Application.Common.Diagnostics;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Approvals;
 using Synentra.Application.Features.Approvals.Queries.GetApproval;
 using Synentra.Domain.Security;
+using Synentra.Endpoints.V2.Diagnostics;
 using Synentra.Endpoints.V2.Support;
 using Synentra.Extensions;
 
@@ -48,10 +50,10 @@ public sealed class Approvals : EndpointGroupBase
         var approval = await dispatcher.Dispatch(new GetApprovalQuery(id), cancellationToken);
 
         if (approval is null)
-            return context.NotFound("APPROVAL_NOT_FOUND", "The requested approval was not found.");
+            return context.NotFound(ApplicationError.Approval.ApprovalNotFound(id));
 
         if (principal.Type != PrincipalType.Admin && principal.SecurityScope != approval.SecurityScope && principal.AgentId != approval.RequestingAgentId)
-            return context.NotFound("APPROVAL_NOT_FOUND", "The requested approval was not found.");
+            return context.NotFound(ApplicationError.Approval.ApprovalNotFound(id));
 
         return Results.Ok(approval);
     }
