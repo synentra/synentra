@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Synentra.Application.Common.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Endpoints.V2.Diagnostics;
 using Synentra.Endpoints.V2.Support;
 using Synentra.Infrastructure.Configuration.Secrets;
 using Synentra.Infrastructure.Features.Secrets;
@@ -49,7 +50,7 @@ public sealed class Secrets : EndpointGroupBase
         {
             var admin = await context.RequireAdminAsync(principals, ct);
             if (request.Binding is null || id != request.Binding.Id)
-                return context.BadRequest("INVALID_BINDING_ID", "The provided binding ID does not match the requested ID.");
+                return context.BadRequest(EndpointsError.Secrets.BindingIdMismatch);
 
             await bindings.SaveAsync(request.Binding.ToDomain(), request.ExpectedVersion, admin.AgentId, materialOnly: false, ct);
             return Results.NoContent();
@@ -60,7 +61,7 @@ public sealed class Secrets : EndpointGroupBase
             await context.RequireAdminAsync(principals, ct);
             var binding = await bindings.GetAsync(id, ct);
             return binding is null
-                ? context.NotFound("BINDING_NOT_FOUND", "The requested binding was not found.")
+                ? context.NotFound(EndpointsError.Secrets.BindingNotFound)
                 : Results.Ok(binding);
         });
 
@@ -68,11 +69,11 @@ public sealed class Secrets : EndpointGroupBase
         {
             var admin = await context.RequireAdminAsync(principals, ct);
             if (request.SecretRef is null || string.IsNullOrWhiteSpace(request.BindingId))
-                return context.BadRequest("INVALID_REQUEST", "The provided request is invalid.");
+                return context.BadRequest(EndpointsError.Secrets.InvalidRequest);
 
             var prior = await bindings.GetAsync(request.BindingId, ct);
             if (prior is null)
-                return context.NotFound("BINDING_NOT_FOUND", "The requested binding was not found.");
+                return context.NotFound(EndpointsError.Secrets.BindingNotFound);
 
             var rotated = new CredentialBinding(
                 prior.Id,
@@ -94,7 +95,7 @@ public sealed class Secrets : EndpointGroupBase
             await context.RequireAdminAsync(principals, ct);
 
             if (!SecretsConfiguration.CredentialProviders.Contains(providerId))
-                return context.BadRequest("INVALID_PROVIDER", "The specified credential provider is not valid.");
+                return context.BadRequest(EndpointsError.Secrets.InvalidCredentialProvider);
 
             return Results.Ok(await states.GetAsync(new(providerId, path, version), ct));
         });
@@ -107,7 +108,7 @@ public sealed class Secrets : EndpointGroupBase
                 || !SecretsConfiguration.CredentialProviders.Contains(request.SecretRef.ProviderId)
                 || string.IsNullOrWhiteSpace(request.SecretRef.SecretPath)
                 || string.IsNullOrWhiteSpace(request.SecretRef.Version))
-                return context.BadRequest("INVALID_SECRET_REF", "The specified secret reference is not valid.");
+                return context.BadRequest(EndpointsError.Secrets.InvalidSecretReference);
 
             var generation = await states.ChangeAsync(request.SecretRef, request.ExpectedGeneration, request.Revoke, admin.AgentId, ct);
             return Results.Ok(new { generation, revoked = request.Revoke });
@@ -129,7 +130,7 @@ public sealed class Secrets : EndpointGroupBase
             var admin = await context.RequireAdminAsync(principals, ct);
             var previous = await bindings.GetAsync(id, ct);
             if (previous is null)
-                return context.NotFound("BINDING_NOT_FOUND", "The requested binding was not found.");
+                return context.NotFound(EndpointsError.Secrets.BindingNotFound);
 
             var revoked = new CredentialBinding(previous.Id, previous.TargetRef, previous.AllowedPrincipal, previous.DelegationScope,
                 previous.AllowedOperations, previous.SecretRef, Guid.NewGuid().ToString("N"), true);

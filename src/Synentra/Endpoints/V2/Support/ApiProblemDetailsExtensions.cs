@@ -15,9 +15,8 @@ internal static class ApiProblemDetailsExtensions
 
     public static IResult BadRequest(
         this HttpContext context,
-        string code = "BAD_REQUEST",
-        string title = "The request is invalid.")
-        => Create(context, StatusCodes.Status400BadRequest, code, title);
+        Diagnostic diagnostic)
+        => Create(context, StatusCodes.Status400BadRequest, diagnostic.Code, diagnostic.Message);
 
     public static IResult Unauthorized(
         this HttpContext context,
@@ -33,15 +32,19 @@ internal static class ApiProblemDetailsExtensions
 
     public static IResult NotFound(
         this HttpContext context,
-        string code = "NOT_FOUND",
-        string title = "The requested resource was not found.")
-        => Create(context, StatusCodes.Status404NotFound, code, title);
+        Diagnostic diagnostic)
+        => Create(context, StatusCodes.Status404NotFound, diagnostic.Code, diagnostic.Message);
 
     public static IResult Conflict(
         this HttpContext context,
         string code = "CONFLICT",
         string title = "The request conflicts with the current resource state.")
         => Create(context, StatusCodes.Status409Conflict, code, title);
+
+    public static IResult Conflict(
+        this HttpContext context,
+        Diagnostic diagnostic)
+        => Create(context, StatusCodes.Status409Conflict, diagnostic.Code, diagnostic.Message);
 
     public static IResult UnsupportedMediaType(
         this HttpContext context,
@@ -116,11 +119,11 @@ internal static class ApiProblemDetailsExtensions
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
 
-        var status = MapStatusCode(diagnostic.Kind);
+        var status = MapStatusCode(diagnostic.Category);
         var code = diagnostic.Code.ToString();
         var title = diagnostic.Message ?? "An error occurred.";
 
-        if (diagnostic.Kind == DiagnosticKind.Validation &&
+        if (diagnostic.Category == DiagnosticCategory.Validation &&
             diagnostic.Message is not null)
         {
             return context.ValidationProblem(
@@ -152,24 +155,14 @@ internal static class ApiProblemDetailsExtensions
         return Results.Problem(problem);
     }
 
-    private static int MapStatusCode(DiagnosticKind kind)
-        => kind switch
+    private static int MapStatusCode(DiagnosticCategory category)
+        => category switch
         {
-            DiagnosticKind.Validation =>
-                StatusCodes.Status400BadRequest,
-
-            DiagnosticKind.NotFound =>
-                StatusCodes.Status404NotFound,
-
-            DiagnosticKind.Conflict =>
-                StatusCodes.Status409Conflict,
-
-            DiagnosticKind.Unauthorized =>
-                StatusCodes.Status401Unauthorized,
-
-            DiagnosticKind.Forbidden =>
-                StatusCodes.Status403Forbidden,
-
+            DiagnosticCategory.Validation => StatusCodes.Status400BadRequest,
+            DiagnosticCategory.NotFound => StatusCodes.Status404NotFound,
+            DiagnosticCategory.Conflict => StatusCodes.Status409Conflict,
+            DiagnosticCategory.Authentication => StatusCodes.Status401Unauthorized,
+            DiagnosticCategory.Forbidden => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status500InternalServerError
         };
 

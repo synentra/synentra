@@ -1,6 +1,7 @@
 ﻿using Synentra.Application.Common.Security;
 using Synentra.Domain.Security;
 using Synentra.Domain.Security.ValueObjects;
+using Synentra.Endpoints.V2.Diagnostics;
 using Synentra.Exceptions;
 
 namespace Synentra.Endpoints.V2.Support;
@@ -12,7 +13,7 @@ internal static class EndpointAuthentication
         IPrincipalResolver resolver,
         CancellationToken ct)
     {
-        var credential = context.Request.GetCredential() ?? throw new AuthenticationApiException("Missing agent credential.");
+        var credential = context.Request.GetCredential() ?? throw new AuthenticationApiException(EndpointsError.Authentication.MissingAgentCredential);
 
         try
         {
@@ -24,7 +25,7 @@ internal static class EndpointAuthentication
         }
         catch (Exception ex)
         {
-            throw new AuthenticationApiException("Credential validation failed.", ex);
+            throw new AuthenticationApiException(EndpointsError.Authentication.CredentialValidationFailed, ex);
         }
     }
 
@@ -36,7 +37,7 @@ internal static class EndpointAuthentication
         var principal = await context.RequirePrincipalAsync(resolver, ct);
 
         if (principal.Type != PrincipalType.Admin)
-            throw new ForbiddenApiException("Administrator permission required.");
+            throw new ForbiddenApiException(EndpointsError.Authentication.AdministratorPermissionRequired);
 
         return principal;
     }
@@ -49,7 +50,7 @@ internal static class EndpointAuthentication
         var principal = await context.RequirePrincipalAsync(resolver, ct);
 
         if (principal.Type is not (PrincipalType.Admin or PrincipalType.TrustedIssuer))
-            throw new ForbiddenApiException("Trusted issuer permission required.");
+            throw new ForbiddenApiException(EndpointsError.Authentication.TrustedIssuerPermissionRequired);
 
         return principal;
     }
