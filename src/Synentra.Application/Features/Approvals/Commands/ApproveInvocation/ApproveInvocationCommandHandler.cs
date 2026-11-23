@@ -1,10 +1,11 @@
 using Synentra.Domain.Security;
-using Synentra.Application.Common.Diagnostics;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Approvals.Contracts;
 using Synentra.Application.Features.Auditing.Contracts;
 using Unit = Synentra.Application.Common.Dispatching.Void;
+using Synentra.Diagnostics.Exceptions;
+using Synentra.Diagnostics.Catalog;
 
 namespace Synentra.Application.Features.Approvals.Commands.ApproveInvocation;
 
@@ -16,17 +17,17 @@ public sealed class ApproveInvocationCommandHandler(
     public async Task<Unit> Handle(ApproveInvocationCommand request, CancellationToken cancellationToken = default)
     {
         var approval = await store.GetAsync(request.ApprovalId, cancellationToken) 
-            ?? throw new SynentraApplicationException(ApplicationError.Approval.ApprovalNotFound(request.ApprovalId));
+            ?? throw new SynentraApplicationException(ApprovalDiagnostics.ApprovalNotFound(request.ApprovalId));
 
         var reviewer = request.Reviewer;
         if (reviewer.Type is not (PrincipalType.Reviewer or PrincipalType.Admin))
-            throw new SynentraApplicationException(ApplicationError.Approval.ApprovalReviewerPermissionRequired);
+            throw new SynentraApplicationException(ApprovalDiagnostics.ApprovalReviewerPermissionRequired);
 
         if (!adminPolicy.AllowsCrossScopeApproval && reviewer.SecurityScope != approval.SecurityScope)
-            throw new SynentraApplicationException(ApplicationError.Approval.ApprovalReviewerPermissionRequired);
+            throw new SynentraApplicationException(ApprovalDiagnostics.ApprovalReviewerPermissionRequired);
 
         if (approval.RequestingAgentId == reviewer.AgentId && !(request.AllowsSelfApproval && adminPolicy.AllowsSelfApproval))
-            throw new SynentraApplicationException(ApplicationError.Approval.ApprovalSelfApprovalDenied);
+            throw new SynentraApplicationException(ApprovalDiagnostics.ApprovalSelfApprovalDenied);
 
         approval.Approve(reviewer.AgentId);
         await store.SaveAsync(approval, cancellationToken);

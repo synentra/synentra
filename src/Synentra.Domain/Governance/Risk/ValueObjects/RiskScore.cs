@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Domain.Governance.Risk.ValueObjects;
 
@@ -11,10 +11,10 @@ public sealed record RiskScore
     public RiskScore(double value, double coverage)
     {
         if (value < 0 || value > 1)
-            throw new DomainException(DomainErrors.Risk.RiskScoreOutOfRange);
+            throw new SynentraDomainException(RiskDiagnostics.RiskScoreOutOfRange);
 
         if (coverage < 0 || coverage > 1)
-            throw new DomainException(DomainErrors.Risk.CoverageOutOfRange);
+            throw new SynentraDomainException(RiskDiagnostics.CoverageOutOfRange);
 
         Value = value;
         Coverage = coverage;

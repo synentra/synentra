@@ -1,4 +1,4 @@
-﻿using Synentra.Domain.Common.Diagnostics;
+﻿using Synentra.Diagnostics;
 
 namespace Synentra.Domain.Common.Results;
 

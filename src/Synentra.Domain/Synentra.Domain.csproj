@@ -11,4 +11,8 @@
 		<DebugType>None</DebugType>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Synentra.Diagnostics\Synentra.Diagnostics.csproj" />
+	</ItemGroup>
+
 </Project>
