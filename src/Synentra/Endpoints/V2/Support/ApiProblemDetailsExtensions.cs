@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Synentra.Application.Features.Manifests.Contracts;
-using Synentra.Domain.Common.Diagnostics;
+using Synentra.Diagnostics;
 
 namespace Synentra.Endpoints.V2.Support;
 

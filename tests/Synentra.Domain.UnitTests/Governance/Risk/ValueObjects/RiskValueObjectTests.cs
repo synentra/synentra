@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Governance.Risk;
 using Synentra.Domain.Governance.Risk.ValueObjects;
 
@@ -24,16 +24,16 @@ public sealed class RiskValueObjectTests
     [InlineData(1.01d)]
     public void RiskScore_ShouldRejectOutOfRangeScore(double score)
         => FluentActions.Invoking(() => new RiskScore(score, 0.5))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Risk.RiskScoreOutOfRange);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(RiskDiagnostics.RiskScoreOutOfRange);
 
     [Theory]
     [InlineData(-0.01d)]
     [InlineData(1.01d)]
     public void RiskScore_ShouldRejectOutOfRangeCoverage(double coverage)
         => FluentActions.Invoking(() => new RiskScore(0.5, coverage))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Risk.CoverageOutOfRange);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(RiskDiagnostics.CoverageOutOfRange);
 
     [Fact]
     public void RiskAssessment_ShouldPreserveInputsAndDefaultFactors()

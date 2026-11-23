@@ -4,8 +4,7 @@ using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Domain.Security;
 using Synentra.Endpoints.V2.Support;
 using Synentra.Application.Features.Invocations;
-using Synentra.Endpoints.V2.Diagnostics;
-using Synentra.Application.Common.Diagnostics;
+using Synentra.Diagnostics.Catalog;
 
 namespace Synentra.Endpoints.V2;
 
@@ -51,11 +50,11 @@ public sealed class Invocations : EndpointGroupBase
         if (invocation is null 
             || (principal.Type != PrincipalType.Admin && (invocation.AuthenticatedAgentId != principal.AgentId 
             || invocation.SecurityScope != principal.SecurityScope))) 
-            return context.NotFound(ApplicationError.Invocation.InvocationNotFound(id));
+            return context.NotFound(InvocationDiagnostics.InvocationNotFound(id));
 
         var result = await dispatcher.GetInvocationResult(id, cancellationToken);
         return result is null
-            ? context.NotFound(ApplicationError.Invocation.InvocationNotFound(id))
+            ? context.NotFound(InvocationDiagnostics.InvocationNotFound(id))
             : Results.Ok(result);
     }
 
@@ -79,7 +78,7 @@ public sealed class Invocations : EndpointGroupBase
         var result = await dispatcher.GetInvocationResult(id, cancellationToken);
 
         if (result is null) 
-            return context.NotFound(ApplicationError.Invocation.InvocationNotFound(id));
+            return context.NotFound(InvocationDiagnostics.InvocationNotFound(id));
 
         context.Response.Headers.Location = $"/v2/invocations/{id}";
 

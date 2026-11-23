@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Domain.Governance.Trust.ValueObjects;
 
@@ -10,7 +10,7 @@ public sealed record TrustScore
     public TrustScore(double value)
     {
         if (value < 0 || value > 100)
-            throw new DomainException(DomainErrors.Trust.TrustScoreOutOfRange);
+            throw new SynentraDomainException(TrustDiagnostics.TrustScoreOutOfRange);
 
         Value = value;
     }

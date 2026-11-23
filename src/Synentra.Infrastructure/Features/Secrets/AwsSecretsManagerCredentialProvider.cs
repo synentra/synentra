@@ -1,8 +1,9 @@
 using Amazon.SecretsManager;
 using Amazon.SecretsManager.Model;
 using Synentra.Application.Common.Security;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Security.ValueObjects;
-using Synentra.Infrastructure.Diagnostics;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
@@ -17,6 +18,6 @@ public sealed class AwsSecretsManagerCredentialProvider(IAmazonSecretsManager cl
 
         var response = await client.GetSecretValueAsync(new GetSecretValueRequest { SecretId = binding.SecretRef.SecretPath, VersionId = binding.SecretRef.Version }, ct);
         return new("Bearer", response.SecretString 
-            ?? throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialBinarySecretsNotAuthenticationHeaders), null);
+            ?? throw new CredentialNotFoundException(CredentialDiagnostics.CredentialBinarySecretsNotAuthenticationHeaders), null);
     }
 }

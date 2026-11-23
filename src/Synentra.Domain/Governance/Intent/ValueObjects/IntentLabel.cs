@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Domain.Governance.Intent.ValueObjects;
 
@@ -17,7 +17,7 @@ public sealed record IntentLabel
         string providerVersion)
     {
         if (confidence < 0 || confidence > 1)
-            throw new DomainException(DomainErrors.Intent.ConfidenceOutOfRange);
+            throw new SynentraDomainException(IntentDiagnostics.ConfidenceOutOfRange);
 
         Value = value;
         Confidence = confidence;

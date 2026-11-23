@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Invocations.ValueObjects;
 
 namespace Synentra.Domain.Execution;
@@ -28,7 +28,7 @@ public sealed class ExecutionClaim
     public void TransitionToDispatching()
     {
         if (State != ClaimState.Claimed)
-            throw new DomainException(DomainErrors.ExecutionClaim.CannotTransitionToDispatching(State.ToString()));
+            throw new SynentraDomainException(ExecutionDiagnostics.CannotTransitionToDispatching(State.ToString()));
         State = ClaimState.Dispatching;
     }
 }

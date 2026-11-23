@@ -8,7 +8,7 @@ internal class SplashScreen: ISplashScreen
 
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("SYNENTRA");
-        Console.WriteLine("Intent-Aware Governance for Autonomous AI Agents");
+        Console.WriteLine("Intent-Aware Runtime Governance for AI Agents");
         Console.WriteLine($"v{version} | https://synentra.io");
         Console.WriteLine("------------------------------------------------");
         Console.ResetColor();

@@ -1,7 +1,8 @@
 using Synentra.Application.Common.Security;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Security.ValueObjects;
 using Synentra.Infrastructure.Configuration.Secrets;
-using Synentra.Infrastructure.Diagnostics;
 using Synentra.Persistence.Features.Security;
 
 namespace Synentra.Infrastructure.Features.Secrets;
@@ -44,11 +45,11 @@ public sealed class CredentialProviderRouter(
 
         var state = states is null ? new SecretState(0, false) : await states.GetAsync(binding.SecretRef, ct);
         if (state.Revoked) 
-            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialAccessRevoked);
+            throw new CredentialNotFoundException(CredentialDiagnostics.CredentialAccessRevoked);
 
         var matches = providers.Where(p => p.ProviderId == binding.SecretRef.ProviderId).ToArray();
         if (matches.Length != 1) 
-            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialProviderMissingOrAmbiguous);
+            throw new CredentialNotFoundException(CredentialDiagnostics.CredentialProviderMissingOrAmbiguous);
 
         ResolvedCredential result;
         try
@@ -58,7 +59,7 @@ public sealed class CredentialProviderRouter(
                     binding.Id, identity.AgentId, identity.SecurityScope, targetId, operationId), token => matches[0].ResolveAsync(binding, token), ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-        catch { throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialProviderUnavailable); }
+        catch { throw new CredentialNotFoundException(CredentialDiagnostics.CredentialProviderUnavailable); }
 
         SecretPayload.Validate(result);
 
@@ -67,7 +68,7 @@ public sealed class CredentialProviderRouter(
             throw new UnauthorizedAccessException("Credential binding changed during resolution.");
 
         if (states is not null && await states.GetAsync(binding.SecretRef, ct) != state)
-            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialInvalidatedDuringResolution);
+            throw new CredentialNotFoundException(CredentialDiagnostics.CredentialInvalidatedDuringResolution);
 
         return result;
     }

@@ -1,12 +1,13 @@
 using Synentra.Domain.Governance.Decisions;
 using Synentra.Domain.Approvals;
-using Synentra.Application.Common.Diagnostics;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Features.Approvals.Contracts;
 using Synentra.Application.Features.Invocations.Admission;
 using Synentra.Application.Features.Invocations.Contracts;
 using Synentra.Application.Features.Invocations.Evaluation;
 using Synentra.Application.Features.Invocations.Exceptions;
+using Synentra.Diagnostics.Exceptions;
+using Synentra.Diagnostics.Catalog;
 
 namespace Synentra.Application.Features.Invocations.Commands.ResumeInvocation;
 
@@ -37,19 +38,19 @@ public sealed class ResumeInvocationCommandHandler : IActionHandler<ResumeInvoca
         var caller = request.Caller;
         var ct = cancellationToken;
         var invocation = await _invocations.GetAsync(invocationId, ct) 
-            ?? throw new SynentraApplicationException(ApplicationError.Invocation.InvocationNotFound(invocationId));
+            ?? throw new SynentraApplicationException(InvocationDiagnostics.InvocationNotFound(invocationId));
 
         if (invocation.AuthenticatedAgentId != caller.AgentId)
-            throw new SynentraApplicationException(ApplicationError.Invocation.CrossAgentResumeDenied);
+            throw new SynentraApplicationException(InvocationDiagnostics.CrossAgentResumeDenied);
 
         var approval = await _approvals.FindByInvocationAsync(invocationId, ct) 
-            ?? throw new SynentraApplicationException(ApplicationError.Invocation.NoApprovalBoundToInvocation);
+            ?? throw new SynentraApplicationException(InvocationDiagnostics.NoApprovalBoundToInvocation);
 
         if (approval.ExpiresAt <= DateTimeOffset.UtcNow)
             throw new AuthorityExpiredException("Approval authority has expired.");
 
         if (approval.Status != ApprovalStatus.Approved)
-            throw new SynentraApplicationException(ApplicationError.Invocation.ApprovalNotInApprovedState(approval.Status.ToString()));
+            throw new SynentraApplicationException(InvocationDiagnostics.ApprovalNotInApprovedState(approval.Status.ToString()));
 
         // Revalidate exact snapshot — never accept replacement arguments
         var fresh = await _evaluator.EvaluateAsync(invocation, ct);

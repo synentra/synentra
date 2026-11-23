@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Execution;
 using Synentra.Domain.Invocations.ValueObjects;
 
@@ -40,7 +40,7 @@ public sealed class ExecutionClaimTests
         claim.TransitionToDispatching();
 
         FluentActions.Invoking(claim.TransitionToDispatching)
-            .Should().Throw<DomainException>()
+            .Should().Throw<SynentraDomainException>()
             .Which.Diagnostic.Code.Should().Be("SYNENTRA-EXE-0001");
     }
 }

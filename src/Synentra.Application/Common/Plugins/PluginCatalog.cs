@@ -1,4 +1,5 @@
-using Synentra.Application.Common.Diagnostics;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Application.Common.Plugins;
 
@@ -16,7 +17,7 @@ public sealed class PluginCatalog
     public IPluginRegistration Resolve(string id, string version)
     {
         if (!_registrations.TryGetValue($"{id}@{version}", out var reg))
-            throw new SynentraApplicationException(ApplicationError.Plugin.PluginNotFound(id, version));
+            throw new SynentraApplicationException(PluginDiagnostics.PluginNotFound(id, version));
 
         return reg;
     }

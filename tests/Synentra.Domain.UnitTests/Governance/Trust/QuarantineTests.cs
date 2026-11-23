@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Governance.Trust;
 
 namespace Synentra.Domain.Tests;
@@ -55,7 +55,7 @@ public sealed class QuarantineTests
         quarantine.Release("reviewer");
 
         FluentActions.Invoking(() => quarantine.Release("another-reviewer"))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Quarantine.AlreadyReleased);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(QuarantineDiagnostics.AlreadyReleased);
     }
 }

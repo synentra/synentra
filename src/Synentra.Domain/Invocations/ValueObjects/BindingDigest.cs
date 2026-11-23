@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Domain.Invocations.ValueObjects;
 
@@ -10,7 +10,7 @@ public sealed record BindingDigest
     public BindingDigest(string value)
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length != 64)
-            throw new DomainException(DomainErrors.BindingDigest.InvalidBindingDigest);
+            throw new SynentraDomainException(BindingDigestDiagnostics.InvalidBindingDigest);
 
         Value = value.ToLowerInvariant();
     }

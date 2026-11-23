@@ -1,5 +1,5 @@
-using Synentra.Endpoints.V2.Diagnostics;
-using Synentra.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Middleware;
 
@@ -11,10 +11,10 @@ public sealed class IdempotencyMiddleware(RequestDelegate next)
         {
             var key = GetIdempotencyKey(context.Request);
             if (string.IsNullOrWhiteSpace(key))
-                throw new IdempotencyApiException(EndpointsError.Idempotency.IdempotencyKeyRequired);
+                throw new IdempotencyApiException(IdempotencyDiagnostics.IdempotencyKeyRequired);
 
             if (key.Length > 200)
-                throw new IdempotencyApiException(EndpointsError.Idempotency.IdempotencyKeyTooLong);
+                throw new IdempotencyApiException(IdempotencyDiagnostics.IdempotencyKeyTooLong);
 
             context.Items["IdempotencyKey"] = key;
             context.Response.Headers["Idempotency-Key"] = key;

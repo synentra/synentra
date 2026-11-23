@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Grants.ValueObjects;
 
 namespace Synentra.Domain.Grants;
@@ -42,7 +42,7 @@ public sealed class TaskGrant
     public void Revoke()
     {
         if (State != GrantState.Active)
-            throw new DomainException(DomainErrors.TaskGrant.CannotRevoke(State.ToString()));
+            throw new SynentraDomainException(TaskGrantDiagnostics.CannotRevoke(State.ToString()));
         State = GrantState.Revoked;
     }
 
