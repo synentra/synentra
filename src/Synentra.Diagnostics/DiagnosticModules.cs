@@ -22,6 +22,7 @@ public static class DiagnosticModules
     public const string Intent = "INT";
     public const string Invocations = "INV";
     public const string Manifest = "MFT";
+    public const string Mcp = "MCP";
     public const string Operation = "OPR";
     public const string Persistence = "PER";
     public const string Plugins = "PLG";
