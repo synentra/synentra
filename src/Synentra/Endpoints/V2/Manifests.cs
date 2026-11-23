@@ -5,7 +5,7 @@ using Synentra.Application.Common.Security;
 using Synentra.Application.Features.Manifests.Contracts;
 using Synentra.Endpoints.V2.Support;
 using Synentra.Application.Features.Manifests;
-using Synentra.Endpoints.V2.Diagnostics;
+using Synentra.Diagnostics.Catalog;
 
 namespace Synentra.Endpoints.V2;
 
@@ -62,7 +62,7 @@ public sealed class Manifests : EndpointGroupBase
         using var parseStream = new MemoryStream(Encoding.UTF8.GetBytes(body));
         var bundle = parser.Parse(parseStream);
         if (!string.Equals(bundle.Metadata.Name, id, StringComparison.Ordinal)) 
-            return context.Conflict(EndpointsError.Manifest.ManifestIdMismatch);
+            return context.Conflict(ManifestDiagnostics.ManifestIdMismatch);
 
         var revision = await dispatcher.StoreManifest(body, cancellationToken);
         return Results.Ok(new { id, version = bundle.Metadata.Version, revision });

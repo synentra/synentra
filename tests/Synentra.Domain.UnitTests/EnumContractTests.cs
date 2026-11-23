@@ -1,6 +1,6 @@
 using FluentAssertions;
+using Synentra.Diagnostics;
 using Synentra.Domain.Approvals;
-using Synentra.Domain.Common.Diagnostics;
 using Synentra.Domain.Execution;
 using Synentra.Domain.Governance.Decisions;
 using Synentra.Domain.Governance.Intent;

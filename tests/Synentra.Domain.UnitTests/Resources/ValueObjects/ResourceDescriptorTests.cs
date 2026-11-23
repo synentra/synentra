@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Resources.ValueObjects;
 
 namespace Synentra.Domain.Tests;
@@ -46,7 +46,7 @@ public sealed class ResourceDescriptorTests
     [InlineData("type", "id", "scope", " ", "SYNENTRA-RSD-0005")]
     public void Constructor_ShouldRejectRequiredValues(string? type, string? id, string? scope, string? authority, string code)
         => FluentActions.Invoking(() => new ResourceDescriptor(type!, id!, scope!, authority!))
-            .Should().Throw<DomainException>().Which.Diagnostic.Code.Should().Be(code);
+            .Should().Throw<SynentraDomainException>().Which.Diagnostic.Code.Should().Be(code);
 
     [Fact]
     public void SameIdentityAs_ShouldCompareCanonicalKeysOrdinally()

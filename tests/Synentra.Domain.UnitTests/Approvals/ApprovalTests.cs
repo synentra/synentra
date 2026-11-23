@@ -1,8 +1,8 @@
 using FluentAssertions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Approvals;
 using Synentra.Domain.Approvals.Events;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
 using Synentra.Domain.Invocations.ValueObjects;
 
 namespace Synentra.Domain.Tests;
@@ -59,8 +59,8 @@ public sealed class ApprovalTests
         var approval = CreateApproval(DateTimeOffset.UtcNow.AddSeconds(-1));
 
         FluentActions.Invoking(() => approval.Approve("reviewer-1"))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Approval.ApprovalHasExpired);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(ApprovalDiagnostics.ApprovalHasExpired);
         approval.Status.Should().Be(ApprovalStatus.Pending);
         approval.ReviewerId.Should().BeNull();
     }
@@ -71,8 +71,8 @@ public sealed class ApprovalTests
         var approval = Restore(ApprovalStatus.Rejected);
 
         FluentActions.Invoking(() => approval.Approve("reviewer-1"))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Approval.CannotApprove(ApprovalStatus.Rejected.ToString()));
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(ApprovalDiagnostics.CannotApprove(ApprovalStatus.Rejected.ToString()));
     }
 
     [Fact]
@@ -93,8 +93,8 @@ public sealed class ApprovalTests
         var approval = Restore(ApprovalStatus.Approved);
 
         FluentActions.Invoking(() => approval.Reject("reviewer-2"))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Approval.CannotReject(ApprovalStatus.Approved.ToString()));
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(ApprovalDiagnostics.CannotReject(ApprovalStatus.Approved.ToString()));
     }
 
     [Theory]
@@ -105,8 +105,8 @@ public sealed class ApprovalTests
         var approval = Restore(status);
 
         FluentActions.Invoking(approval.Revoke)
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Approval.CannotRevoke(status.ToString()));
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(ApprovalDiagnostics.CannotRevoke(status.ToString()));
     }
 
     [Theory]
@@ -144,8 +144,8 @@ public sealed class ApprovalTests
         var approval = Restore(status);
 
         FluentActions.Invoking(approval.Consume)
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Approval.CannotConsume(status.ToString()));
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(ApprovalDiagnostics.CannotConsume(status.ToString()));
     }
 
     [Fact]
