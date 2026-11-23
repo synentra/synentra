@@ -1,5 +1,6 @@
 using Synentra.Application.Common.Security;
-using Synentra.Infrastructure.Diagnostics;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
@@ -12,6 +13,6 @@ public static class SecretPayload
             || credential.Value.Any(char.IsControl) 
             || credential.Scheme is not ("Bearer" or "Basic") 
             || credential.ExpiresAt <= DateTimeOffset.UtcNow)
-            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialUnavailableOrInvalid);
+            throw new CredentialNotFoundException(CredentialDiagnostics.CredentialUnavailableOrInvalid);
     }
 }

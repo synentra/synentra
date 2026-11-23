@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Invocations;
 using Synentra.Domain.Invocations.Events;
@@ -64,8 +64,8 @@ public sealed class ToolInvocationTests
             new Dictionary<string, object>(), new Dictionary<string, string>(), new Dictionary<string, string>(),
             new BindingDigest(new string('a', 64)), IntentModality.None, null, null, null, false, false,
             DateTimeOffset.UtcNow))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Invocation.InvalidAuthenticatedAgentId);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(InvocationDiagnostics.InvalidAuthenticatedAgentId);
     }
 
     [Fact]

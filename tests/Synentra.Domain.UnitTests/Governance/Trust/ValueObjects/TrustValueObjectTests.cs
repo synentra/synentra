@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Governance.Trust;
 using Synentra.Domain.Governance.Trust.Events;
 using Synentra.Domain.Governance.Trust.ValueObjects;
@@ -21,8 +21,8 @@ public sealed class TrustValueObjectTests
     [InlineData(100.01d)]
     public void TrustScore_ShouldRejectOutOfRangeValues(double value)
         => FluentActions.Invoking(() => new TrustScore(value))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Trust.TrustScoreOutOfRange);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(TrustDiagnostics.TrustScoreOutOfRange);
 
     [Fact]
     public void TrustSnapshot_Unknown_ShouldProvideSafeDefaults()

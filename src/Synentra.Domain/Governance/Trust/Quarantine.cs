@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Domain.Governance.Trust;
 
@@ -33,7 +33,7 @@ public sealed class Quarantine
     public void Release(string releasedBy)
     {
         if (!Active)
-            throw new DomainException(DomainErrors.Quarantine.AlreadyReleased);
+            throw new SynentraDomainException(QuarantineDiagnostics.AlreadyReleased);
         ReleasedAt = DateTimeOffset.UtcNow;
     }
 }

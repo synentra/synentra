@@ -1,6 +1,7 @@
-using Synentra.Application.Common.Diagnostics;
 using Synentra.Application.Common.Dispatching;
 using Synentra.Application.Features.TaskGrants.Contracts;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Unit = Synentra.Application.Common.Dispatching.Void;
 
 namespace Synentra.Application.Features.TaskGrants.Commands.RevokeTaskGrant;
@@ -19,9 +20,9 @@ public sealed class RevokeTaskGrantCommandHandler : IActionHandler<RevokeTaskGra
         var by = request.By;
         var ct = cancellationToken;
 
-        var grant = await _store.GetAsync(grantId, ct) ?? throw new SynentraApplicationException(ApplicationError.TaskGrant.GrantNotFound(grantId));
+        var grant = await _store.GetAsync(grantId, ct) ?? throw new SynentraApplicationException(TaskGrantDiagnostics.GrantNotFound(grantId));
         if (by.Type != Synentra.Domain.Security.PrincipalType.Admin && by.AgentId != grant.IssuerId)
-            throw new SynentraApplicationException(ApplicationError.TaskGrant.OnlyIssuerOrAdminMayRevoke);
+            throw new SynentraApplicationException(TaskGrantDiagnostics.OnlyIssuerOrAdminMayRevoke);
 
         grant.Revoke();
         await _store.SaveAsync(grant, ct);

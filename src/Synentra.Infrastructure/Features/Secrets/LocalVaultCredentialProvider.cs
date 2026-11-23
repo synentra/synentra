@@ -6,10 +6,11 @@ using Synentra.Domain.Security.ValueObjects;
 using Synentra.Persistence;
 using Synentra.Persistence.Entities;
 using Synentra.Persistence.Common;
-using Synentra.Infrastructure.Diagnostics;
 using Synentra.Persistence.Serialization;
 using Microsoft.Extensions.Options;
 using Synentra.Infrastructure.Configuration.Secrets;
+using Synentra.Diagnostics.Exceptions;
+using Synentra.Diagnostics.Catalog;
 
 namespace Synentra.Infrastructure.Features.Secrets;
 
@@ -39,13 +40,13 @@ public sealed class LocalVaultCredentialProvider(
         var id = Keys.Of(binding.SecretRef.SecretPath, binding.SecretRef.Version);
 
         var row = await db.Set<SecretEntity>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct) 
-            ?? throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialVersionNotFound);
+            ?? throw new CredentialNotFoundException(CredentialDiagnostics.CredentialVersionNotFound);
 
         if (row.ExpiresAt is { } expiry && expiry <= Keys.Now)
-            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialExpired);
+            throw new CredentialNotFoundException(CredentialDiagnostics.CredentialExpired);
 
         if (!row.Ciphertext.StartsWith("v2:", StringComparison.Ordinal)) 
-            throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialRequiresOfflineCiphertextMigration);
+            throw new CredentialNotFoundException(CredentialDiagnostics.CredentialRequiresOfflineCiphertextMigration);
 
         return new(row.Type, Protector(id, row.Type, row.ExpiresAt).Unprotect(row.Ciphertext[3..]), row.ExpiresAt is { } t ? DateTimeOffset.FromUnixTimeMilliseconds(t) : null, row.Type);
     }
@@ -105,17 +106,15 @@ public sealed class LocalVaultCredentialProvider(
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.ExpiresAt, 0L), token);
 
             if (count != 1) 
-                throw new CredentialNotFoundException(InfrastructureErrors.Credential.CredentialVersionNotFound);
+                throw new CredentialNotFoundException(CredentialDiagnostics.CredentialVersionNotFound);
 
             Audit(db, "SecretVersionRevoked", id, actorId);
             return true;
         }, ct: ct);
     }
 
-    private IDataProtector Protector(
-        string id, 
-        string scheme, 
-        long? expires) => provider.CreateProtector("Synentra.Secrets.v2", id, scheme, expires?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "no-expiry");
+    private IDataProtector Protector(string id, string scheme, long? expires)
+        => provider.CreateProtector("Synentra.Secrets.v2", id, scheme, expires?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "no-expiry");
 
     /// <summary>Offline maintenance only. Stop all replicas and back up database and key ring before calling.</summary>
     public Task<int> MigrateLegacyCiphertextAsync(CancellationToken ct) => work.ExecuteAsync(async token =>

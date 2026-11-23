@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Governance.Intent.ValueObjects;
 using Synentra.Domain.Invocations;
@@ -29,8 +29,8 @@ public sealed class IntentValueObjectTests
     [InlineData(1.1d)]
     public void IntentLabel_ShouldRejectConfidenceOutsideRange(double confidence)
         => FluentActions.Invoking(() => new IntentLabel("x", confidence, IntentStatus.Error, "v1"))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Intent.ConfidenceOutOfRange);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(IntentDiagnostics.ConfidenceOutOfRange);
 
     [Fact]
     public void IntentEvidence_ShouldPreserveAllInputs()

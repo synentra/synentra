@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Governance.Intent;
 using Synentra.Domain.Invocations.ValueObjects;
 using Synentra.Domain.Operations.ValueObjects;
@@ -60,7 +60,7 @@ public sealed class ToolInvocation
         DateTimeOffset receiptTime)
     {
         if (string.IsNullOrWhiteSpace(authenticatedAgentId))
-            throw new DomainException(DomainErrors.Invocation.InvalidAuthenticatedAgentId);
+            throw new SynentraDomainException(InvocationDiagnostics.InvalidAuthenticatedAgentId);
 
         Id = id;
         SchemaVersion = schemaVersion;

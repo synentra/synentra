@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Invocations.ValueObjects;
 
 namespace Synentra.Domain.Approvals;
@@ -45,12 +45,12 @@ public sealed class Approval
     }
 
     public void Approve(string reviewerId)
-    {
+    {   
         if (Status != ApprovalStatus.Pending)
-            throw new DomainException(DomainErrors.Approval.CannotApprove(Status.ToString()));
+            throw new SynentraDomainException(ApprovalDiagnostics.CannotApprove(Status.ToString()));
 
         if (DateTimeOffset.UtcNow >= ExpiresAt)
-            throw new DomainException(DomainErrors.Approval.ApprovalHasExpired);
+            throw new SynentraDomainException(ApprovalDiagnostics.ApprovalHasExpired);
 
         Status = ApprovalStatus.Approved;
         ReviewerId = reviewerId;
@@ -60,7 +60,7 @@ public sealed class Approval
     public void Reject(string reviewerId)
     {
         if (Status != ApprovalStatus.Pending)
-            throw new DomainException(DomainErrors.Approval.CannotReject(Status.ToString()));
+            throw new SynentraDomainException(ApprovalDiagnostics.CannotReject(Status.ToString()));
 
         Status = ApprovalStatus.Rejected;
         ReviewerId = reviewerId;
@@ -70,7 +70,7 @@ public sealed class Approval
     public void Revoke()
     {
         if (Status is ApprovalStatus.Rejected or ApprovalStatus.Expired)
-            throw new DomainException(DomainErrors.Approval.CannotRevoke(Status.ToString()));
+            throw new SynentraDomainException(ApprovalDiagnostics.CannotRevoke(Status.ToString()));
 
         Status = ApprovalStatus.Revoked;
         ResolvedAt = DateTimeOffset.UtcNow;
@@ -79,7 +79,7 @@ public sealed class Approval
     public void Consume()
     {
         if (Status != ApprovalStatus.Approved)
-            throw new DomainException(DomainErrors.Approval.CannotConsume(Status.ToString()));
+            throw new SynentraDomainException(ApprovalDiagnostics.CannotConsume(Status.ToString()));
 
         Status = ApprovalStatus.Consumed;
     }

@@ -91,8 +91,7 @@ public static class ServiceCollectionExtensions
                 break;
 
             default:
-                throw new InvalidOperationException(
-                    $"Unsupported database provider '{provider}'.");
+                throw new InvalidOperationException($"Unsupported database provider '{provider}'.");
         }
 
         Persistence.DependencyInjection.AddSynentraPersistence(services);

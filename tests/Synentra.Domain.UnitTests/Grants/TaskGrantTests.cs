@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Grants;
 using Synentra.Domain.Grants.ValueObjects;
 
@@ -60,8 +60,8 @@ public sealed class TaskGrantTests
         grant.State.Should().Be(GrantState.Revoked);
 
         FluentActions.Invoking(grant.Revoke)
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.TaskGrant.CannotRevoke(GrantState.Revoked.ToString()));
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(TaskGrantDiagnostics.CannotRevoke(GrantState.Revoked.ToString()));
     }
 
     [Fact]
@@ -69,8 +69,8 @@ public sealed class TaskGrantTests
     {
         var grant = Restore(GrantState.Expired);
         FluentActions.Invoking(grant.Revoke)
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.TaskGrant.CannotRevoke(GrantState.Expired.ToString()));
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(TaskGrantDiagnostics.CannotRevoke(GrantState.Expired.ToString()));
     }
 
     [Fact]

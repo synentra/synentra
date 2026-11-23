@@ -1,5 +1,5 @@
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 
 namespace Synentra.Domain.Resources.ValueObjects;
 
@@ -21,16 +21,16 @@ public sealed record ResourceDescriptor
         DateTimeOffset? observedAt = null)
     {
         if (string.IsNullOrWhiteSpace(type))
-            throw new DomainException(DomainErrors.ResourceDescriptor.InvalidResourceType);
+            throw new SynentraDomainException(ResourceDiagnostics.InvalidResourceType);
 
         if (string.IsNullOrWhiteSpace(id))
-            throw new DomainException(DomainErrors.ResourceDescriptor.InvalidResourceId);
+            throw new SynentraDomainException(ResourceDiagnostics.InvalidResourceId);
 
         if (string.IsNullOrWhiteSpace(securityScope))
-            throw new DomainException(DomainErrors.ResourceDescriptor.InvalidSecurityScope);
+            throw new SynentraDomainException(ResourceDiagnostics.InvalidSecurityScope);
 
         if (string.IsNullOrWhiteSpace(authorityDomain))
-            throw new DomainException(DomainErrors.ResourceDescriptor.InvalidAuthorityDomain);
+            throw new SynentraDomainException(ResourceDiagnostics.InvalidAuthorityDomain);
 
         Type = type;
         Id = id;

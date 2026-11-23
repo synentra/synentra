@@ -1,9 +1,11 @@
-﻿using Synentra.Extensions;
+﻿using Microsoft.AspNetCore.Mvc;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Extensions;
+using Synentra.Infrastructure;
+using Synentra.Infrastructure.Features.Secrets;
 using Synentra.Middleware;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
-using Synentra.Infrastructure;
-using Synentra.Infrastructure.Features.Secrets;
 
 namespace Synentra.Services;
 
@@ -42,8 +44,32 @@ internal sealed class StartupConfiguration : IStartupConfiguration
         {
             if (!app.Services.GetRequiredService<StartupSecretState>().IsReady)
             {
-                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                await context.Response.WriteAsJsonAsync(new { errorCode = "STARTUP_SECRETS_UNAVAILABLE" });
+                string GetCorrelationId(HttpContext context)
+                {
+                    if (context.Request.Headers.TryGetValue("X-Correlation-Id", out var value)
+                        && Guid.TryParse(value.ToString(), out var supplied))
+                        return supplied.ToString("D");
+
+                    return Guid.NewGuid().ToString("D");
+                }
+
+                var diagnostic = InfrastructureDiagnostics.StartupSecretsUnavailable;
+                var status = StatusCodes.Status503ServiceUnavailable;
+                var correlationId = GetCorrelationId(context);
+
+                context.Response.StatusCode = status;
+                context.Response.ContentType = "application/problem+json";
+                var problem = new ProblemDetails {
+                    Title = diagnostic.Message,
+                    Status = status,
+                    Type = $"https://httpstatuses.com/{status}"
+                };
+                problem.Extensions["errorCode"] = diagnostic.Code;
+                problem.Extensions["traceId"] = context.TraceIdentifier;
+                problem.Extensions["correlationId"] = correlationId;
+                context.Response.Headers["X-Correlation-Id"] = correlationId;
+
+                await context.Response.WriteAsJsonAsync(problem, context.RequestAborted);
                 return;
             }
             await next(context);
