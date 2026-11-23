@@ -2,6 +2,7 @@
   <Folder Name="/src/" />
   <Folder Name="/src/Core/">
     <Project Path="src/Synentra.Application/Synentra.Application.csproj" />
+    <Project Path="src/Synentra.Diagnostics/Synentra.Diagnostics.csproj" Id="5157f03a-f416-4e75-a3e8-692757797bee" />
     <Project Path="src/Synentra.Domain/Synentra.Domain.csproj" Id="c6db4cba-56e6-436c-99c7-a04ce0ebc7d9" />
   </Folder>
   <Folder Name="/src/Infrastructure/">
@@ -14,6 +15,7 @@
     <Project Path="src/Synentra/Synentra.csproj" Id="c9bb9cb7-ada0-450f-b0de-55627589595f" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Synentra.Diagnostics.UnitTests/Synentra.Diagnostics.UnitTests.csproj" Id="0cc5ef43-1bde-4082-af41-defeb42dd651" />
     <Project Path="tests/Synentra.Domain.UnitTests/Synentra.Domain.UnitTests.csproj" />
     <Project Path="tests/Synentra.UnitTests/Synentra.UnitTests.csproj" />
   </Folder>
