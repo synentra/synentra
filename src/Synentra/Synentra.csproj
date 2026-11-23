@@ -46,6 +46,13 @@
 		<Error Condition="!Exists('$(MSBuildProjectDirectory)\..\..\licenses\MPL-2.0.txt')" Text="licenses/MPL-2.0.txt is missing." />
 
 	</Target>
+
+	<ItemGroup>
+	  <Compile Remove="Diagnostics\**" />
+	  <Content Remove="Diagnostics\**" />
+	  <EmbeddedResource Remove="Diagnostics\**" />
+	  <None Remove="Diagnostics\**" />
+	</ItemGroup>
 	
 	<ItemGroup>
 		<None Include="appsettings.Development.json">
@@ -64,10 +71,6 @@
 		<ProjectReference Include="..\Synentra.Infrastructure\Synentra.Infrastructure.csproj" />
 		<ProjectReference Include="..\Synentra.Persistence.PostgreSql\Synentra.Persistence.PostgreSql.csproj" />
 		<ProjectReference Include="..\Synentra.Persistence.Sqlite\Synentra.Persistence.Sqlite.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Diagnostics\" />
 	</ItemGroup>
 
 	<Target Name="RemoveDevAppSettingsFromPublish" AfterTargets="ComputeFilesToPublish">

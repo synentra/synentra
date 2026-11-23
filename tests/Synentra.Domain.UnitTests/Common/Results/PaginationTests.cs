@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Diagnostics;
+using Synentra.Diagnostics;
 using Synentra.Domain.Common.Results;
 
 namespace Synentra.Domain.Tests;

@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Synentra.Domain.Common.Errors;
-using Synentra.Domain.Common.Exceptions;
+using Synentra.Diagnostics.Catalog;
+using Synentra.Diagnostics.Exceptions;
 using Synentra.Domain.Invocations.ValueObjects;
 using Synentra.Domain.Operations.ValueObjects;
 
@@ -29,8 +29,8 @@ public sealed class InvocationValueObjectTests
     [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
     public void BindingDigest_ShouldRejectBlankOrNon64CharacterValues(string? value)
         => FluentActions.Invoking(() => new BindingDigest(value!))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.BindingDigest.InvalidBindingDigest);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(BindingDigestDiagnostics.InvalidBindingDigest);
 
     [Fact]
     public void BindingDigest_ShouldNormalizeValueToLowercase()
@@ -54,12 +54,12 @@ public sealed class InvocationValueObjectTests
     [InlineData(" ")]
     public void OperationId_ShouldRejectMissingValue(string? value)
         => FluentActions.Invoking(() => new OperationId(value!))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Operation.InvalidOperationId);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(OperationDiagnostics.InvalidOperationId);
 
     [Fact]
     public void OperationId_ShouldRejectValuesLongerThan256Characters()
         => FluentActions.Invoking(() => new OperationId(new string('x', 257)))
-            .Should().Throw<DomainException>()
-            .Which.Diagnostic.Should().Be(DomainErrors.Operation.OperationIdTooLong);
+            .Should().Throw<SynentraDomainException>()
+            .Which.Diagnostic.Should().Be(OperationDiagnostics.OperationIdTooLong);
 }

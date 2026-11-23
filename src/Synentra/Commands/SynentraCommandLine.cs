@@ -23,12 +23,9 @@ internal static class SynentraCommandLine
             Description = "Show the current Synentra version."
         };
 
-        var rootCommand = new RootCommand(
-            "SYNENTRA – Intent-Aware Runtime Governance for AI Agents");
+        var rootCommand = new RootCommand("SYNENTRA – Intent-Aware Runtime Governance for AI Agents");
 
-        var builtIn =
-            rootCommand.Options.OfType<VersionOption>().FirstOrDefault();
-
+        var builtIn = rootCommand.Options.OfType<VersionOption>().FirstOrDefault();
         if (builtIn is not null)
             rootCommand.Options.Remove(builtIn);
 

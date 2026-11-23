@@ -78,9 +78,7 @@ public static class SecretManagementExtensions
 
                 if (matches.Length != 1)
                 {
-                    throw new InvalidOperationException(
-                        $"Startup secret '{name}' requires exactly one " +
-                        $"registered provider named '{entry.Provider}'.");
+                    throw new InvalidOperationException($"Startup secret '{name}' requires exactly one registered provider named '{entry.Provider}'.");
                 }
 
                 var binding = new CredentialBinding(
@@ -115,9 +113,7 @@ public static class SecretManagementExtensions
 
             if (!values.TryAdd(entry.ConfigurationKey, value))
             {
-                throw new InvalidOperationException(
-                    "Multiple startup secrets target the same " +
-                    "configuration key.");
+                throw new InvalidOperationException("Multiple startup secrets target the same configuration key.");
             }
         }
 
@@ -131,9 +127,7 @@ public static class SecretManagementExtensions
 
         var identity = candidate
             .GetSection(IdentityConfiguration.SectionName)
-            .Get<IdentityConfiguration>()
-            ?? throw new InvalidOperationException(
-                "Identity configuration is missing.");
+            .Get<IdentityConfiguration>() ?? throw new InvalidOperationException("Identity configuration is missing.");
 
         // Direct configuration binding does not run options validators.
         foreach (var validator in services
@@ -147,9 +141,7 @@ public static class SecretManagementExtensions
             {
                 // Do not include validation details that might expose
                 // resolved secret values.
-                throw new InvalidOperationException(
-                    "Identity configuration is invalid after " +
-                    "startup secret resolution.");
+                throw new InvalidOperationException("Identity configuration is invalid after startup secret resolution.");
             }
         }
 
@@ -159,8 +151,7 @@ public static class SecretManagementExtensions
         if (earliestExpiry is { } expiration &&
             expiration <= DateTimeOffset.UtcNow)
         {
-            throw new InvalidOperationException(
-                "A mandatory startup secret expired during initialization.");
+            throw new InvalidOperationException("A mandatory startup secret expired during initialization.");
         }
 
         configuration.AddInMemoryCollection(values);
