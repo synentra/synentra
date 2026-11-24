@@ -1,7 +1,7 @@
-using FluentAssertions;
-using VoidType = Synentra.Application.Abstractions.Dispatchers.Void;
+﻿using FluentAssertions;
+namespace Synentra.Application.UnitTests.Common.Dispatching;
 
-namespace Synentra.Application.UnitTests.Abstractions.Dispatchers;
+using VoidType = Synentra.Application.Common.Dispatching.Void;
 
 public class VoidTests
 {
