@@ -2,10 +2,8 @@
 
 public static class QuarantineDiagnostics
 {
-    /// <summary>SYNENTRA-QRT-0001</summary>
-    public static readonly Diagnostic AlreadyReleased = Diagnostic.Define(
-        module: DiagnosticModules.Quarantine,
-        category: DiagnosticCategory.Conflict,
-        sequence: 1,
-        message: "Quarantine already released.");
+    public static readonly Diagnostic AlreadyReleased = Define(1, "Quarantine already released.", DiagnosticCategory.Conflict);
+
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Quarantine, sequence, message, category);
 }

@@ -2,10 +2,8 @@
 
 public static class IntentDiagnostics
 {
-    /// <summary>SYNENTRA-INT-0001</summary>
-    public static readonly Diagnostic ConfidenceOutOfRange = Diagnostic.Define(
-        module: DiagnosticModules.Intent,
-        category: DiagnosticCategory.Validation,
-        sequence: 1,
-        message: "Confidence must be 0-1.");
+    public static readonly Diagnostic ConfidenceOutOfRange = Define(1,"Confidence must be 0-1.", DiagnosticCategory.Validation);
+
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Intent, sequence, message, category);
 }

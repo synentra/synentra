@@ -2,45 +2,13 @@
 
 public static class InfrastructureDiagnostics
 {
-    /// <summary>SYNENTRA-INF-0001</summary>
-    public static readonly Diagnostic InternalError = Diagnostic.Define(
-        module: DiagnosticModules.Infrastructure,
-        category: DiagnosticCategory.Infrastructure,
-        sequence: 1,
-        message: "An unexpected error occurred.");
+    public static readonly Diagnostic InternalError = Define(1, "An unexpected error occurred.", DiagnosticCategory.Infrastructure);
+    public static readonly Diagnostic InvalidRequest = Define(2, "Request is invalid.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic ConflictsRequest = Define(3, "Request conflicts with existing state.", DiagnosticCategory.Conflict);
+    public static readonly Diagnostic ValidationFailed = Define(4, "Request validation failed.", DiagnosticCategory.Validation);
+    public static Diagnostic KeyNotFound(string message) => Define(5, message, DiagnosticCategory.NotFound);
+    public static readonly Diagnostic StartupSecretsUnavailable = Define(6, "Startup secrets are unavailable.", DiagnosticCategory.NotFound);
 
-    /// <summary>SYNENTRA-INF-0002</summary>
-    public static readonly Diagnostic InvalidRequest = Diagnostic.Define(
-        module: DiagnosticModules.Infrastructure,
-        category: DiagnosticCategory.Validation,
-        sequence: 2,
-        message: "Request is invalid.");
-
-    /// <summary>SYNENTRA-INF-0003</summary>
-    public static readonly Diagnostic ConflictsRequest = Diagnostic.Define(
-        module: DiagnosticModules.Infrastructure,
-        category: DiagnosticCategory.Conflict,
-        sequence: 3,
-        message: "Request conflicts with existing state.");
-
-    /// <summary>SYNENTRA-INF-0004</summary>
-    public static readonly Diagnostic ValidationFailed = Diagnostic.Define(
-        module: DiagnosticModules.Infrastructure,
-        category: DiagnosticCategory.Validation,
-        sequence: 4,
-        message: "Request validation failed.");
-
-    /// <summary>SYNENTRA-INF-0005</summary>
-    public static Diagnostic KeyNotFound(string message) => Diagnostic.Define(
-        module: DiagnosticModules.Infrastructure,
-        category: DiagnosticCategory.NotFound,
-        sequence: 5,
-        message: message);
-
-    /// <summary>SYNENTRA-INF-0006</summary>
-    public static readonly Diagnostic StartupSecretsUnavailable = Diagnostic.Define(
-        module: DiagnosticModules.Infrastructure,
-        category: DiagnosticCategory.NotFound,
-        sequence: 6,
-        message: "Startup secrets are unavailable.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Infrastructure, sequence, message, category);
 }
