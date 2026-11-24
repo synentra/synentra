@@ -2,17 +2,9 @@
 
 public static class RiskDiagnostics
 {
-    /// <summary>SYNENTRA-RSK-0001</summary>
-    public static readonly Diagnostic RiskScoreOutOfRange = Diagnostic.Define(
-        module: DiagnosticModules.Risk,
-        category: DiagnosticCategory.Validation,
-        sequence: 1,
-        message: "Risk score must be 0-1.");
+    public static readonly Diagnostic RiskScoreOutOfRange = Define(1, "Risk score must be 0-1.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic CoverageOutOfRange = Define(2, "Coverage must be 0-1.", DiagnosticCategory.Validation);
 
-    /// <summary>SYNENTRA-RSK-0002</summary>
-    public static readonly Diagnostic CoverageOutOfRange = Diagnostic.Define(
-        module: DiagnosticModules.Risk,
-        category: DiagnosticCategory.Validation,
-        sequence: 2,
-        message: "Coverage must be 0-1.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Risk, sequence, message, category);
 }

@@ -2,17 +2,9 @@
 
 public static class OperationDiagnostics
 {
-    /// <summary>SYNENTRA-OPR-0001</summary>
-    public static readonly Diagnostic InvalidOperationId = Diagnostic.Define(
-        module: DiagnosticModules.Operation,
-        category: DiagnosticCategory.Validation,
-        sequence: 1,
-        message: "OperationId cannot be empty.");
+    public static readonly Diagnostic InvalidOperationId = Define(1, "OperationId cannot be empty.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic OperationIdTooLong = Define(2, "OperationId cannot exceed 256 characters.", DiagnosticCategory.Validation);
 
-    /// <summary>SYNENTRA-OPR-0002</summary>
-    public static readonly Diagnostic OperationIdTooLong = Diagnostic.Define(
-        module: DiagnosticModules.Operation,
-        category: DiagnosticCategory.Validation,
-        sequence: 2,
-        message: "OperationId cannot exceed 256 characters.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Operation, sequence, message, category);
 }

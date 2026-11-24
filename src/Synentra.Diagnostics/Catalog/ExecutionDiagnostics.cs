@@ -2,24 +2,10 @@
 
 public static class ExecutionDiagnostics
 {
-    /// <summary>SYNENTRA-EXE-0001</summary>
-    public static Diagnostic CannotTransitionToDispatching(string state) => Diagnostic.Define(
-        module: DiagnosticModules.Executions,
-        category: DiagnosticCategory.Conflict,
-        sequence: 1,
-        message: $"Cannot transition to Dispatching from state {state}.");
+    public static Diagnostic CannotTransitionToDispatching(string state) => Define(1, $"Cannot transition to Dispatching from state {state}.", DiagnosticCategory.Conflict);
+    public static readonly Diagnostic ExecutionNotFound = Define(2, "The requested execution was not found.", DiagnosticCategory.NotFound);
+    public static readonly Diagnostic VerificationNotConfigured = Define(3, "Execution verification is not configured.", DiagnosticCategory.Validation);
 
-    /// <summary>SYNENTRA-EXE-0002</summary>
-    public static readonly Diagnostic ExecutionNotFound = Diagnostic.Define(
-        module: DiagnosticModules.Executions,
-        category: DiagnosticCategory.NotFound,
-        sequence: 2,
-        message: "The requested execution was not found.");
-
-    /// <summary>SYNENTRA-EXE-0003</summary>
-    public static readonly Diagnostic VerificationNotConfigured = Diagnostic.Define(
-        module: DiagnosticModules.Executions,
-        category: DiagnosticCategory.Validation,
-        sequence: 3,
-        message: "Execution verification is not configured.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Executions, sequence, message, category);
 }

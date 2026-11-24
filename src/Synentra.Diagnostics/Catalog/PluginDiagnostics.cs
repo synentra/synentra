@@ -2,10 +2,8 @@
 
 public static class PluginDiagnostics
 {
-    /// <summary>SYNENTRA-PLG-0001</summary>
-    public static Diagnostic PluginNotFound(string pluginId, string version) => Diagnostic.Define(
-        module: DiagnosticModules.Plugins,
-        category: DiagnosticCategory.NotFound,
-        sequence: 1,
-        message: $"Plugin {pluginId} version {version} not found.");
+    public static Diagnostic PluginNotFound(string pluginId, string version) => Define(1, $"Plugin {pluginId} version {version} not found.", DiagnosticCategory.NotFound);
+
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Plugins, sequence, message, category);
 }

@@ -2,10 +2,8 @@
 
 public static class BindingDigestDiagnostics
 {
-    /// <summary>SYNENTRA-BDG-0001</summary>
-    public static readonly Diagnostic InvalidBindingDigest = Diagnostic.Define(
-        module: DiagnosticModules.BindingDigest,
-        category: DiagnosticCategory.Validation,
-        sequence: 1,
-        message: "Binding digest must be a 64-character hexadecimal string.");
+    public static readonly Diagnostic InvalidBindingDigest = Define(1, "Binding digest must be a 64-character hexadecimal string.", DiagnosticCategory.Validation);
+
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.BindingDigest, sequence, message, category);
 }
