@@ -2,101 +2,21 @@
 
 public static class CredentialDiagnostics
 {
-    /// <summary>SYNENTRA-CRD-0001</summary>
-    public static readonly Diagnostic CredentialNotFound = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.NotFound,
-        sequence: 1,
-        message: "Credential not found.");
+    public static readonly Diagnostic CredentialNotFound = Define(1, "Credential not found.", DiagnosticCategory.NotFound);
+    public static readonly Diagnostic CredentialVersionNotFound = Define(2, "Credential version not found.", DiagnosticCategory.NotFound);
+    public static readonly Diagnostic CredentialProviderUnavailable = Define(3, "Credential provider unavailable.", DiagnosticCategory.Infrastructure);
+    public static readonly Diagnostic CredentialUnavailableOrInvalid = Define(4, "Credential unavailable or invalid.", DiagnosticCategory.Authentication);
+    public static readonly Diagnostic CredentialValueMissing = Define(5, "Credential value missing.", DiagnosticCategory.NotFound);
+    public static readonly Diagnostic CredentialBootstrapConfigurationInvalid = Define(6, "Vault bootstrap configuration invalid.", DiagnosticCategory.Infrastructure);
+    public static readonly Diagnostic CredentialInvalidVaultPath = Define(7, "Invalid Vault path.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic CredentialVersionDisabledOrNotYetValid = Define(8, "Credential version disabled or not yet valid.", DiagnosticCategory.Authentication);
+    public static readonly Diagnostic CredentialBinarySecretsNotAuthenticationHeaders = Define(9, "Binary secrets are not authentication headers.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic CredentialExpired = Define(10, "Credential expired.", DiagnosticCategory.Authentication);
+    public static readonly Diagnostic CredentialRequiresOfflineCiphertextMigration = Define(11, "Credential requires offline ciphertext migration.", DiagnosticCategory.Infrastructure);
+    public static readonly Diagnostic CredentialAccessRevoked = Define(12, "Credential access revoked.", DiagnosticCategory.Forbidden);
+    public static readonly Diagnostic CredentialProviderMissingOrAmbiguous = Define(13, "Credential provider missing or ambiguous.", DiagnosticCategory.Infrastructure);
+    public static readonly Diagnostic CredentialInvalidatedDuringResolution = Define(14, "Credential invalidated during resolution.", DiagnosticCategory.Conflict);
 
-    /// <summary>SYNENTRA-CRD-0002</summary>
-    public static readonly Diagnostic CredentialVersionNotFound = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.NotFound,
-        sequence: 2,
-        message: "Credential version not found.");
-
-    /// <summary>SYNENTRA-CRD-0003</summary>
-    public static readonly Diagnostic CredentialProviderUnavailable = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Infrastructure,
-        sequence: 3,
-        message: "Credential provider unavailable.");
-
-    /// <summary>SYNENTRA-CRD-0004</summary>
-    public static readonly Diagnostic CredentialUnavailableOrInvalid = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Authentication,
-        sequence: 4,
-        message: "Credential unavailable or invalid.");
-
-    /// <summary>SYNENTRA-CRD-0005</summary>
-    public static readonly Diagnostic CredentialValueMissing = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.NotFound,
-        sequence: 5,
-        message: "Credential value missing.");
-
-    /// <summary>SYNENTRA-CRD-0006</summary>
-    public static readonly Diagnostic CredentialBootstrapConfigurationInvalid = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Infrastructure,
-        sequence: 6,
-        message: "Vault bootstrap configuration invalid.");
-
-    /// <summary>SYNENTRA-CRD-0007</summary>
-    public static readonly Diagnostic CredentialInvalidVaultPath = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Validation,
-        sequence: 7,
-        message: "Invalid Vault path.");
-
-    /// <summary>SYNENTRA-CRD-0008</summary>
-    public static readonly Diagnostic CredentialVersionDisabledOrNotYetValid = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Authentication,
-        sequence: 8,
-        message: "Credential version disabled or not yet valid.");
-
-    /// <summary>SYNENTRA-CRD-0009</summary>
-    public static readonly Diagnostic CredentialBinarySecretsNotAuthenticationHeaders = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Validation,
-        sequence: 9,
-        message: "Binary secrets are not authentication headers.");
-
-    /// <summary>SYNENTRA-CRD-0010</summary>
-    public static readonly Diagnostic CredentialExpired = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Authentication,
-        sequence: 10,
-        message: "Credential expired.");
-
-    /// <summary>SYNENTRA-CRD-0011</summary>
-    public static readonly Diagnostic CredentialRequiresOfflineCiphertextMigration = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Infrastructure,
-        sequence: 11,
-        message: "Credential requires offline ciphertext migration.");
-
-    /// <summary>SYNENTRA-CRD-0012</summary>
-    public static readonly Diagnostic CredentialAccessRevoked = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Forbidden,
-        sequence: 12,
-        message: "Credential access revoked.");
-
-    /// <summary>SYNENTRA-CRD-0013</summary>
-    public static readonly Diagnostic CredentialProviderMissingOrAmbiguous = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Infrastructure,
-        sequence: 13,
-        message: "Credential provider missing or ambiguous.");
-
-    /// <summary>SYNENTRA-CRD-0014</summary>
-    public static readonly Diagnostic CredentialInvalidatedDuringResolution = Diagnostic.Define(
-        module: DiagnosticModules.Credentials,
-        category: DiagnosticCategory.Conflict,
-        sequence: 14,
-        message: "Credential invalidated during resolution.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Credentials, sequence, message, category);
 }

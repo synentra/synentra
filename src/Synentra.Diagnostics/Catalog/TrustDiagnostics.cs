@@ -2,10 +2,8 @@
 
 public static class TrustDiagnostics
 {
-    /// <summary>SYNENTRA-TRS-0001</summary>
-    public static readonly Diagnostic TrustScoreOutOfRange = Diagnostic.Define(
-        module: DiagnosticModules.Trust,
-        category: DiagnosticCategory.Validation,
-        sequence: 1,
-        message: "Trust score must be 0-100.");
+    public static readonly Diagnostic TrustScoreOutOfRange = Define(1, "Trust score must be 0-100.", DiagnosticCategory.Validation);
+
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Trust, sequence, message, category);
 }

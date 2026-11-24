@@ -2,38 +2,12 @@
 
 public static class AuthenticationDiagnostics
 {
-    /// <summary>SYNENTRA-AUTH-0001</summary>
-    public static readonly Diagnostic MissingAgentCredential = Diagnostic.Define(
-        module: DiagnosticModules.Authentication,
-        category: DiagnosticCategory.Authentication,
-        sequence: 1,
-        message: "Missing agent credential.");
+    public static readonly Diagnostic MissingAgentCredential = Define(1, "Missing agent credential.", DiagnosticCategory.Authentication);
+    public static readonly Diagnostic CredentialValidationFailed = Define(2, "Credential validation failed.", DiagnosticCategory.Authentication);
+    public static readonly Diagnostic AdministratorPermissionRequired = Define(3, "Administrator permission required.", DiagnosticCategory.Forbidden);
+    public static readonly Diagnostic TrustedIssuerPermissionRequired = Define(4, "Trusted issuer permission required.", DiagnosticCategory.Forbidden);
+    public static readonly Diagnostic UnauthorizedAccess = Define(5, "The authenticated principal is not authorized for this operation.", DiagnosticCategory.Authentication);
 
-    /// <summary>SYNENTRA-AUTH-0002</summary>
-    public static readonly Diagnostic CredentialValidationFailed = Diagnostic.Define(
-        module: DiagnosticModules.Authentication,
-        category: DiagnosticCategory.Authentication,
-        sequence: 2,
-        message: "Credential validation failed.");
-
-    /// <summary>SYNENTRA-AUTH-0003</summary>
-    public static readonly Diagnostic AdministratorPermissionRequired = Diagnostic.Define(
-        module: DiagnosticModules.Authentication,
-        category: DiagnosticCategory.Forbidden,
-        sequence: 3,
-        message: "Administrator permission required.");
-
-    /// <summary>SYNENTRA-AUTH-0004</summary>
-    public static readonly Diagnostic TrustedIssuerPermissionRequired = Diagnostic.Define(
-        module: DiagnosticModules.Authentication,
-        category: DiagnosticCategory.Forbidden,
-        sequence: 4,
-        message: "Trusted issuer permission required.");
-
-    /// <summary>SYNENTRA-AUTH-0005</summary>
-    public static readonly Diagnostic UnauthorizedAccess = Diagnostic.Define(
-        module: DiagnosticModules.Authentication,
-        category: DiagnosticCategory.Authentication,
-        sequence: 5,
-        message: "The authenticated principal is not authorized for this operation.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Authentication, sequence, message, category);
 }
