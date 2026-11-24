@@ -2,66 +2,16 @@
 
 public static class ApprovalDiagnostics
 {
-    /// <summary>SYNENTRA-APR-0001</summary>
-    public static readonly Diagnostic ApprovalHasExpired = Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Conflict,
-        sequence: 1,
-        message: "Approval has expired.");
+    public static readonly Diagnostic ApprovalHasExpired = Define(1, "Approval has expired.", DiagnosticCategory.Conflict);
+    public static Diagnostic CannotApprove(string status) => Define(2, $"Cannot approve in state {status}.", DiagnosticCategory.Conflict);
+    public static Diagnostic CannotReject(string status) => Define(3, $"Cannot reject in state {status}.", DiagnosticCategory.Conflict);
+    public static Diagnostic CannotRevoke(string status) => Define(4, $"Cannot revoke in state {status}.", DiagnosticCategory.Conflict);
+    public static Diagnostic CannotConsume(string status) => Define(5, $"Cannot consume in state {status}.", DiagnosticCategory.Conflict);
+    public static Diagnostic ApprovalNotFound(string approvalId) => Define(6, $"Approval {approvalId} not found.", DiagnosticCategory.NotFound);
+    public static readonly Diagnostic ApprovalReviewerPermissionRequired = Define(7, "Reviewer permission required.", DiagnosticCategory.Forbidden);
+    public static readonly Diagnostic ApprovalSelfApprovalDenied = Define(8, "Self-approval denied.", DiagnosticCategory.Forbidden);
+    public static readonly Diagnostic ApprovalOnlyAdminOrRequestingAgentMayRevoke = Define(9, "Only admin or requesting agent may revoke.", DiagnosticCategory.Forbidden);
 
-    /// <summary>SYNENTRA-APR-0002</summary>
-    public static Diagnostic CannotApprove(string status) => Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Conflict,
-        sequence: 2,
-        message: $"Cannot approve in state {status}.");
-
-    /// <summary>SYNENTRA-APR-0003</summary>
-    public static Diagnostic CannotReject(string status) => Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Conflict,
-        sequence: 3,
-        message: $"Cannot reject in state {status}.");
-
-    /// <summary>SYNENTRA-APR-0004</summary>
-    public static Diagnostic CannotRevoke(string status) => Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Conflict,
-        sequence: 4,
-        message: $"Cannot revoke in state {status}.");
-
-    /// <summary>SYNENTRA-APR-0005</summary>
-    public static Diagnostic CannotConsume(string status) => Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Conflict,
-        sequence: 5,
-        message: $"Cannot consume in state {status}.");
-
-    /// <summary>SYNENTRA-APR-0006</summary>
-    public static Diagnostic ApprovalNotFound(string approvalId) => Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.NotFound,
-        sequence: 6,
-        message: $"Approval {approvalId} not found.");
-
-    /// <summary>SYNENTRA-APR-0007</summary>
-    public static readonly Diagnostic ApprovalReviewerPermissionRequired = Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Forbidden,
-        sequence: 7,
-        message: "Reviewer permission required.");
-
-    /// <summary>SYNENTRA-APR-0008</summary>
-    public static readonly Diagnostic ApprovalSelfApprovalDenied = Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Forbidden,
-        sequence: 8,
-        message: "Self-approval denied.");
-
-    /// <summary>SYNENTRA-APR-0009</summary>
-    public static readonly Diagnostic ApprovalOnlyAdminOrRequestingAgentMayRevoke = Diagnostic.Define(
-        module: DiagnosticModules.Approvals,
-        category: DiagnosticCategory.Forbidden,
-        sequence: 9,
-        message: "Only admin or requesting agent may revoke.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Approvals, sequence, message, category);
 }

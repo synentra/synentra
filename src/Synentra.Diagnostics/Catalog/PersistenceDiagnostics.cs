@@ -2,10 +2,8 @@
 
 public static class PersistenceDiagnostics
 {
-    /// <summary>SYNENTRA-PER-0001</summary>
-    public static readonly Diagnostic CredentialWriteConflict = Diagnostic.Define(
-        module: DiagnosticModules.Persistence,
-        category: DiagnosticCategory.Conflict,
-        sequence: 1,
-        message: "Concurrent or duplicate write rejected.");
+    public static readonly Diagnostic CredentialWriteConflict = Define(1, "Concurrent or duplicate write rejected.", DiagnosticCategory.Conflict);
+
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Persistence, sequence, message, category);
 }

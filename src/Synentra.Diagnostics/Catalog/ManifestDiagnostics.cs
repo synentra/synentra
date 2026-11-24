@@ -2,38 +2,12 @@
 
 public static class ManifestDiagnostics
 {
-    /// <summary>SYNENTRA-MFT-0001</summary>
-    public static readonly Diagnostic ManifestIdMismatch = Diagnostic.Define(
-        module: DiagnosticModules.Manifest,
-        category: DiagnosticCategory.Conflict,
-        sequence: 1,
-        message: "The manifest identifier does not match the request.");
+    public static readonly Diagnostic ManifestIdMismatch = Define(1, "The manifest identifier does not match the request.", DiagnosticCategory.Conflict);
+    public static Diagnostic ActivationConflict(string message) => Define(2, message, DiagnosticCategory.Validation);
+    public static readonly Diagnostic PayloadTooLarge = Define(3, "Manifest exceeds the configured size limit.", DiagnosticCategory.Validation);
+    public static Diagnostic InvalidManifest(string message) => Define(4, message, DiagnosticCategory.Validation);
+    public static readonly Diagnostic NoActiveBundle = Define(5, "No active governance bundle is available.", DiagnosticCategory.NotFound);
 
-    /// <summary>SYNENTRA-MFT-0002</summary>
-    public static Diagnostic ActivationConflict(string message) => Diagnostic.Define(
-        module: DiagnosticModules.Manifest,
-        category: DiagnosticCategory.Validation,
-        sequence: 2,
-        message: message);
-
-    /// <summary>SYNENTRA-MFT-0003</summary>
-    public static readonly Diagnostic PayloadTooLarge = Diagnostic.Define(
-        module: DiagnosticModules.Manifest,
-        category: DiagnosticCategory.Validation,
-        sequence: 3,
-        message: "Manifest exceeds the configured size limit.");
-
-    /// <summary>SYNENTRA-MFT-0004</summary>
-    public static Diagnostic InvalidManifest(string message) => Diagnostic.Define(
-        module: DiagnosticModules.Manifest,
-        category: DiagnosticCategory.Validation,
-        sequence: 4,
-        message: message);
-
-    /// <summary>SYNENTRA-MFT-0005</summary>
-    public static readonly Diagnostic NoActiveBundle = Diagnostic.Define(
-        module: DiagnosticModules.Manifest,
-        category: DiagnosticCategory.NotFound,
-        sequence: 5,
-        message: "No active governance bundle is available.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Manifest, sequence, message, category);
 }
