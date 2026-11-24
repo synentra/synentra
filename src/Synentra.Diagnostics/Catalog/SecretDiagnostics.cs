@@ -2,59 +2,15 @@
 
 public static class SecretDiagnostics
 {
-    /// <summary>SYNENTRA-SEC-0001</summary>
-    public static readonly Diagnostic SecretRefEmpty = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.Validation,
-        sequence: 1,
-        message: "Secret reference is empty.");
+    public static readonly Diagnostic SecretRefEmpty = Define(1, "Secret reference is empty.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic SecretRefAmbiguous = Define(2, "Secret reference is ambiguous (looks like a Windows path).", DiagnosticCategory.Validation);
+    public static readonly Diagnostic BindingIdMismatch = Define(3, "The provided binding ID does not match the requested ID.", DiagnosticCategory.Conflict);
+    public static readonly Diagnostic BindingNotFound = Define(4, "The requested binding was not found.", DiagnosticCategory.NotFound);
+    public static readonly Diagnostic InvalidRequest = Define(5, "The provided request is invalid.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic InvalidCredentialProvider = Define(6, "The specified credential provider is not valid.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic InvalidSecretReference = Define(7, "The specified secret reference is not valid.", DiagnosticCategory.Validation);
+    public static readonly Diagnostic CredentialUnavailable = Define(8, "A required credential is unavailable.", DiagnosticCategory.NotFound);
 
-    /// <summary>SYNENTRA-SEC-0002</summary>
-    public static readonly Diagnostic SecretRefAmbiguous = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.Validation,
-        sequence: 2,
-        message: "Secret reference is ambiguous (looks like a Windows path).");
-
-    /// <summary>SYNENTRA-SEC-0003</summary>
-    public static readonly Diagnostic BindingIdMismatch = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.Conflict,
-        sequence: 3,
-        message: "The provided binding ID does not match the requested ID.");
-
-    /// <summary>SYNENTRA-SEC-0004</summary>
-    public static readonly Diagnostic BindingNotFound = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.NotFound,
-        sequence: 4,
-        message: "The requested binding was not found.");
-
-    /// <summary>SYNENTRA-SEC-0005</summary>
-    public static readonly Diagnostic InvalidRequest = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.Validation,
-        sequence: 5,
-        message: "The provided request is invalid.");
-
-    /// <summary>SYNENTRA-SEC-0006</summary>
-    public static readonly Diagnostic InvalidCredentialProvider = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.Validation,
-        sequence: 6,
-        message: "The specified credential provider is not valid.");
-
-    /// <summary>SYNENTRA-SEC-0007</summary>
-    public static readonly Diagnostic InvalidSecretReference = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.Validation,
-        sequence: 7,
-        message: "The specified secret reference is not valid.");
-
-    /// <summary>SYNENTRA-SEC-0008</summary>
-    public static readonly Diagnostic CredentialUnavailable = Diagnostic.Define(
-        module: DiagnosticModules.Secrets,
-        category: DiagnosticCategory.NotFound,
-        sequence: 8,
-        message: "A required credential is unavailable.");
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Secrets, sequence, message, category);
 }

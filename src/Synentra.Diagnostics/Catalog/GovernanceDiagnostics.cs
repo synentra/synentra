@@ -2,10 +2,8 @@
 
 public static class GovernanceDiagnostics
 {
-    /// <summary>SYNENTRA-GOV-3001</summary>
-    public static readonly Diagnostic GovernanceDependencyUnavailable = Diagnostic.Define(
-        module: DiagnosticModules.Governance,
-        category: DiagnosticCategory.NotFound,
-        sequence: 3001,
-        message: "A required governance dependency is unavailable.");
+    public static readonly Diagnostic GovernanceDependencyUnavailable = Define(1, "A required governance dependency is unavailable.", DiagnosticCategory.NotFound);
+
+    private static Diagnostic Define(ushort sequence, string message, DiagnosticCategory category = DiagnosticCategory.Validation) =>
+        Diagnostic.Define(DiagnosticModules.Governance, sequence, message, category);
 }
