@@ -29,7 +29,7 @@ public sealed class InternalOnnxIntentProvider(
 
     private readonly TaskCompletionSource _initializationTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    private readonly int _maxLength;
+    private readonly int _maxLength = 512;
 
     private InferenceSession? _session;
     private BertTokenizer? _tokenizer;
